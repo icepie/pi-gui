@@ -1,14 +1,53 @@
-import { useEffect, useState } from "react";
-import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  RuntimeCustomProviderConfig,
+  RuntimeCustomProviderInput,
+  RuntimeSnapshot,
+} from "@pi-gui/session-driver/runtime-types";
 import { filterProviders, ProviderRow, SettingsGroup } from "./settings-utils";
+
+const CUSTOM_PROVIDER_APIS = [
+  "openai-completions",
+  "openai-responses",
+  "anthropic-messages",
+  "google-generative-ai",
+] as const;
+
+type CustomProviderApi = (typeof CUSTOM_PROVIDER_APIS)[number];
 
 interface SettingsProvidersSectionProps {
   readonly runtime?: RuntimeSnapshot;
   readonly onLoginProvider: (providerId: string) => void;
   readonly onLogoutProvider: (providerId: string) => void;
-  readonly onSetProviderApiKey: (providerId: string, apiKey: string) => Promise<string | undefined>;
+  readonly onSetProviderApiKey: (
+    providerId: string,
+    config: {
+      readonly apiKey: string;
+      readonly baseUrl?: string;
+    },
+  ) => Promise<string | undefined>;
   readonly onRemoveProviderApiKey: (providerId: string) => Promise<string | undefined>;
+  readonly onUpsertCustomProvider: (input: RuntimeCustomProviderInput) => Promise<string | undefined>;
+  readonly onRemoveCustomProvider: (providerId: string) => Promise<string | undefined>;
 }
+
+interface CustomProviderDraft {
+  readonly id: string;
+  readonly displayName: string;
+  readonly api: CustomProviderApi;
+  readonly baseUrl: string;
+  readonly apiKey: string;
+  readonly modelIds: string;
+}
+
+const EMPTY_CUSTOM_PROVIDER_DRAFT: CustomProviderDraft = {
+  id: "",
+  displayName: "",
+  api: "openai-responses",
+  baseUrl: "",
+  apiKey: "",
+  modelIds: "",
+};
 
 export function SettingsProvidersSection({
   runtime,
@@ -16,24 +55,49 @@ export function SettingsProvidersSection({
   onLogoutProvider,
   onSetProviderApiKey,
   onRemoveProviderApiKey,
+  onUpsertCustomProvider,
+  onRemoveCustomProvider,
 }: SettingsProvidersSectionProps) {
   const [providerQuery, setProviderQuery] = useState("");
   const [apiKeyProviderId, setApiKeyProviderId] = useState<string | undefined>();
   const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [baseUrlDraft, setBaseUrlDraft] = useState("");
   const [apiKeyError, setApiKeyError] = useState<string | undefined>();
   const [apiKeyPending, setApiKeyPending] = useState(false);
+  const [customProviderDraft, setCustomProviderDraft] = useState<CustomProviderDraft>(EMPTY_CUSTOM_PROVIDER_DRAFT);
+  const [customProviderError, setCustomProviderError] = useState<string | undefined>();
+  const [customProviderPending, setCustomProviderPending] = useState(false);
+  const [editingCustomProviderId, setEditingCustomProviderId] = useState<string | undefined>();
 
   const providers = runtime?.providers ?? [];
-  const connectedProviders = providers.filter((p) => p.hasAuth);
+  const connectedProviders = providers.filter((p) => p.hasAuth && !p.customProviderConfig);
   const oauthProviders = providers.filter((p) => p.oauthSupported);
+  const customProviders = providers.filter((p) => p.customProviderConfig);
   const filteredProviders = filterProviders(providers, providerQuery);
   const apiKeyProvider = apiKeyProviderId ? providers.find((provider) => provider.id === apiKeyProviderId) : undefined;
 
+  const customProviderMode = editingCustomProviderId ? "edit" : "create";
+  const customProviderSubmitLabel = customProviderMode === "edit" ? "Save provider" : "Add provider";
+
   useEffect(() => {
+    if (!apiKeyProvider) {
+      setApiKeyDraft("");
+      setBaseUrlDraft("");
+      setApiKeyError(undefined);
+      setApiKeyPending(false);
+      return;
+    }
+
     setApiKeyDraft("");
+    setBaseUrlDraft(apiKeyProvider.customProviderConfig?.baseUrl ?? "");
     setApiKeyError(undefined);
     setApiKeyPending(false);
-  }, [apiKeyProviderId]);
+  }, [apiKeyProvider]);
+
+  const customProviderById = useMemo(
+    () => new Map(customProviders.map((provider) => [provider.id, provider] as const)),
+    [customProviders],
+  );
 
   const closeApiKeyDialog = () => {
     if (apiKeyPending) {
@@ -48,7 +112,10 @@ export function SettingsProvidersSection({
     }
     setApiKeyPending(true);
     setApiKeyError(undefined);
-    const nextError = await onSetProviderApiKey(apiKeyProvider.id, apiKeyDraft.trim());
+    const nextError = await onSetProviderApiKey(apiKeyProvider.id, {
+      apiKey: apiKeyDraft.trim(),
+      ...(baseUrlDraft.trim() ? { baseUrl: baseUrlDraft.trim() } : {}),
+    });
     if (nextError) {
       setApiKeyPending(false);
       setApiKeyError(nextError);
@@ -72,9 +139,73 @@ export function SettingsProvidersSection({
     setApiKeyProviderId(undefined);
   };
 
+  const beginCreateCustomProvider = () => {
+    setEditingCustomProviderId(undefined);
+    setCustomProviderDraft(EMPTY_CUSTOM_PROVIDER_DRAFT);
+    setCustomProviderError(undefined);
+    setCustomProviderPending(false);
+  };
+
+  const beginEditCustomProvider = (providerId: string) => {
+    const provider = customProviderById.get(providerId);
+    const config = provider?.customProviderConfig;
+    if (!provider || !config) {
+      return;
+    }
+    setEditingCustomProviderId(providerId);
+    setCustomProviderDraft({
+      id: provider.id,
+      displayName: config.displayName ?? "",
+      api: config.api,
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey ?? "",
+      modelIds: config.modelIds.join("\n"),
+    });
+    setCustomProviderError(undefined);
+    setCustomProviderPending(false);
+  };
+
+  const handleSaveCustomProvider = async () => {
+    setCustomProviderPending(true);
+    setCustomProviderError(undefined);
+    const nextError = await onUpsertCustomProvider({
+      id: customProviderDraft.id.trim(),
+      displayName: customProviderDraft.displayName.trim() || undefined,
+      api: customProviderDraft.api,
+      baseUrl: customProviderDraft.baseUrl.trim(),
+      apiKey: customProviderDraft.apiKey.trim() || undefined,
+      modelIds: customProviderDraft.modelIds
+        .split(/\r?\n|,/)
+        .map((value) => value.trim())
+        .filter(Boolean),
+    });
+    if (nextError) {
+      setCustomProviderPending(false);
+      setCustomProviderError(nextError);
+      return;
+    }
+    beginCreateCustomProvider();
+  };
+
+  const handleRemoveCustomProvider = async (providerId: string) => {
+    setCustomProviderPending(true);
+    setCustomProviderError(undefined);
+    const nextError = await onRemoveCustomProvider(providerId);
+    if (nextError) {
+      setCustomProviderPending(false);
+      setCustomProviderError(nextError);
+      return;
+    }
+    if (editingCustomProviderId === providerId) {
+      beginCreateCustomProvider();
+      return;
+    }
+    setCustomProviderPending(false);
+  };
+
   return (
     <>
-      <SettingsGroup title="Connected" description="Connected providers are used first for picking models.">
+      <SettingsGroup title="Connected" description="Connected built-in providers are used first for picking models.">
         {connectedProviders.length > 0 ? (
           connectedProviders.map((provider) => (
             <ProviderRow
@@ -87,9 +218,135 @@ export function SettingsProvidersSection({
           ))
         ) : (
           <div className="settings-row">
-            <span className="settings-row__description">No providers connected yet.</span>
+            <span className="settings-row__description">No built-in providers connected yet.</span>
           </div>
         )}
+      </SettingsGroup>
+
+      <SettingsGroup title="Custom providers" description="Add OpenAI, Anthropic, or Google-compatible providers from your own endpoints.">
+        <div className="settings-row">
+          <div className="settings-row__label">
+            <div className="settings-row__title">Provider definitions</div>
+            <div className="settings-row__description">These entries are written to `models.json` and become available throughout the app.</div>
+          </div>
+          <div className="settings-row__control">
+            <button className="button button--secondary" type="button" onClick={beginCreateCustomProvider}>
+              New custom provider
+            </button>
+          </div>
+        </div>
+
+        <div className="settings-list">
+          {customProviders.length > 0 ? (
+            customProviders.map((provider) => (
+              <div className="settings-option" data-testid={`custom-provider-row-${provider.id}`} key={provider.id}>
+                <span className="settings-option__title">{provider.customProviderConfig?.displayName ?? provider.id}</span>
+                <span className="settings-option__meta">
+                  {provider.id}
+                  {provider.customProviderConfig ? ` · ${provider.customProviderConfig.api}` : ""}
+                  {provider.customProviderConfig?.modelIds.length ? ` · ${provider.customProviderConfig.modelIds.join(", ")}` : ""}
+                </span>
+                <div className="settings-pill-row">
+                  <button className="button button--secondary" type="button" onClick={() => beginEditCustomProvider(provider.id)}>
+                    Edit
+                  </button>
+                  <button className="button button--secondary" type="button" onClick={() => void handleRemoveCustomProvider(provider.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="settings-row">
+              <span className="settings-row__description">No custom providers yet.</span>
+            </div>
+          )}
+        </div>
+
+        <div className="settings-section">
+          <h3 className="settings-section__title">{customProviderMode === "edit" ? "Edit custom provider" : "Add custom provider"}</h3>
+          <div className="settings-group">
+            <input
+              aria-label="Custom provider ID"
+              className="settings-search"
+              disabled={customProviderPending || customProviderMode === "edit"}
+              placeholder="Provider ID, for example my-proxy"
+              value={customProviderDraft.id}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, id: event.target.value }))}
+            />
+            <input
+              aria-label="Custom provider display name"
+              className="settings-search"
+              disabled={customProviderPending}
+              placeholder="Optional display name"
+              value={customProviderDraft.displayName}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, displayName: event.target.value }))}
+            />
+            <select
+              aria-label="Custom provider API"
+              className="settings-select"
+              disabled={customProviderPending}
+              value={customProviderDraft.api}
+              onChange={(event) =>
+                setCustomProviderDraft((draft) => ({ ...draft, api: event.target.value as CustomProviderApi }))
+              }
+            >
+              {CUSTOM_PROVIDER_APIS.map((api) => (
+                <option key={api} value={api}>
+                  {api}
+                </option>
+              ))}
+            </select>
+            <input
+              aria-label="Custom provider base URL"
+              className="settings-search"
+              disabled={customProviderPending}
+              placeholder="Base URL"
+              type="url"
+              value={customProviderDraft.baseUrl}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, baseUrl: event.target.value }))}
+            />
+            <input
+              aria-label="Custom provider API key"
+              className="settings-search"
+              disabled={customProviderPending}
+              placeholder="Optional API key"
+              type="password"
+              value={customProviderDraft.apiKey}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, apiKey: event.target.value }))}
+            />
+            <textarea
+              aria-label="Custom provider model IDs"
+              className="extension-dialog__editor"
+              disabled={customProviderPending}
+              placeholder={"One model ID per line\nfor example:\ngpt-4.1\ngpt-4o-mini"}
+              rows={6}
+              value={customProviderDraft.modelIds}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, modelIds: event.target.value }))}
+            />
+            {customProviderError ? <p className="extension-dialog__body settings-warning">{customProviderError}</p> : null}
+            <div className="extension-dialog__actions">
+              {customProviderMode === "edit" ? (
+                <button className="button button--secondary" disabled={customProviderPending} type="button" onClick={beginCreateCustomProvider}>
+                  Cancel edit
+                </button>
+              ) : null}
+              <button
+                className="button"
+                disabled={
+                  customProviderPending
+                  || !customProviderDraft.id.trim()
+                  || !customProviderDraft.baseUrl.trim()
+                  || !customProviderDraft.modelIds.trim()
+                }
+                type="button"
+                onClick={() => void handleSaveCustomProvider()}
+              >
+                {customProviderSubmitLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       </SettingsGroup>
 
       <SettingsGroup title="Sign in" description="OAuth-capable providers can sign in directly from the desktop app.">
@@ -137,9 +394,11 @@ export function SettingsProvidersSection({
         <ProviderApiKeyDialog
           provider={apiKeyProvider}
           draft={apiKeyDraft}
+          baseUrlDraft={baseUrlDraft}
           error={apiKeyError}
           pending={apiKeyPending}
           onChangeDraft={setApiKeyDraft}
+          onChangeBaseUrlDraft={setBaseUrlDraft}
           onClose={closeApiKeyDialog}
           onRemove={apiKeyProvider.authSource === "auth_file" ? handleRemoveApiKey : undefined}
           onSave={handleSaveApiKey}
@@ -152,18 +411,22 @@ export function SettingsProvidersSection({
 function ProviderApiKeyDialog({
   provider,
   draft,
+  baseUrlDraft,
   error,
   pending,
   onChangeDraft,
+  onChangeBaseUrlDraft,
   onClose,
   onRemove,
   onSave,
 }: {
   readonly provider: RuntimeSnapshot["providers"][number];
   readonly draft: string;
+  readonly baseUrlDraft: string;
   readonly error?: string;
   readonly pending: boolean;
   readonly onChangeDraft: (value: string) => void;
+  readonly onChangeBaseUrlDraft: (value: string) => void;
   readonly onClose: () => void;
   readonly onRemove?: () => Promise<void>;
   readonly onSave: () => Promise<void>;
@@ -171,14 +434,23 @@ function ProviderApiKeyDialog({
   const title = provider.authSource === "auth_file" ? "Manage API key" : "Set API key";
   const body =
     provider.authSource === "auth_file"
-      ? `Replace or remove the saved API key for ${provider.name}.`
-      : `Save an API key locally for ${provider.name}.`;
+      ? `Replace the saved API key for ${provider.name}, and optionally override its API URL.`
+      : `Save an API key locally for ${provider.name}, and optionally override its API URL.`;
 
   return (
     <div className="extension-dialog-backdrop">
       <div className="extension-dialog" data-testid="provider-api-key-dialog">
         <div className="extension-dialog__title">{title}</div>
         <p className="extension-dialog__body">{body}</p>
+        <input
+          aria-label={`${provider.name} API URL`}
+          className="settings-search"
+          disabled={pending}
+          placeholder="Optional custom API URL"
+          type="url"
+          value={baseUrlDraft}
+          onChange={(event) => onChangeBaseUrlDraft(event.target.value)}
+        />
         <input
           aria-label={`${provider.name} API key`}
           autoFocus
@@ -210,13 +482,8 @@ function ProviderApiKeyDialog({
               Remove saved key
             </button>
           ) : null}
-          <button
-            className="button"
-            disabled={pending || draft.trim().length === 0}
-            type="button"
-            onClick={() => void onSave()}
-          >
-            {provider.authSource === "auth_file" ? "Save key" : "Set API key"}
+          <button className="button" disabled={pending || draft.trim().length === 0} type="button" onClick={() => void onSave()}>
+            {provider.authSource === "auth_file" ? "Save" : "Set"}
           </button>
         </div>
       </div>

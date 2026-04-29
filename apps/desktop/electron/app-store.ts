@@ -29,7 +29,9 @@ import type {
 import type {
   ModelSettingsSnapshot,
   RuntimeCommandRecord,
+  RuntimeCustomProviderInput,
   RuntimeLoginCallbacks,
+  RuntimeProviderApiKeyConfig,
   RuntimeSettingsSnapshot,
   RuntimeSnapshot,
 } from "@pi-gui/session-driver/runtime-types";
@@ -611,9 +613,25 @@ export class DesktopAppStore implements AppStoreInternals {
     );
   }
 
-  async setProviderApiKey(workspaceId: string, providerId: string, apiKey: string): Promise<DesktopAppState> {
+  async setProviderApiKey(
+    workspaceId: string,
+    providerId: string,
+    config: RuntimeProviderApiKeyConfig,
+  ): Promise<DesktopAppState> {
     return this.withRuntimeUpdate(workspaceId, (ws) =>
-      this.driver.runtimeSupervisor.setProviderApiKey(ws, providerId, apiKey),
+      this.driver.runtimeSupervisor.setProviderApiKey(ws, providerId, config),
+    );
+  }
+
+  async upsertCustomProvider(workspaceId: string, input: RuntimeCustomProviderInput): Promise<DesktopAppState> {
+    return this.withRuntimeUpdate(workspaceId, (ws) =>
+      this.driver.runtimeSupervisor.upsertCustomProvider(ws, input),
+    );
+  }
+
+  async removeCustomProvider(workspaceId: string, providerId: string): Promise<DesktopAppState> {
+    return this.withRuntimeUpdate(workspaceId, (ws) =>
+      this.driver.runtimeSupervisor.removeCustomProvider(ws, providerId),
     );
   }
 

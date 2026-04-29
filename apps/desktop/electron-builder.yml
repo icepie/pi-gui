@@ -16,6 +16,7 @@ extraResources:
     to: icon.png
 
 asar: true
+npmRebuild: false
 asarUnpack:
   - "**/*.node"
   - "**/*.wasm"
@@ -46,6 +47,19 @@ linux:
   executableName: pi-gui
   target:
     - target: AppImage
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  executableName: pi-gui
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
 
 toolsets:
   appimage: "1.0.2"

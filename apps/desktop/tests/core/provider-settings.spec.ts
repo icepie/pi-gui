@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import {
   desktopShortcut,
@@ -47,8 +47,9 @@ test("settings lets the user save an API key for a built-in provider", async () 
 
     const dialog = window.getByTestId("provider-api-key-dialog");
     await expect(dialog).toBeVisible();
+    await dialog.getByLabel("openai API URL").fill("https://proxy.example.com/v1");
     await dialog.getByLabel("openai API key").fill("test-openai-key");
-    await dialog.getByRole("button", { name: "Set API key" }).click();
+    await dialog.getByRole("button", { name: "Set" }).click();
     await expect(dialog).toHaveCount(0);
 
     const connectedProviders = window.locator(".settings-section", {
@@ -64,6 +65,24 @@ test("settings lets the user save an API key for a built-in provider", async () 
     });
     await expect(enabledModels).toContainText("openai/gpt-5");
     await expect(enabledModels).toContainText("openai/gpt-4o");
+
+    await expect
+      .poll(async () => JSON.parse(await readFile(join(agentDir, "auth.json"), "utf8")))
+      .toMatchObject({
+        openai: {
+          type: "api_key",
+          key: "test-openai-key",
+        },
+      });
+    await expect
+      .poll(async () => JSON.parse(await readFile(join(agentDir, "models.json"), "utf8")))
+      .toMatchObject({
+        providers: {
+          openai: {
+            baseUrl: "https://proxy.example.com/v1",
+          },
+        },
+      });
   } finally {
     await harness.close();
   }

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import {
   DefaultPackageManager,
@@ -12,10 +12,13 @@ import {
   type ResolvedResource,
 } from "@mariozechner/pi-coding-agent";
 import type {
+  RuntimeCustomProviderConfig,
+  RuntimeCustomProviderInput,
   RuntimeLoginCallbacks,
   RuntimeExtensionDiagnostic,
   RuntimeExtensionRecord,
   RuntimeModelRecord,
+  RuntimeProviderApiKeyConfig,
   RuntimeProviderRecord,
   RuntimeResourceDriver,
   RuntimeSettingsSnapshot,
@@ -56,6 +59,7 @@ export interface RuntimeSupervisorOptions {
 
 type ResourceScope = "user" | "project";
 type ToggleableResourceKind = "extension" | "skill";
+type CustomProviderApi = RuntimeCustomProviderConfig["api"];
 
 export class RuntimeSupervisor implements RuntimeResourceDriver {
   private readonly agentDir: string;
@@ -102,9 +106,14 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
     return this.buildSnapshot(context);
   }
 
-  async setProviderApiKey(workspace: WorkspaceRef, providerId: string, apiKey: string): Promise<RuntimeSnapshot> {
+  async setProviderApiKey(
+    workspace: WorkspaceRef,
+    providerId: string,
+    config: RuntimeProviderApiKeyConfig,
+  ): Promise<RuntimeSnapshot> {
     const context = await this.ensureContext(workspace);
-    const normalized = apiKey.trim();
+    const normalized = config.apiKey.trim();
+    const normalizedBaseUrl = config.baseUrl?.trim();
     if (!normalized) {
       throw new Error("API key is required.");
     }
@@ -112,9 +121,56 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
       throw new Error(`API key setup is not supported for ${providerId}.`);
     }
     this.authStorage.set(providerId, { type: "api_key", key: normalized });
+    await updateProviderBaseUrlOverride(join(this.agentDir, "models.json"), providerId, normalizedBaseUrl);
     this.modelRegistry.refresh();
     await context.resourceLoader.reload();
     await this.autoEnableModelsForAuthenticatedProviders(context, [providerId]);
+    return this.buildSnapshot(context);
+  }
+
+  async upsertCustomProvider(workspace: WorkspaceRef, input: RuntimeCustomProviderInput): Promise<RuntimeSnapshot> {
+    const context = await this.ensureContext(workspace);
+    const providerId = input.id.trim();
+    const baseUrl = input.baseUrl.trim();
+    const modelIds = input.modelIds.map((value) => value.trim()).filter(Boolean);
+    const displayName = input.displayName?.trim();
+    const apiKey = input.apiKey?.trim();
+    if (!providerId) {
+      throw new Error("Provider ID is required.");
+    }
+    if (!isValidCustomProviderId(providerId)) {
+      throw new Error("Provider ID must use lowercase letters, numbers, and dashes only.");
+    }
+    if (!baseUrl) {
+      throw new Error("Base URL is required.");
+    }
+    if (!isSupportedCustomProviderApi(input.api)) {
+      throw new Error(`Unsupported provider API: ${input.api}`);
+    }
+    if (modelIds.length === 0) {
+      throw new Error("At least one model ID is required.");
+    }
+
+    await upsertCustomProviderDefinition(join(this.agentDir, "models.json"), {
+      id: providerId,
+      api: input.api,
+      baseUrl,
+      ...(displayName ? { displayName } : {}),
+      ...(apiKey ? { apiKey } : {}),
+      modelIds,
+    });
+    this.modelRegistry.refresh();
+    await context.resourceLoader.reload();
+    await this.autoEnableModelsForAuthenticatedProviders(context, [providerId]);
+    return this.buildSnapshot(context);
+  }
+
+  async removeCustomProvider(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot> {
+    const context = await this.ensureContext(workspace);
+    await removeCustomProviderDefinition(join(this.agentDir, "models.json"), providerId);
+    this.authStorage.logout(providerId);
+    this.modelRegistry.refresh();
+    await context.resourceLoader.reload();
     return this.buildSnapshot(context);
   }
 
@@ -404,10 +460,12 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
 
   private async buildProviderRecords(): Promise<readonly RuntimeProviderRecord[]> {
     const oauthProviders = new Map(this.authStorage.getOAuthProviders().map((provider) => [provider.id, provider]));
+    const customProviderConfigs = await readCustomProviderConfigsFromFile(join(this.agentDir, "models.json"));
     const providerIds = new Set<string>([
       ...this.modelRegistry.getAll().map((model) => model.provider),
       ...oauthProviders.keys(),
       ...this.authStorage.list(),
+      ...customProviderConfigs.keys(),
     ]);
 
     return [...providerIds]
@@ -417,6 +475,7 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
         const oauthProvider = oauthProviders.get(providerId);
         const apiKeySetupSupported = providerSupportsDesktopApiKeySetup(providerId);
         const hasAuth = this.authStorage.hasAuth(providerId);
+        const customProviderConfig = customProviderConfigs.get(providerId);
         return {
           id: providerId,
           name: oauthProvider?.name ?? providerId,
@@ -430,6 +489,7 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
           ),
           oauthSupported: Boolean(oauthProvider),
           apiKeySetupSupported,
+          ...(customProviderConfig ? { customProviderConfig } : {}),
         };
       });
   }
@@ -694,6 +754,157 @@ async function readJsonRecord(filePath: string): Promise<Record<string, unknown>
   } catch {
     return {};
   }
+}
+
+async function updateProviderBaseUrlOverride(
+  filePath: string,
+  providerId: string,
+  baseUrl: string | undefined,
+): Promise<void> {
+  const current = await readJsonRecord(filePath);
+  const providers =
+    current.providers && typeof current.providers === "object" && !Array.isArray(current.providers)
+      ? { ...(current.providers as Record<string, unknown>) }
+      : {};
+  const existing =
+    providers[providerId] && typeof providers[providerId] === "object" && !Array.isArray(providers[providerId])
+      ? { ...(providers[providerId] as Record<string, unknown>) }
+      : {};
+
+  if (baseUrl) {
+    existing.baseUrl = baseUrl;
+    providers[providerId] = existing;
+  } else if ("baseUrl" in existing) {
+    delete existing.baseUrl;
+    if (Object.keys(existing).length > 0) {
+      providers[providerId] = existing;
+    } else {
+      delete providers[providerId];
+    }
+  } else {
+    return;
+  }
+
+  const next: Record<string, unknown> = { ...current };
+  if (Object.keys(providers).length > 0) {
+    next.providers = providers;
+  } else {
+    delete next.providers;
+  }
+
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+}
+
+async function upsertCustomProviderDefinition(
+  filePath: string,
+  input: RuntimeCustomProviderInput,
+): Promise<void> {
+  const current = await readJsonRecord(filePath);
+  const providers = cloneProvidersRecord(current);
+  const existing = cloneProviderEntry(providers[input.id]);
+
+  providers[input.id] = {
+    ...existing,
+    baseUrl: input.baseUrl,
+    api: input.api,
+    ...(input.apiKey ? { apiKey: input.apiKey } : {}),
+    models: input.modelIds.map((modelId) => ({ id: modelId })),
+    ...(input.displayName ? { name: input.displayName } : {}),
+  };
+
+  const next: Record<string, unknown> = { ...current, providers };
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+}
+
+async function removeCustomProviderDefinition(filePath: string, providerId: string): Promise<void> {
+  const current = await readJsonRecord(filePath);
+  const providers = cloneProvidersRecord(current);
+  if (!(providerId in providers)) {
+    return;
+  }
+
+  delete providers[providerId];
+  const next: Record<string, unknown> = { ...current };
+  if (Object.keys(providers).length > 0) {
+    next.providers = providers;
+  } else {
+    delete next.providers;
+  }
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+}
+
+async function readCustomProviderConfigsFromFile(
+  filePath: string,
+): Promise<ReadonlyMap<string, RuntimeCustomProviderConfig>> {
+  const current = await readJsonRecord(filePath);
+  const providers = cloneProvidersRecord(current);
+  const result = new Map<string, RuntimeCustomProviderConfig>();
+  for (const [providerId, rawValue] of Object.entries(providers)) {
+    if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
+      continue;
+    }
+    const parsed = toRuntimeCustomProviderConfig(rawValue as Record<string, unknown>);
+    if (parsed) {
+      result.set(providerId, parsed);
+    }
+  }
+  return result;
+}
+
+function toRuntimeCustomProviderConfig(
+  value: Record<string, unknown>,
+): RuntimeCustomProviderConfig | undefined {
+  const baseUrl = typeof value.baseUrl === "string" ? value.baseUrl.trim() : "";
+  const api = value.api;
+  if (!baseUrl || !isSupportedCustomProviderApi(api)) {
+    return undefined;
+  }
+
+  const normalizedModelIds = Array.isArray(value.models)
+    ? [...new Set(
+        value.models
+          .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object" && !Array.isArray(entry))
+          .map((entry) => (typeof entry.id === "string" ? entry.id.trim() : ""))
+          .filter(Boolean),
+      )]
+    : [];
+  if (normalizedModelIds.length === 0) {
+    return undefined;
+  }
+
+  return {
+    api,
+    baseUrl,
+    ...(typeof value.apiKey === "string" && value.apiKey.trim() ? { apiKey: value.apiKey.trim() } : {}),
+    ...(typeof value.name === "string" && value.name.trim() ? { displayName: value.name.trim() } : {}),
+    modelIds: normalizedModelIds,
+  };
+}
+
+function cloneProvidersRecord(current: Record<string, unknown>): Record<string, unknown> {
+  return current.providers && typeof current.providers === "object" && !Array.isArray(current.providers)
+    ? { ...(current.providers as Record<string, unknown>) }
+    : {};
+}
+
+function cloneProviderEntry(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function isSupportedCustomProviderApi(value: unknown): value is CustomProviderApi {
+  return value === "openai-completions"
+    || value === "openai-responses"
+    || value === "anthropic-messages"
+    || value === "google-generative-ai";
+}
+
+function isValidCustomProviderId(value: string): boolean {
+  return /^[a-z0-9-]+$/.test(value);
 }
 
 function replaceResourcePattern(patterns: readonly string[], resourcePattern: string, enabled: boolean): string[] {

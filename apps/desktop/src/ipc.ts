@@ -1,4 +1,8 @@
-import type { RuntimeSettingsSnapshot } from "@pi-gui/session-driver/runtime-types";
+import type {
+  RuntimeCustomProviderInput,
+  RuntimeProviderApiKeyConfig,
+  RuntimeSettingsSnapshot,
+} from "@pi-gui/session-driver/runtime-types";
 import type {
   NavigateSessionTreeOptions,
   NavigateSessionTreeResult,
@@ -63,6 +67,8 @@ export const desktopIpc = {
   loginProvider: "pi-gui:login-provider",
   logoutProvider: "pi-gui:logout-provider",
   setProviderApiKey: "pi-gui:set-provider-api-key",
+  upsertCustomProvider: "pi-gui:upsert-custom-provider",
+  removeCustomProvider: "pi-gui:remove-custom-provider",
   setEnableSkillCommands: "pi-gui:set-enable-skill-commands",
   setScopedModelPatterns: "pi-gui:set-scoped-model-patterns",
   setSkillEnabled: "pi-gui:set-skill-enabled",
@@ -258,7 +264,13 @@ export interface PiDesktopApi {
   ): Promise<DesktopAppState>;
   loginProvider(workspaceId: string, providerId: string): Promise<DesktopAppState>;
   logoutProvider(workspaceId: string, providerId: string): Promise<DesktopAppState>;
-  setProviderApiKey(workspaceId: string, providerId: string, apiKey: string): Promise<DesktopAppState>;
+  setProviderApiKey(
+    workspaceId: string,
+    providerId: string,
+    config: RuntimeProviderApiKeyConfig,
+  ): Promise<DesktopAppState>;
+  upsertCustomProvider(workspaceId: string, input: RuntimeCustomProviderInput): Promise<DesktopAppState>;
+  removeCustomProvider(workspaceId: string, providerId: string): Promise<DesktopAppState>;
   setEnableSkillCommands(workspaceId: string, enabled: boolean): Promise<DesktopAppState>;
   setScopedModelPatterns(workspaceId: string, patterns: readonly string[]): Promise<DesktopAppState>;
   setSkillEnabled(workspaceId: string, filePath: string, enabled: boolean): Promise<DesktopAppState>;

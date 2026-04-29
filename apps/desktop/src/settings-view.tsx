@@ -27,8 +27,23 @@ interface SettingsViewProps {
   readonly onSetScopedModelPatterns: (patterns: readonly string[]) => void;
   readonly onLoginProvider: (providerId: string) => void;
   readonly onLogoutProvider: (providerId: string) => void;
-  readonly onSetProviderApiKey: (providerId: string, apiKey: string) => Promise<string | undefined>;
+  readonly onSetProviderApiKey: (
+    providerId: string,
+    config: {
+      readonly apiKey: string;
+      readonly baseUrl?: string;
+    },
+  ) => Promise<string | undefined>;
   readonly onRemoveProviderApiKey: (providerId: string) => Promise<string | undefined>;
+  readonly onUpsertCustomProvider: (input: {
+    readonly id: string;
+    readonly displayName?: string;
+    readonly api: "openai-completions" | "openai-responses" | "anthropic-messages" | "google-generative-ai";
+    readonly baseUrl: string;
+    readonly apiKey?: string;
+    readonly modelIds: readonly string[];
+  }) => Promise<string | undefined>;
+  readonly onRemoveCustomProvider: (providerId: string) => Promise<string | undefined>;
   readonly onSetNotificationPreferences: (preferences: Partial<NotificationPreferences>) => void;
   readonly onSetIntegratedTerminalShell: (shellPath: string) => void;
   readonly onRequestNotificationPermission: () => void;
@@ -55,6 +70,8 @@ export function SettingsView({
   onLogoutProvider,
   onSetProviderApiKey,
   onRemoveProviderApiKey,
+  onUpsertCustomProvider,
+  onRemoveCustomProvider,
   onSetNotificationPreferences,
   onSetIntegratedTerminalShell,
   onRequestNotificationPermission,
@@ -112,6 +129,8 @@ export function SettingsView({
               onLogoutProvider={onLogoutProvider}
               onSetProviderApiKey={onSetProviderApiKey}
               onRemoveProviderApiKey={onRemoveProviderApiKey}
+              onUpsertCustomProvider={onUpsertCustomProvider}
+              onRemoveCustomProvider={onRemoveCustomProvider}
             />
           ) : null}
 

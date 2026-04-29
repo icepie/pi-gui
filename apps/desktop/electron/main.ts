@@ -551,8 +551,14 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.logoutProvider, (_event, workspaceId: string, providerId: string) =>
     store.logoutProvider(workspaceId, providerId),
   );
-  ipcMain.handle(desktopIpc.setProviderApiKey, (_event, workspaceId: string, providerId: string, apiKey: string) =>
-    store.setProviderApiKey(workspaceId, providerId, apiKey),
+  ipcMain.handle(desktopIpc.setProviderApiKey, (_event, workspaceId: string, providerId: string, config) =>
+    store.setProviderApiKey(workspaceId, providerId, config),
+  );
+  ipcMain.handle(desktopIpc.upsertCustomProvider, (_event, workspaceId: string, input) =>
+    store.upsertCustomProvider(workspaceId, input),
+  );
+  ipcMain.handle(desktopIpc.removeCustomProvider, (_event, workspaceId: string, providerId: string) =>
+    store.removeCustomProvider(workspaceId, providerId),
   );
   ipcMain.handle(desktopIpc.setEnableSkillCommands, (_event, workspaceId: string, enabled: boolean) =>
     store.setEnableSkillCommands(workspaceId, enabled),

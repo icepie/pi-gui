@@ -18,7 +18,11 @@ import type {
 import type {
   HostUiResponse,
 } from "@pi-gui/session-driver";
-import type { RuntimeSettingsSnapshot } from "@pi-gui/session-driver/runtime-types";
+import type {
+  RuntimeCustomProviderInput,
+  RuntimeProviderApiKeyConfig,
+  RuntimeSettingsSnapshot,
+} from "@pi-gui/session-driver/runtime-types";
 import type {
   AppView,
   ComposerAttachment,
@@ -166,8 +170,12 @@ contextBridge.exposeInMainWorld("piApp", {
     ipcRenderer.invoke(desktopIpc.loginProvider, workspaceId, providerId) as Promise<DesktopAppState>,
   logoutProvider: (workspaceId: string, providerId: string) =>
     ipcRenderer.invoke(desktopIpc.logoutProvider, workspaceId, providerId) as Promise<DesktopAppState>,
-  setProviderApiKey: (workspaceId: string, providerId: string, apiKey: string) =>
-    ipcRenderer.invoke(desktopIpc.setProviderApiKey, workspaceId, providerId, apiKey) as Promise<DesktopAppState>,
+  setProviderApiKey: (workspaceId: string, providerId: string, config: RuntimeProviderApiKeyConfig) =>
+    ipcRenderer.invoke(desktopIpc.setProviderApiKey, workspaceId, providerId, config) as Promise<DesktopAppState>,
+  upsertCustomProvider: (workspaceId: string, input: RuntimeCustomProviderInput) =>
+    ipcRenderer.invoke(desktopIpc.upsertCustomProvider, workspaceId, input) as Promise<DesktopAppState>,
+  removeCustomProvider: (workspaceId: string, providerId: string) =>
+    ipcRenderer.invoke(desktopIpc.removeCustomProvider, workspaceId, providerId) as Promise<DesktopAppState>,
   setEnableSkillCommands: (workspaceId: string, enabled: boolean) =>
     ipcRenderer.invoke(desktopIpc.setEnableSkillCommands, workspaceId, enabled) as Promise<DesktopAppState>,
   setScopedModelPatterns: (workspaceId: string, patterns: readonly string[]) =>

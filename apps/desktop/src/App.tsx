@@ -1595,12 +1595,15 @@ export default function App() {
     void updateSnapshot(api, setSnapshot, () => api.logoutProvider(settingsWorkspace.id, providerId));
   };
 
-  const handleSetProviderApiKey = async (providerId: string, apiKey: string): Promise<string | undefined> => {
+  const handleSetProviderApiKey = async (
+    providerId: string,
+    config: { readonly apiKey: string; readonly baseUrl?: string },
+  ): Promise<string | undefined> => {
     if (!api || !settingsWorkspace) {
       return "Select a workspace first.";
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
-      api.setProviderApiKey(settingsWorkspace.id, providerId, apiKey),
+      api.setProviderApiKey(settingsWorkspace.id, providerId, config),
     );
     return state.lastError;
   };
@@ -1611,6 +1614,33 @@ export default function App() {
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
       api.logoutProvider(settingsWorkspace.id, providerId),
+    );
+    return state.lastError;
+  };
+
+  const handleUpsertCustomProvider = async (input: {
+    readonly id: string;
+    readonly displayName?: string;
+    readonly api: "openai-completions" | "openai-responses" | "anthropic-messages" | "google-generative-ai";
+    readonly baseUrl: string;
+    readonly apiKey?: string;
+    readonly modelIds: readonly string[];
+  }): Promise<string | undefined> => {
+    if (!api || !settingsWorkspace) {
+      return "Select a workspace first.";
+    }
+    const state = await updateSnapshot(api, setSnapshot, () =>
+      api.upsertCustomProvider(settingsWorkspace.id, input),
+    );
+    return state.lastError;
+  };
+
+  const handleRemoveCustomProvider = async (providerId: string): Promise<string | undefined> => {
+    if (!api || !settingsWorkspace) {
+      return "Select a workspace first.";
+    }
+    const state = await updateSnapshot(api, setSnapshot, () =>
+      api.removeCustomProvider(settingsWorkspace.id, providerId),
     );
     return state.lastError;
   };
@@ -1910,6 +1940,8 @@ export default function App() {
           onLogoutProvider={handleLogoutProvider}
           onSetProviderApiKey={handleSetProviderApiKey}
           onRemoveProviderApiKey={handleRemoveProviderApiKey}
+          onUpsertCustomProvider={handleUpsertCustomProvider}
+          onRemoveCustomProvider={handleRemoveCustomProvider}
           onSetModelSettingsScopeMode={handleSetModelSettingsScopeMode}
           onSetDefaultModel={handleSetDefaultModel}
           onSetNotificationPreferences={handleSetNotificationPreferences}

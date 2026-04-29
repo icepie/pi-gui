@@ -22,6 +22,15 @@ export interface RuntimeProviderRecord {
   readonly authSource: RuntimeProviderAuthSource;
   readonly oauthSupported: boolean;
   readonly apiKeySetupSupported: boolean;
+  readonly customProviderConfig?: RuntimeCustomProviderConfig;
+}
+
+export interface RuntimeCustomProviderConfig {
+  readonly displayName?: string;
+  readonly api: "openai-completions" | "openai-responses" | "anthropic-messages" | "google-generative-ai";
+  readonly baseUrl: string;
+  readonly apiKey?: string;
+  readonly modelIds: readonly string[];
 }
 
 export interface RuntimeModelRecord {
@@ -130,12 +139,32 @@ export interface RuntimeLoginCallbacks {
   readonly signal?: AbortSignal;
 }
 
+export interface RuntimeProviderApiKeyConfig {
+  readonly apiKey: string;
+  readonly baseUrl?: string;
+}
+
+export interface RuntimeCustomProviderInput {
+  readonly id: string;
+  readonly displayName?: string;
+  readonly api: RuntimeCustomProviderConfig["api"];
+  readonly baseUrl: string;
+  readonly apiKey?: string;
+  readonly modelIds: readonly string[];
+}
+
 export interface RuntimeResourceDriver {
   getRuntimeSnapshot(workspace: WorkspaceRef): Promise<RuntimeSnapshot>;
   refreshRuntime(workspace: WorkspaceRef): Promise<RuntimeSnapshot>;
   login(workspace: WorkspaceRef, providerId: string, callbacks: RuntimeLoginCallbacks): Promise<RuntimeSnapshot>;
   logout(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot>;
-  setProviderApiKey(workspace: WorkspaceRef, providerId: string, apiKey: string): Promise<RuntimeSnapshot>;
+  setProviderApiKey(
+    workspace: WorkspaceRef,
+    providerId: string,
+    config: RuntimeProviderApiKeyConfig,
+  ): Promise<RuntimeSnapshot>;
+  upsertCustomProvider(workspace: WorkspaceRef, input: RuntimeCustomProviderInput): Promise<RuntimeSnapshot>;
+  removeCustomProvider(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot>;
   setDefaultModel(
     workspace: WorkspaceRef,
     selection: {
