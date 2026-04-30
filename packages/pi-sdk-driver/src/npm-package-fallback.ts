@@ -29,7 +29,7 @@ export function createSettingsManagerWithoutNpmPackages(current: SettingsManager
 
   const nextGlobalSettings = globalChanged ? { ...globalSettings, packages: nextGlobalPackages } : globalSettings;
   const nextProjectSettings = projectChanged ? { ...projectSettings, packages: nextProjectPackages } : projectSettings;
-  return SettingsManager.fromStorage({
+  const next = SettingsManager.fromStorage({
     withLock(scope, fn) {
       const currentJson =
         scope === "global"
@@ -38,6 +38,8 @@ export function createSettingsManagerWithoutNpmPackages(current: SettingsManager
       fn(currentJson);
     },
   });
+  preserveRuntimeOverrides(current, next);
+  return next;
 }
 
 async function createAgentSessionServicesWithNpmFallback(
@@ -168,4 +170,16 @@ function isNpmPackageSource(value: unknown): boolean {
   }
 
   return typeof value.source === "string" && value.source.trim().startsWith("npm:");
+}
+
+function preserveRuntimeOverrides(current: SettingsManager, next: SettingsManager): void {
+  const shellPath = current.getShellPath();
+  if (shellPath) {
+    next.applyOverrides({ shellPath });
+  }
+
+  const shellCommandPrefix = current.getShellCommandPrefix();
+  if (shellCommandPrefix) {
+    next.applyOverrides({ shellCommandPrefix });
+  }
 }

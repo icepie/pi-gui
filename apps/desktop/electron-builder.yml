@@ -14,6 +14,10 @@ files:
 extraResources:
   - from: resources/icon.png
     to: icon.png
+  - from: resources/git-bash/runtime/current
+    to: git-bash
+    filter:
+      - "**/*"
 
 asar: true
 npmRebuild: false
@@ -53,6 +57,7 @@ win:
     - target: nsis
       arch:
         - x64
+        - arm64
   executableName: pi-gui
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
 

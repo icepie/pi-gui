@@ -39,6 +39,24 @@ Package a Linux AppImage locally:
 pnpm --filter @pi-gui/desktop run package:linux
 ```
 
+Package a Windows installer locally:
+
+```bash
+pnpm --filter @pi-gui/desktop run package:win
+pnpm --filter @pi-gui/desktop run package:win:x64
+pnpm --filter @pi-gui/desktop run package:win:arm64
+```
+
+Windows packaged builds can bundle a portable Git Bash runtime for `pi`'s `bash`
+tool. Place it under `apps/desktop/resources/git-bash/runtime/<arch>/` so the
+packaged app can resolve `resources/git-bash/usr/bin/bash.exe` at runtime, or set
+`PI_APP_GIT_BASH_URL_X64`, `PI_APP_GIT_BASH_URL_ARM64`, or the fallback
+`PI_APP_GIT_BASH_URL` to override the download source. By default the packaging
+script uses `gh release view` against `git-for-windows/git` to resolve the
+latest portable asset name, supports `PI_APP_GITHUB_PROXY` as a GitHub mirror
+prefix, and falls back to a pinned official Git for Windows release URL if `gh`
+is unavailable.
+
 Live agent tests use your existing `pi` runtime and provider auth. If local `pi` runs do not work, the `live` lane will not be meaningful either.
 
 ## Test Lanes

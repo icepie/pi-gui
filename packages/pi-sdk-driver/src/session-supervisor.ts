@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import {
   ModelRegistry,
   SessionManager,
+  SettingsManager,
   type AgentSessionRuntime,
   type AgentSession,
   type AgentSessionEvent,
@@ -76,6 +77,7 @@ export interface PiSdkDriverOptions {
   readonly catalogFilePath?: string;
   readonly createAgentSessionRuntimeImpl?: (options?: CreateAgentSessionOptions) => Promise<AgentSessionRuntime>;
   readonly modelRegistry?: ModelRegistry;
+  readonly shellPath?: string;
   readonly generateThreadTitleOverride?: (
     workspace: WorkspaceRef,
     options: import("./thread-title-generator.js").GenerateThreadTitleOptions,
@@ -146,12 +148,14 @@ export class SessionSupervisor {
   private readonly catalogs: SessionFileCatalogStorage;
   private readonly createAgentSessionRuntimeImpl: (options?: CreateAgentSessionOptions) => Promise<AgentSessionRuntime>;
   private readonly modelRegistry: ModelRegistry | undefined;
+  private readonly shellPath: string | undefined;
   private readonly records = new Map<string, ManagedSessionRecord>();
 
   constructor(options: PiSdkDriverOptions = {}) {
     this.catalogs = options.catalogFilePath
       ? new JsonCatalogStore({ catalogFilePath: options.catalogFilePath })
       : new JsonCatalogStore();
+    this.shellPath = normalizeShellPath(options.shellPath);
     this.createAgentSessionRuntimeImpl =
       options.createAgentSessionRuntimeImpl ?? ((createOptions) => createAgentSessionRuntimeWithNpmFallback(createOptions));
     this.modelRegistry = options.modelRegistry;
@@ -301,6 +305,7 @@ export class SessionSupervisor {
       cwd: workspace.path,
       sessionManager: SessionManager.create(workspace.path),
       ...(this.modelRegistry ? { modelRegistry: this.modelRegistry } : {}),
+      ...(this.shellPath ? { settingsManager: createSettingsManagerWithShellPath(workspace.path, this.shellPath) } : {}),
     };
     if (initialModel) {
       createOptions.model = initialModel;
@@ -652,6 +657,7 @@ export class SessionSupervisor {
       cwd: workspace.path,
       sessionManager: SessionManager.open(sessionFile),
       ...(this.modelRegistry ? { modelRegistry: this.modelRegistry } : {}),
+      ...(this.shellPath ? { settingsManager: createSettingsManagerWithShellPath(workspace.path, this.shellPath) } : {}),
     });
     const session = runtime.session;
 
@@ -1546,6 +1552,17 @@ export class SessionSupervisor {
 
     await this.catalogs.sessions.upsertSession(nextEntry);
   }
+}
+
+export function normalizeShellPath(shellPath: string | undefined): string | undefined {
+  const normalized = shellPath?.trim();
+  return normalized ? normalized : undefined;
+}
+
+export function createSettingsManagerWithShellPath(cwd: string, shellPath: string): SettingsManager {
+  const settingsManager = SettingsManager.create(cwd);
+  settingsManager.applyOverrides({ shellPath });
+  return settingsManager;
 }
 
 function resolvedCatalogSessionTitle(existingTitle: string | undefined, infoTitle: string): string {

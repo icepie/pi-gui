@@ -11,6 +11,7 @@ import {
   type MessageBoxOptions,
 } from "electron";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -52,6 +53,7 @@ let notificationManager: NotificationManager | undefined;
 let notificationPermissionService: NotificationPermissionService | undefined;
 let terminalService: TerminalService | undefined;
 let integratedTerminalShell = "";
+let bundledWindowsBashPath: string | undefined;
 let stopPublishingState: (() => void) | undefined;
 let stopPublishingSelectedTranscript: (() => void) | undefined;
 let stopTrackingWindowActivation: (() => void) | undefined;
@@ -399,6 +401,11 @@ app.whenReady().then(async () => {
     return;
   }
 
+  bundledWindowsBashPath = resolveBundledWindowsBashPath();
+  if (bundledWindowsBashPath) {
+    registerBundledWindowsBashEnv(bundledWindowsBashPath);
+  }
+
   // On macOS, packaged builds already render the dock icon from `icon.icns`
   // in the app bundle. In dev we override the generic Electron dock icon with
   // the real PNG so the running app looks right end-to-end.
@@ -418,13 +425,15 @@ app.whenReady().then(async () => {
   store = new DesktopAppStore({
     userDataDir: configuredUserDataDir,
     initialWorkspacePaths: resolveInitialWorkspacePaths(),
+    ...(bundledWindowsBashPath ? { agentShellPath: bundledWindowsBashPath } : {}),
     getWindow: () => mainWindow,
     generateThreadTitleOverride: async (workspace, options) => generateThreadTitleOverride?.(workspace, options),
   });
   await store.initialize();
-  integratedTerminalShell = (await store.getState()).integratedTerminalShell;
+  const persistedIntegratedTerminalShell = (await store.getState()).integratedTerminalShell;
+  integratedTerminalShell = persistedIntegratedTerminalShell || bundledWindowsBashPath || "";
   stopPruningTerminals = store.subscribe((state) => {
-    integratedTerminalShell = state.integratedTerminalShell;
+    integratedTerminalShell = state.integratedTerminalShell || bundledWindowsBashPath || "";
     const workspacePaths = state.workspaces.map((workspace) => workspace.path);
     const workspacePathSignature = workspacePaths.join("\0");
     if (workspacePathSignature !== retainedTerminalWorkspacePathSignature) {
@@ -804,6 +813,60 @@ function resolveInitialWorkspacePaths(): readonly string[] {
   }
 
   return [];
+}
+
+function resolveBundledWindowsBashPath(): string | undefined {
+  if (process.platform !== "win32") {
+    return undefined;
+  }
+
+  const candidates = app.isPackaged
+    ? [
+        path.join(process.resourcesPath, "git-bash", "bin", "bash.exe"),
+        path.join(process.resourcesPath, "git-bash", "usr", "bin", "bash.exe"),
+      ]
+    : [
+        path.join(__dirname, "..", "..", "resources", "git-bash", "runtime", "current", "bin", "bash.exe"),
+        path.join(process.cwd(), "apps", "desktop", "resources", "git-bash", "runtime", "current", "bin", "bash.exe"),
+        path.join(__dirname, "..", "..", "resources", "git-bash", "runtime", "current", "usr", "bin", "bash.exe"),
+        path.join(process.cwd(), "apps", "desktop", "resources", "git-bash", "runtime", "current", "usr", "bin", "bash.exe"),
+        path.join(__dirname, "..", "..", "resources", "git-bash", "bin", "bash.exe"),
+        path.join(process.cwd(), "apps", "desktop", "resources", "git-bash", "bin", "bash.exe"),
+        path.join(__dirname, "..", "..", "resources", "git-bash", "usr", "bin", "bash.exe"),
+        path.join(process.cwd(), "apps", "desktop", "resources", "git-bash", "usr", "bin", "bash.exe"),
+      ];
+
+  for (const candidate of candidates) {
+    try {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // Best-effort resolution only; packaged builds may omit the resource.
+    }
+  }
+
+  return undefined;
+}
+
+function registerBundledWindowsBashEnv(shellPath: string): void {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+  const pathDelimiter = ";";
+  const currentEntries = (process.env[pathKey] ?? "").split(pathDelimiter).filter(Boolean);
+  const gitBashRoot = path.resolve(shellPath, "..", "..");
+  const nextEntries = [
+    path.join(gitBashRoot, "bin"),
+    path.join(gitBashRoot, "usr", "bin"),
+    path.join(gitBashRoot, "cmd"),
+    ...currentEntries,
+  ].filter((value, index, values) => values.indexOf(value) === index);
+
+  process.env[pathKey] = nextEntries.join(pathDelimiter);
+  process.env.SHELL = shellPath;
 }
 
 async function readComposerAttachment(filePath: string): Promise<ComposerAttachment> {
