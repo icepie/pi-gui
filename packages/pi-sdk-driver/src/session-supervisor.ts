@@ -307,6 +307,7 @@ export class SessionSupervisor {
       ...(this.modelRegistry ? { modelRegistry: this.modelRegistry } : {}),
       ...(this.shellPath ? { settingsManager: createSettingsManagerWithShellPath(workspace.path, this.shellPath) } : {}),
     };
+    logWindowsShellPath("createSession", this.shellPath);
     if (initialModel) {
       createOptions.model = initialModel;
     }
@@ -659,6 +660,7 @@ export class SessionSupervisor {
       ...(this.modelRegistry ? { modelRegistry: this.modelRegistry } : {}),
       ...(this.shellPath ? { settingsManager: createSettingsManagerWithShellPath(workspace.path, this.shellPath) } : {}),
     });
+    logWindowsShellPath("openSession", this.shellPath);
     const session = runtime.session;
 
     const record = existing ?? this.createRecord(workspaceToRef(workspace), runtime, sessionEntry.title);
@@ -1563,6 +1565,13 @@ export function createSettingsManagerWithShellPath(cwd: string, shellPath: strin
   const settingsManager = SettingsManager.create(cwd);
   settingsManager.applyOverrides({ shellPath });
   return settingsManager;
+}
+
+function logWindowsShellPath(stage: string, shellPath: string | undefined): void {
+  if (process.platform !== "win32") {
+    return;
+  }
+  console.info(`[pi-gui] agent shellPath ${stage}: ${shellPath ?? "<empty>"}`);
 }
 
 function resolvedCatalogSessionTitle(existingTitle: string | undefined, infoTitle: string): string {

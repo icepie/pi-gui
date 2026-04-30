@@ -405,6 +405,7 @@ app.whenReady().then(async () => {
   if (bundledWindowsBashPath) {
     registerBundledWindowsBashEnv(bundledWindowsBashPath);
   }
+  logBundledWindowsBashState("startup", bundledWindowsBashPath);
 
   // On macOS, packaged builds already render the dock icon from `icon.icns`
   // in the app bundle. In dev we override the generic Electron dock icon with
@@ -430,10 +431,9 @@ app.whenReady().then(async () => {
     generateThreadTitleOverride: async (workspace, options) => generateThreadTitleOverride?.(workspace, options),
   });
   await store.initialize();
-  const persistedIntegratedTerminalShell = (await store.getState()).integratedTerminalShell;
-  integratedTerminalShell = persistedIntegratedTerminalShell || bundledWindowsBashPath || "";
+  integratedTerminalShell = (await store.getState()).integratedTerminalShell;
   stopPruningTerminals = store.subscribe((state) => {
-    integratedTerminalShell = state.integratedTerminalShell || bundledWindowsBashPath || "";
+    integratedTerminalShell = state.integratedTerminalShell;
     const workspacePaths = state.workspaces.map((workspace) => workspace.path);
     const workspacePathSignature = workspacePaths.join("\0");
     if (workspacePathSignature !== retainedTerminalWorkspacePathSignature) {
@@ -867,6 +867,24 @@ function registerBundledWindowsBashEnv(shellPath: string): void {
 
   process.env[pathKey] = nextEntries.join(pathDelimiter);
   process.env.SHELL = shellPath;
+  logBundledWindowsBashState("env-registered", shellPath);
+}
+
+function logBundledWindowsBashState(stage: string, shellPath: string | undefined): void {
+  if (process.platform !== "win32") {
+    return;
+  }
+  const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+  const pathEntries = (process.env[pathKey] ?? "")
+    .split(";")
+    .filter(Boolean)
+    .filter((entry) => /git-bash/i.test(entry));
+  console.info(
+    `[pi-gui] bundled git bash ${stage}: ${JSON.stringify({
+      shellPath: shellPath ?? null,
+      pathEntries,
+    })}`,
+  );
 }
 
 async function readComposerAttachment(filePath: string): Promise<ComposerAttachment> {
