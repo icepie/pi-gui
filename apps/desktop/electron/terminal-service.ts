@@ -376,11 +376,12 @@ export class TerminalService {
   private resolveShell(): string {
     const configuredShell = this.options.getIntegratedTerminalShell()?.trim();
     const shellPath = configuredShell || process.env.SHELL || defaultShellForPlatform();
-    if (process.platform !== "win32" && !path.isAbsolute(shellPath)) {
-      throw new Error(`Integrated terminal shell must be an absolute path: ${shellPath}`);
+    const resolvedShell = normalizeShellForPlatform(shellPath, configuredShell);
+    if (process.platform !== "win32" && !path.isAbsolute(resolvedShell)) {
+      throw new Error(`Integrated terminal shell must be an absolute path: ${resolvedShell}`);
     }
-    ensureExecutable(shellPath);
-    return shellPath;
+    ensureExecutable(resolvedShell);
+    return resolvedShell;
   }
 }
 
@@ -418,6 +419,31 @@ function ensureExecutable(shellPath: string): void {
     return;
   }
   accessSync(shellPath, constants.X_OK);
+}
+
+function normalizeShellForPlatform(shellPath: string, configuredShell: string | undefined): string {
+  if (process.platform !== "win32") {
+    return shellPath;
+  }
+
+  const normalized = shellPath.trim();
+  if (!normalized) {
+    return defaultShellForPlatform();
+  }
+
+  if (!configuredShell) {
+    return normalized;
+  }
+
+  if (!looksLikeExecutablePath(normalized) || existsSync(normalized)) {
+    return normalized;
+  }
+
+  return defaultShellForPlatform();
+}
+
+function looksLikeExecutablePath(shellPath: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(shellPath) || shellPath.startsWith("\\\\");
 }
 
 function defaultShellForPlatform(): string {

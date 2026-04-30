@@ -121,3 +121,36 @@ test("persists the integrated terminal shell setting", async () => {
     await harness.close();
   }
 });
+
+test("falls back when a persisted Windows terminal shell path no longer exists", async () => {
+  test.skip(process.platform !== "win32", "Windows-only shell fallback");
+
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("terminal-shell-fallback");
+  const harness = await launchDesktop(userDataDir, {
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await waitForWorkspaceByPath(window, workspacePath);
+
+    await window.keyboard.press(desktopShortcut(","));
+    await expect(window.getByTestId("settings-surface")).toBeVisible();
+    await window.getByRole("button", { name: "General", exact: true }).click();
+    const shellInput = window.getByLabel("Shell of integrated terminal");
+    await shellInput.fill("C:\\definitely-missing\\bash.exe");
+    await shellInput.press("Enter");
+
+    await window.getByLabel("Toggle terminal").click();
+    const terminal = window.getByTestId("integrated-terminal");
+    await expect(terminal).toBeVisible();
+    await terminal.locator(".xterm").click();
+    await window.keyboard.type("echo PI_TERMINAL_FALLBACK_OK");
+    await window.keyboard.press("Enter");
+    await expect(terminal.locator(".xterm-rows")).toContainText("PI_TERMINAL_FALLBACK_OK", { timeout: 15_000 });
+  } finally {
+    await harness.close();
+  }
+});
