@@ -155,6 +155,20 @@ export function RestoreIcon() {
   );
 }
 
+export function TrashIcon() {
+  return (
+    <Icon>
+      <path
+        d="M6.1 6.2h7.8l-.56 8.12a1.2 1.2 0 0 1-1.2 1.12H7.86a1.2 1.2 0 0 1-1.2-1.12L6.1 6.2Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+      <path d="M4.8 5.3h10.4M8 5.3v-1c0-.33.27-.6.6-.6h2.8c.33 0 .6.27.6.6v1M8.6 8.35v4.4M11.4 8.35v4.4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.35" />
+    </Icon>
+  );
+}
+
 export function ChevronDownIcon() {
   return (
     <Icon>

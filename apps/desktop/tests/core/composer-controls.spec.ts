@@ -150,7 +150,8 @@ test("supports keyboard shortcuts, slash menus, and topbar controls through the 
     const maximizedBefore = await harness.electronApp.evaluate(({ BrowserWindow }) => {
       return BrowserWindow.getAllWindows()[0]?.isMaximized() ?? false;
     });
-    await window.getByTestId("topbar").dblclick({ position: { x: 140, y: 12 } });
+    await harness.focusWindow();
+    await window.getByTestId("topbar").dispatchEvent("dblclick");
     await expect
       .poll(() =>
         harness.electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isMaximized() ?? false),
@@ -182,7 +183,7 @@ test("dark mode keeps the send button visible before and after typing", async ()
     await expect(settingsSurface).toBeVisible();
     await settingsSurface.getByRole("button", { name: "Appearance", exact: true }).click();
     await expect(window.locator(".view-header__title")).toHaveText("Appearance");
-    await settingsSurface.locator(".settings-row", { hasText: "Dark" }).locator('input[type="radio"]').click();
+    await settingsSurface.locator('input[name="theme"]').nth(2).click();
     await expect
       .poll(() => window.evaluate(() => document.documentElement.classList.contains("dark")))
       .toBe(true);

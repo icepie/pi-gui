@@ -14,13 +14,14 @@ import {
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { AppView, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
-import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FolderIcon, PlusIcon, RestoreIcon, SettingsIcon, SkillIcon, WorktreeIcon } from "./icons";
+import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FolderIcon, PlusIcon, RestoreIcon, SettingsIcon, SkillIcon, TrashIcon, WorktreeIcon } from "./icons";
 import type { PiDesktopApi } from "./ipc";
 import { formatRelativeTime } from "./string-utils";
 import type { WorkspaceMenuState } from "./hooks/use-workspace-menu";
 import type { ThreadGroup, ThreadListEntry } from "./thread-groups";
 import type { Dispatch, SetStateAction } from "react";
 import type { DesktopAppState } from "./desktop-state";
+import { t } from "./i18n";
 
 interface SidebarProps {
   readonly activeView: AppView;
@@ -45,6 +46,7 @@ interface SidebarProps {
   readonly onArchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onSelectSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onUnarchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
+  readonly onDeleteSession: (target: { workspaceId: string; sessionId: string }) => void;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -67,6 +69,7 @@ export function Sidebar(props: SidebarProps) {
     onArchiveSession,
     onSelectSession,
     onUnarchiveSession,
+    onDeleteSession,
   } = props;
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -127,7 +130,7 @@ export function Sidebar(props: SidebarProps) {
           onClick={onNewThread}
         >
           <PlusIcon />
-          <span>New thread</span>
+          <span>{t("sidebar.new_thread")}</span>
         </button>
 
         <div className="sidebar__nav">
@@ -137,7 +140,7 @@ export function Sidebar(props: SidebarProps) {
             onClick={() => onSetActiveView("threads")}
           >
             <FolderIcon />
-            <span>Threads</span>
+            <span>{t("sidebar.threads")}</span>
           </button>
           <button
             className="sidebar__nav-item"
@@ -145,7 +148,7 @@ export function Sidebar(props: SidebarProps) {
             onClick={() => onOpenSkills(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
           >
             <SkillIcon />
-            <span>Skills</span>
+            <span>{t("sidebar.skills")}</span>
           </button>
           <button
             className="sidebar__nav-item"
@@ -153,7 +156,7 @@ export function Sidebar(props: SidebarProps) {
             onClick={() => onOpenExtensions(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
           >
             <ExtensionIcon />
-            <span>Extensions</span>
+            <span>{t("sidebar.extensions")}</span>
           </button>
           <button
             className="sidebar__nav-item"
@@ -161,17 +164,17 @@ export function Sidebar(props: SidebarProps) {
             onClick={() => onOpenSettings(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
           >
             <SettingsIcon />
-            <span>Settings</span>
+            <span>{t("sidebar.settings")}</span>
           </button>
         </div>
       </div>
 
       <div className="sidebar__section">
         <div className="section__head">
-          <span>Threads</span>
+          <span>{t("sidebar.threads")}</span>
           <div className="section__tools">
             <button
-              aria-label="Open folder"
+              aria-label={t("common.open_folder")}
               className="icon-button"
               type="button"
               onClick={() => {
@@ -185,8 +188,8 @@ export function Sidebar(props: SidebarProps) {
 
         {visibleWorkspaces.length === 0 ? (
           <div className="empty-state" data-testid="empty-state">
-            <h2>No folders yet</h2>
-            <p>Open a project folder to start building a workspace and session list.</p>
+            <h2>{t("sidebar.no_folders_yet")}</h2>
+            <p>{t("sidebar.no_folders_description")}</p>
             <button
               className="button button--primary"
               type="button"
@@ -194,7 +197,7 @@ export function Sidebar(props: SidebarProps) {
                 void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
               }}
             >
-              Open first folder
+              {t("sidebar.open_first_folder")}
             </button>
           </div>
         ) : (
@@ -214,6 +217,7 @@ export function Sidebar(props: SidebarProps) {
                     onArchiveSession={onArchiveSession}
                     onSelectSession={onSelectSession}
                     onUnarchiveSession={onUnarchiveSession}
+                    onDeleteSession={onDeleteSession}
                   />
                 ))}
                 {orphanGroups.map((group) => (
@@ -229,6 +233,7 @@ export function Sidebar(props: SidebarProps) {
                     onArchiveSession={onArchiveSession}
                     onSelectSession={onSelectSession}
                     onUnarchiveSession={onUnarchiveSession}
+                    onDeleteSession={onDeleteSession}
                   />
                 ))}
               </div>
@@ -247,6 +252,7 @@ export function Sidebar(props: SidebarProps) {
                     onArchiveSession={onArchiveSession}
                     onSelectSession={onSelectSession}
                     onUnarchiveSession={onUnarchiveSession}
+                    onDeleteSession={onDeleteSession}
                   />
                 </div>
               ) : null}
@@ -271,6 +277,7 @@ interface WorkspaceGroupProps {
   readonly onArchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onSelectSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onUnarchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
+  readonly onDeleteSession: (target: { workspaceId: string; sessionId: string }) => void;
 }
 
 function SortableWorkspaceGroup(props: WorkspaceGroupProps) {
@@ -321,6 +328,7 @@ function WorkspaceGroupContent(
     onArchiveSession,
     onSelectSession,
     onUnarchiveSession,
+    onDeleteSession,
     dragHandleProps,
   } = props;
 
@@ -330,10 +338,11 @@ function WorkspaceGroupContent(
   const linkedWorktree = linkedWorktreeByWorkspaceId.get(rootWorkspace.id);
   const archivedSectionOpen = wsMenu.expandedArchivedByWorkspace[rootWorkspace.id] ?? false;
   const isCollapsed = wsMenu.collapsedWorkspaces[rootWorkspace.id] ?? false;
+  const workspaceMenuOpen = wsMenu.workspaceMenuId === rootWorkspace.id;
 
   return (
     <>
-      <div className={`workspace-row ${workspaceActive ? "workspace-row--active" : ""}`}>
+      <div className={`workspace-row ${workspaceActive ? "workspace-row--active" : ""} ${workspaceMenuOpen ? "workspace-row--menu-open" : ""}`}>
         <button
           className={`workspace-row__select ${dragHandleProps ? "workspace-row__select--draggable" : ""}`}
           onClick={() => wsMenu.toggleWorkspaceCollapsed(rootWorkspace.id)}
@@ -351,7 +360,7 @@ function WorkspaceGroupContent(
           ref={wsMenu.workspaceMenuId === rootWorkspace.id ? wsMenu.workspaceMenuWrapRef : undefined}
         >
           <button
-            aria-label={`Workspace actions for ${rootWorkspace.name}`}
+            aria-label={t("sidebar.workspace_actions", { name: rootWorkspace.name })}
             aria-haspopup="menu"
             className="icon-button workspace-row__menu-button"
             aria-expanded={wsMenu.workspaceMenuId === rootWorkspace.id}
@@ -364,7 +373,7 @@ function WorkspaceGroupContent(
           >
             …
           </button>
-          {wsMenu.workspaceMenuId === rootWorkspace.id ? (
+          {workspaceMenuOpen ? (
             <div className="workspace-menu">
               <button
                 className="workspace-menu__item"
@@ -375,7 +384,7 @@ function WorkspaceGroupContent(
                   })
                 }
               >
-                Open folder
+                {t("common.open_folder")}
               </button>
               {linkedWorktree ? (
                 <button
@@ -387,7 +396,7 @@ function WorkspaceGroupContent(
                     )
                   }
                 >
-                  Remove worktree
+                  {t("sidebar.remove_worktree")}
                 </button>
               ) : (
                 <button
@@ -397,7 +406,7 @@ function WorkspaceGroupContent(
                     wsMenu.runWorkspaceMenuAction(event, () => wsMenu.createWorktree(rootWorkspace.id))
                   }
                 >
-                  Create permanent worktree
+                  {t("sidebar.create_permanent_worktree")}
                 </button>
               )}
               <button
@@ -405,14 +414,14 @@ function WorkspaceGroupContent(
                 type="button"
                 onClick={(event) => wsMenu.runWorkspaceMenuAction(event, () => wsMenu.startRename(rootWorkspace))}
               >
-                Edit name
+                {t("sidebar.edit_name")}
               </button>
               <button
                 className="workspace-menu__item workspace-menu__item--danger"
                 type="button"
                 onClick={(event) => wsMenu.runWorkspaceMenuAction(event, () => wsMenu.removeWorkspace(rootWorkspace))}
               >
-                Remove
+                {t("common.remove")}
               </button>
             </div>
           ) : null}
@@ -444,10 +453,10 @@ function WorkspaceGroupContent(
           />
           <div className="workspace-rename__actions">
             <button className="workspace-rename__button" type="button" onClick={wsMenu.cancelRename}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button className="workspace-rename__button workspace-rename__button--primary" type="submit">
-              Save
+              {t("common.save")}
             </button>
           </div>
         </form>
@@ -464,6 +473,12 @@ function WorkspaceGroupContent(
                   thread={thread}
                   onAction={() =>
                     onArchiveSession({
+                      workspaceId: thread.workspaceId,
+                      sessionId: thread.session.id,
+                    })
+                  }
+                  onDelete={() =>
+                    onDeleteSession({
                       workspaceId: thread.workspaceId,
                       sessionId: thread.session.id,
                     })
@@ -487,7 +502,7 @@ function WorkspaceGroupContent(
                 >
                   <ChevronDownIcon />
                 </span>
-                <span>Archived</span>
+                <span>{t("sidebar.archived")}</span>
                 <span className="archived-thread-group__count">{archivedThreads.length}</span>
               </button>
               {archivedSectionOpen ? (
@@ -503,6 +518,12 @@ function WorkspaceGroupContent(
                         thread={thread}
                         onAction={() =>
                           onUnarchiveSession({
+                            workspaceId: thread.workspaceId,
+                            sessionId: thread.session.id,
+                          })
+                        }
+                        onDelete={() =>
+                          onDeleteSession({
                             workspaceId: thread.workspaceId,
                             sessionId: thread.session.id,
                           })
@@ -538,15 +559,19 @@ function ThreadSessionRow({
   archived = false,
   thread,
   onAction,
+  onDelete,
   onSelect,
 }: {
   readonly active: boolean;
   readonly archived?: boolean;
   readonly thread: ThreadListEntry;
   readonly onAction: () => void;
+  readonly onDelete: () => void;
   readonly onSelect: () => void;
 }) {
   const indicatorVariant = sessionIndicatorVariant(thread);
+  const archiveLabel = `${archived ? t("sidebar.restore") : t("sidebar.archive")} ${thread.session.title}`;
+  const deleteLabel = `${t("sidebar.delete")} ${thread.session.title}`;
   return (
     <div
       className={`session-row ${active ? "session-row--active" : ""}`}
@@ -567,18 +592,30 @@ function ThreadSessionRow({
       </button>
       <span className="session-row__trailing">
         {thread.environment.kind === "worktree" ? (
-          <span className="session-row__workspace-icon" aria-hidden="true" title="Worktree">
+          <span className="session-row__workspace-icon" aria-hidden="true" title={t("sidebar.worktree")}>
             <WorktreeIcon />
           </span>
         ) : null}
         <span className="session-row__time">{formatRelativeTime(thread.session.updatedAt)}</span>
         <button
-          aria-label={`${archived ? "Restore" : "Archive"} ${thread.session.title}`}
+          aria-label={archiveLabel}
           className="icon-button session-row__action"
           type="button"
           onClick={onAction}
         >
           {archived ? <RestoreIcon /> : <ArchiveIcon />}
+        </button>
+        <button
+          aria-label={deleteLabel}
+          className="icon-button session-row__action session-row__action--danger"
+          type="button"
+          onClick={() => {
+            if (window.confirm(t("sidebar.delete_confirm", { title: thread.session.title }))) {
+              onDelete();
+            }
+          }}
+        >
+          <TrashIcon />
         </button>
       </span>
     </div>

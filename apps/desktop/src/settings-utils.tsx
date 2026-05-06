@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { RuntimeSettingsSnapshot, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
+import { t } from "./i18n";
 
 export type SettingsSection = "appearance" | "general" | "providers" | "models" | "notifications";
 
@@ -24,30 +25,30 @@ export function labelForThinking(level: NonNullable<RuntimeSettingsSnapshot["def
 export function sectionTitle(section: SettingsSection): string {
   switch (section) {
     case "appearance":
-      return "Appearance";
+      return t("settings.appearance");
     case "providers":
-      return "Providers";
+      return t("settings.providers");
     case "models":
-      return "Models";
+      return t("settings.models");
     case "notifications":
-      return "Notifications";
+      return t("settings.notifications");
     default:
-      return "General";
+      return t("settings.general");
   }
 }
 
 export function sectionDescription(section: SettingsSection, workspaceName: string): string {
   switch (section) {
     case "appearance":
-      return "Choose between light, dark, or automatic system theme.";
+      return t("settings.appearance_description");
     case "providers":
-      return `Connect providers and manage auth for ${workspaceName}.`;
+      return t("settings.providers_description", { workspaceName });
     case "models":
-      return "Choose the default model and which models appear in pickers.";
+      return t("settings.models_description");
     case "notifications":
-      return "Manage both macOS notification access and which background events should alert you.";
+      return t("settings.notifications_description");
     default:
-      return "Keep the high-value app and runtime controls close to hand.";
+      return t("settings.general_description");
   }
 }
 
@@ -167,21 +168,21 @@ export function ProviderRow({
 function describeProviderStatus(provider: RuntimeSnapshot["providers"][number]): string {
   switch (provider.authSource) {
     case "oauth":
-      return "OAuth · connected";
+      return t("settings.provider_status.oauth_connected");
     case "auth_file":
-      return "API key · connected";
+      return t("settings.provider_status.api_key_connected");
     case "env":
-      return "Environment variable · connected";
+      return t("settings.provider_status.env_connected");
     case "external":
-      return provider.hasAuth ? "Configured externally · connected" : "Configure externally";
+      return provider.hasAuth ? t("settings.provider_status.external_connected") : t("settings.provider_status.configure_externally");
     default:
       if (provider.oauthSupported) {
-        return "OAuth";
+        return t("settings.provider_status.oauth");
       }
       if (provider.apiKeySetupSupported) {
-        return "API key";
+        return t("settings.provider_status.api_key");
       }
-      return provider.authType === "api_key" ? "API key" : "Built in";
+      return provider.authType === "api_key" ? t("settings.provider_status.api_key") : t("settings.provider_status.built_in");
   }
 }
 
@@ -198,7 +199,7 @@ function resolveProviderAction(
   if (provider.authSource === "oauth") {
     return {
       disabled: false,
-      label: "Logout",
+      label: t("settings.provider_action.logout"),
       onClick: () => onLogoutProvider(provider.id),
     };
   }
@@ -206,7 +207,7 @@ function resolveProviderAction(
   if (provider.oauthSupported && provider.authSource === "none") {
     return {
       disabled: false,
-      label: "Login",
+      label: t("settings.provider_action.login"),
       onClick: () => onLoginProvider(provider.id),
     };
   }
@@ -214,13 +215,16 @@ function resolveProviderAction(
   if (provider.apiKeySetupSupported && (provider.authSource === "none" || provider.authSource === "auth_file")) {
     return {
       disabled: false,
-      label: provider.authSource === "auth_file" ? "Manage" : "Set API key",
+      label: provider.authSource === "auth_file" ? t("settings.provider_action.manage") : t("settings.provider_action.set_api_key"),
       onClick: () => onConfigureApiKey(provider),
     };
   }
 
   return {
     disabled: true,
-    label: provider.authSource === "env" || provider.authSource === "external" ? "Managed externally" : "Configure externally",
+    label:
+      provider.authSource === "env" || provider.authSource === "external"
+        ? t("settings.provider_action.managed_externally")
+        : t("settings.provider_status.configure_externally"),
   };
 }

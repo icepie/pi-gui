@@ -5,6 +5,7 @@ import type {
   RuntimeSnapshot,
 } from "@pi-gui/session-driver/runtime-types";
 import { filterProviders, ProviderRow, SettingsGroup } from "./settings-utils";
+import { t } from "./i18n";
 
 const CUSTOM_PROVIDER_APIS = [
   "openai-completions",
@@ -77,7 +78,8 @@ export function SettingsProvidersSection({
   const apiKeyProvider = apiKeyProviderId ? providers.find((provider) => provider.id === apiKeyProviderId) : undefined;
 
   const customProviderMode = editingCustomProviderId ? "edit" : "create";
-  const customProviderSubmitLabel = customProviderMode === "edit" ? "Save provider" : "Add provider";
+  const customProviderSubmitLabel =
+    customProviderMode === "edit" ? t("settings.providers.save_provider") : t("settings.providers.add_provider");
 
   useEffect(() => {
     if (!apiKeyProvider) {
@@ -205,7 +207,7 @@ export function SettingsProvidersSection({
 
   return (
     <>
-      <SettingsGroup title="Connected" description="Connected built-in providers are used first for picking models.">
+      <SettingsGroup title={t("settings.providers.connected")} description={t("settings.providers.connected_description")}>
         {connectedProviders.length > 0 ? (
           connectedProviders.map((provider) => (
             <ProviderRow
@@ -218,20 +220,20 @@ export function SettingsProvidersSection({
           ))
         ) : (
           <div className="settings-row">
-            <span className="settings-row__description">No built-in providers connected yet.</span>
+            <span className="settings-row__description">{t("settings.providers.none_connected")}</span>
           </div>
         )}
       </SettingsGroup>
 
-      <SettingsGroup title="Custom providers" description="Add OpenAI, Anthropic, or Google-compatible providers from your own endpoints.">
+      <SettingsGroup title={t("settings.providers.custom")} description={t("settings.providers.custom_description")}>
         <div className="settings-row">
           <div className="settings-row__label">
-            <div className="settings-row__title">Provider definitions</div>
-            <div className="settings-row__description">These entries are written to `models.json` and become available throughout the app.</div>
+            <div className="settings-row__title">{t("settings.providers.definitions")}</div>
+            <div className="settings-row__description">{t("settings.providers.definitions_description")}</div>
           </div>
           <div className="settings-row__control">
             <button className="button button--secondary" type="button" onClick={beginCreateCustomProvider}>
-              New custom provider
+              {t("settings.providers.new_custom")}
             </button>
           </div>
         </div>
@@ -248,42 +250,44 @@ export function SettingsProvidersSection({
                 </span>
                 <div className="settings-pill-row">
                   <button className="button button--secondary" type="button" onClick={() => beginEditCustomProvider(provider.id)}>
-                    Edit
+                    {t("settings.providers.edit")}
                   </button>
                   <button className="button button--secondary" type="button" onClick={() => void handleRemoveCustomProvider(provider.id)}>
-                    Delete
+                    {t("settings.providers.delete")}
                   </button>
                 </div>
               </div>
             ))
           ) : (
             <div className="settings-row">
-              <span className="settings-row__description">No custom providers yet.</span>
+              <span className="settings-row__description">{t("settings.providers.none_custom")}</span>
             </div>
           )}
         </div>
 
         <div className="settings-section">
-          <h3 className="settings-section__title">{customProviderMode === "edit" ? "Edit custom provider" : "Add custom provider"}</h3>
+          <h3 className="settings-section__title">
+            {customProviderMode === "edit" ? t("settings.providers.edit_custom") : t("settings.providers.add_custom")}
+          </h3>
           <div className="settings-group">
             <input
-              aria-label="Custom provider ID"
+              aria-label={t("settings.providers.custom_id")}
               className="settings-search"
               disabled={customProviderPending || customProviderMode === "edit"}
-              placeholder="Provider ID, for example my-proxy"
+              placeholder={t("settings.providers.custom_id_placeholder")}
               value={customProviderDraft.id}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, id: event.target.value }))}
             />
             <input
-              aria-label="Custom provider display name"
+              aria-label={t("settings.providers.custom_display_name")}
               className="settings-search"
               disabled={customProviderPending}
-              placeholder="Optional display name"
+              placeholder={t("settings.providers.custom_display_name_placeholder")}
               value={customProviderDraft.displayName}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, displayName: event.target.value }))}
             />
             <select
-              aria-label="Custom provider API"
+              aria-label={t("settings.providers.custom_api")}
               className="settings-select"
               disabled={customProviderPending}
               value={customProviderDraft.api}
@@ -298,28 +302,28 @@ export function SettingsProvidersSection({
               ))}
             </select>
             <input
-              aria-label="Custom provider base URL"
+              aria-label={t("settings.providers.custom_base_url")}
               className="settings-search"
               disabled={customProviderPending}
-              placeholder="Base URL"
+              placeholder={t("settings.providers.custom_base_url_placeholder")}
               type="url"
               value={customProviderDraft.baseUrl}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, baseUrl: event.target.value }))}
             />
             <input
-              aria-label="Custom provider API key"
+              aria-label={t("settings.providers.custom_api_key")}
               className="settings-search"
               disabled={customProviderPending}
-              placeholder="Optional API key"
+              placeholder={t("settings.providers.custom_api_key_placeholder")}
               type="password"
               value={customProviderDraft.apiKey}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, apiKey: event.target.value }))}
             />
             <textarea
-              aria-label="Custom provider model IDs"
+              aria-label={t("settings.providers.custom_model_ids")}
               className="extension-dialog__editor"
               disabled={customProviderPending}
-              placeholder={"One model ID per line\nfor example:\ngpt-4.1\ngpt-4o-mini"}
+              placeholder={t("settings.providers.custom_model_ids_placeholder")}
               rows={6}
               value={customProviderDraft.modelIds}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, modelIds: event.target.value }))}
@@ -328,7 +332,7 @@ export function SettingsProvidersSection({
             <div className="extension-dialog__actions">
               {customProviderMode === "edit" ? (
                 <button className="button button--secondary" disabled={customProviderPending} type="button" onClick={beginCreateCustomProvider}>
-                  Cancel edit
+                  {t("settings.providers.cancel_edit")}
                 </button>
               ) : null}
               <button
@@ -349,7 +353,7 @@ export function SettingsProvidersSection({
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title="Sign in" description="OAuth-capable providers can sign in directly from the desktop app.">
+      <SettingsGroup title={t("settings.providers.sign_in")} description={t("settings.providers.sign_in_description")}>
         {oauthProviders.map((provider) => (
           <ProviderRow
             key={provider.id}
@@ -361,17 +365,17 @@ export function SettingsProvidersSection({
         ))}
       </SettingsGroup>
 
-      <SettingsGroup title="All providers" description="Browse the full provider inventory.">
+      <SettingsGroup title={t("settings.providers.all")} description={t("settings.providers.all_description")}>
         <details className="settings-disclosure">
           <summary className="settings-disclosure__summary">
-            <span>Browse all providers</span>
+            <span>{t("settings.providers.browse_all")}</span>
             <span>{filteredProviders.length}</span>
           </summary>
           <div className="settings-disclosure__body">
             <input
-              aria-label="Search providers"
+              aria-label={t("settings.providers.search")}
               className="settings-search"
-              placeholder="Search providers"
+              placeholder={t("settings.providers.search")}
               value={providerQuery}
               onChange={(event) => setProviderQuery(event.target.value)}
             />
@@ -431,11 +435,11 @@ function ProviderApiKeyDialog({
   readonly onRemove?: () => Promise<void>;
   readonly onSave: () => Promise<void>;
 }) {
-  const title = provider.authSource === "auth_file" ? "Manage API key" : "Set API key";
+  const title = provider.authSource === "auth_file" ? t("settings.providers.manage_api_key") : t("settings.providers.set_api_key");
   const body =
     provider.authSource === "auth_file"
-      ? `Replace the saved API key for ${provider.name}, and optionally override its API URL.`
-      : `Save an API key locally for ${provider.name}, and optionally override its API URL.`;
+      ? t("settings.providers.replace_api_key", { providerName: provider.name })
+      : t("settings.providers.save_local_api_key", { providerName: provider.name });
 
   return (
     <div className="extension-dialog-backdrop">
@@ -443,20 +447,20 @@ function ProviderApiKeyDialog({
         <div className="extension-dialog__title">{title}</div>
         <p className="extension-dialog__body">{body}</p>
         <input
-          aria-label={`${provider.name} API URL`}
+          aria-label={t("settings.providers.provider_api_url", { providerName: provider.name })}
           className="settings-search"
           disabled={pending}
-          placeholder="Optional custom API URL"
+          placeholder={t("settings.providers.provider_api_url_placeholder")}
           type="url"
           value={baseUrlDraft}
           onChange={(event) => onChangeBaseUrlDraft(event.target.value)}
         />
         <input
-          aria-label={`${provider.name} API key`}
+          aria-label={t("settings.providers.provider_api_key", { providerName: provider.name })}
           autoFocus
           className="settings-search"
           disabled={pending}
-          placeholder="Enter API key"
+          placeholder={t("settings.providers.provider_api_key_placeholder")}
           type="password"
           value={draft}
           onChange={(event) => onChangeDraft(event.target.value)}
@@ -475,15 +479,15 @@ function ProviderApiKeyDialog({
         {error ? <p className="extension-dialog__body settings-warning">{error}</p> : null}
         <div className="extension-dialog__actions">
           <button className="button button--secondary" disabled={pending} type="button" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           {onRemove ? (
             <button className="button button--secondary" disabled={pending} type="button" onClick={() => void onRemove()}>
-              Remove saved key
+              {t("settings.providers.remove_saved_key")}
             </button>
           ) : null}
           <button className="button" disabled={pending || draft.trim().length === 0} type="button" onClick={() => void onSave()}>
-            {provider.authSource === "auth_file" ? "Save" : "Set"}
+            {provider.authSource === "auth_file" ? t("common.save") : t("settings.providers.set")}
           </button>
         </div>
       </div>

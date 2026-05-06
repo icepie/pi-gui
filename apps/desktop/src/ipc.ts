@@ -3,6 +3,7 @@ import type {
   RuntimeProviderApiKeyConfig,
   RuntimeSettingsSnapshot,
 } from "@pi-gui/session-driver/runtime-types";
+import type { AppLocale } from "./i18n";
 import type {
   NavigateSessionTreeOptions,
   NavigateSessionTreeResult,
@@ -53,6 +54,7 @@ export const desktopIpc = {
   selectSession: "pi-gui:select-session",
   archiveSession: "pi-gui:archive-session",
   unarchiveSession: "pi-gui:unarchive-session",
+  deleteSession: "pi-gui:delete-session",
   createSession: "pi-gui:create-session",
   startThread: "pi-gui:start-thread",
   cancelCurrentRun: "pi-gui:cancel-current-run",
@@ -214,6 +216,7 @@ export function getDesktopCommandFromShortcut(input: DesktopShortcutInput): PiDe
 
 export interface PiDesktopApi {
   platform: NodeJS.Platform;
+  locale: AppLocale;
   versions: NodeJS.ProcessVersions;
   ping(): Promise<string>;
   getState(): Promise<DesktopAppState>;
@@ -239,6 +242,7 @@ export interface PiDesktopApi {
   selectSession(target: WorkspaceSessionTarget): Promise<DesktopAppState>;
   archiveSession(target: WorkspaceSessionTarget): Promise<DesktopAppState>;
   unarchiveSession(target: WorkspaceSessionTarget): Promise<DesktopAppState>;
+  deleteSession(target: WorkspaceSessionTarget): Promise<DesktopAppState>;
   createSession(input: CreateSessionInput): Promise<DesktopAppState>;
   startThread(input: StartThreadInput): Promise<DesktopAppState>;
   cancelCurrentRun(): Promise<DesktopAppState>;

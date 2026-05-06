@@ -362,6 +362,19 @@ export class SessionSupervisor {
     await this.updateArchivedState(sessionRef, undefined);
   }
 
+  async deleteSession(sessionRef: SessionRef): Promise<void> {
+    const key = sessionKey(sessionRef);
+    const record = this.records.get(key);
+    record?.unsubscribeAgent?.();
+    if (record) {
+      record.unsubscribeAgent = undefined;
+      record.listeners.clear();
+      await this.disposeRecordRuntime(record);
+    }
+    this.records.delete(key);
+    await this.catalogs.sessions.deleteSession(sessionRef);
+  }
+
   async sendUserMessage(sessionRef: SessionRef, input: SessionMessageInput): Promise<void> {
     const record = await this.ensureRecord(sessionRef);
     const session = this.requireSession(record);

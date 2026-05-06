@@ -10,6 +10,7 @@ import {
   type TerminalPanelSnapshot,
   type TerminalSize,
 } from "../src/ipc";
+import type { AppLocale } from "../src/i18n";
 import type {
   NavigateSessionTreeOptions,
   NavigateSessionTreeResult,
@@ -65,6 +66,7 @@ function subscribeIpc<T>(channel: string, listener: (payload: T) => void): () =>
 
 contextBridge.exposeInMainWorld("piApp", {
   platform: process.platform,
+  locale: ((process.env.PI_APP_LOCALE as AppLocale | undefined) === "en-US" ? "en-US" : "zh-CN") as AppLocale,
   versions: process.versions,
   ping: () => ipcRenderer.invoke(desktopIpc.ping) as Promise<string>,
   getState: () => ipcRenderer.invoke(desktopIpc.stateRequest) as Promise<DesktopAppState>,
@@ -145,6 +147,8 @@ contextBridge.exposeInMainWorld("piApp", {
     ipcRenderer.invoke(desktopIpc.archiveSession, target) as Promise<DesktopAppState>,
   unarchiveSession: (target: WorkspaceSessionTarget) =>
     ipcRenderer.invoke(desktopIpc.unarchiveSession, target) as Promise<DesktopAppState>,
+  deleteSession: (target: WorkspaceSessionTarget) =>
+    ipcRenderer.invoke(desktopIpc.deleteSession, target) as Promise<DesktopAppState>,
   createSession: (input: CreateSessionInput) =>
     ipcRenderer.invoke(desktopIpc.createSession, input) as Promise<DesktopAppState>,
   startThread: (input: StartThreadInput) =>

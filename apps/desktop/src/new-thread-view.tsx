@@ -13,6 +13,7 @@ import { ComposerSurface } from "./composer-surface";
 import { ModelOnboardingNoticeBanner } from "./model-onboarding-notice";
 import type { ModelOnboardingState, ModelOnboardingSettingsSection } from "./model-onboarding";
 import { ModelSelector } from "./model-selector";
+import { t } from "./i18n";
 
 interface NewThreadViewProps {
   readonly workspaces: readonly WorkspaceRecord[];
@@ -120,9 +121,9 @@ export function NewThreadView({
     return (
       <section className="canvas canvas--empty">
         <div className="empty-panel">
-          <div className="session-header__eyebrow">New thread</div>
-          <h1>Open a folder to begin</h1>
-          <p>Select a repository from the sidebar first, then start a local or worktree-backed thread.</p>
+          <div className="session-header__eyebrow">{t("new_thread.title")}</div>
+          <h1>{t("new_thread.open_folder_to_begin")}</h1>
+          <p>{t("new_thread.empty_description")}</p>
         </div>
       </section>
     );
@@ -135,10 +136,15 @@ export function NewThreadView({
           <div className="new-thread__logo" data-testid="new-thread-logo">
             <PiLogoMark />
           </div>
-          <div className="new-thread__eyebrow">New thread</div>
-          <h1 className="new-thread__title">Let&apos;s build</h1>
+          <div className="new-thread__eyebrow">{t("new_thread.title")}</div>
+          <h1 className="new-thread__title">{t("new_thread.lets_build")}</h1>
+          <p className="new-thread__subtitle">
+            {workspace.name}
+            <span className="new-thread__subtitle-separator">·</span>
+            {t("new_thread.prompt_placeholder")}
+          </p>
           <label className="new-thread__workspace-picker">
-            <span className="sr-only">Workspace</span>
+            <span className="sr-only">{t("new_thread.workspace")}</span>
             <select
               className="new-thread__workspace"
               value={workspace.id}
@@ -189,10 +195,10 @@ export function NewThreadView({
               mentionOptions={mentionOptions}
               selectedMentionIndex={selectedMentionIndex}
               onSelectMention={onSelectMention}
-              textareaLabel="New thread prompt"
+              textareaLabel={t("new_thread.prompt_label")}
               textareaTestId="new-thread-composer"
               textareaClassName="new-thread__textarea"
-              textareaPlaceholder="Ask pi anything, use / for commands and skills"
+              textareaPlaceholder={t("new_thread.prompt_placeholder")}
               footer={(
                 <NewThreadComposerFooter
                   runtime={runtime}
@@ -260,14 +266,14 @@ function NewThreadComposerFooter({
                 type="button"
                 onClick={() => onSelectEnvironment("local")}
               >
-                <span>Local</span>
+                <span>{t("new_thread.local")}</span>
               </button>
               <button
                 className={`new-thread__environment ${environment === "worktree" ? "new-thread__environment--active" : ""}`}
                 type="button"
                 onClick={() => onSelectEnvironment("worktree")}
               >
-                <span>Worktree</span>
+                <span>{t("new_thread.worktree")}</span>
               </button>
             </div>
             <span className="new-thread__hint-separator">·</span>
@@ -302,7 +308,7 @@ function NewThreadComposerFooter({
               }}
             />
             <button
-              aria-label="Attach files"
+              aria-label={t("new_thread.attach_files")}
               className="icon-button composer__attach"
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -310,7 +316,7 @@ function NewThreadComposerFooter({
               <PlusIcon />
             </button>
             <button
-              aria-label="Start thread"
+              aria-label={t("new_thread.start_thread")}
               className="button button--primary button--cta-icon"
               type="button"
               disabled={!hasContent || modelOnboarding.requiresModelSelection}

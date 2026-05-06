@@ -45,20 +45,29 @@
 
 .topbar {
   -webkit-app-region: drag;
-  padding: 12px 18px 10px;
+  padding: 13px 20px 11px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   border-bottom: 1px solid #e4e7ef;
   background: rgba(251, 251, 253, 0.94);
 }
 
+.topbar__leading {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-left: 68px;
+}
+
 .topbar__title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .environment-picker,
@@ -90,7 +99,7 @@
 .topbar__workspace,
 .topbar__session {
   font-size: 13px;
-  font-weight: 560;
+  font-weight: 620;
   letter-spacing: -0.02em;
 }
 
@@ -181,26 +190,20 @@
 
 .sidebar-toggle {
   -webkit-app-region: no-drag;
-  position: absolute;
-  top: 11px;
-  left: var(--titlebar-toggle-left);
-  z-index: 80;
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-toggle__button {
   width: var(--titlebar-toggle-size);
   height: var(--titlebar-toggle-size);
-  border-radius: 10px;
+  border-radius: 11px;
   color: var(--muted-soft);
   background: rgba(255, 255, 255, 0.42);
 }
 
-.shell--sidebar-collapsed .topbar {
-  padding-left: var(--titlebar-collapsed-main-padding-left);
-}
-
 .canvas {
-  padding: 20px 28px 0;
+  padding: 24px 30px 0;
   overflow: auto;
 }
 
@@ -281,9 +284,14 @@
 
 .empty-panel {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   width: min(760px, 100%);
   margin: 0 auto;
+  padding: 28px 30px;
+  border-radius: 18px;
+  border: 1px solid rgba(220, 226, 237, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 36px rgba(41, 55, 87, 0.05);
 }
 
 .empty-panel__meta {
@@ -1946,47 +1954,67 @@
   min-height: calc(100vh - 164px);
   display: grid;
   align-content: center;
-  gap: 28px;
+  gap: 34px;
+  padding: 18px 0 34px;
 }
 
 .new-thread__hero {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
 }
 
 .new-thread__logo {
-  width: 64px;
-  height: 64px;
+  width: 78px;
+  height: 78px;
   display: grid;
   place-items: center;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(218, 225, 238, 0.92);
+  box-shadow: 0 12px 28px rgba(48, 60, 93, 0.06);
 }
 
 .new-thread__logo svg {
-  width: 64px;
-  height: 64px;
+  width: 70px;
+  height: 70px;
   display: block;
 }
 
 .new-thread__eyebrow {
-  color: var(--muted-soft);
-  font-size: 13px;
+  color: #7b869e;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .new-thread__hero h1 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 52px;
-  font-weight: 680;
+  font-size: clamp(44px, 6vw, 60px);
+  font-weight: 720;
   letter-spacing: -0.06em;
+  line-height: 0.98;
 }
 
 .new-thread__title {
   margin: 0;
+}
+
+.new-thread__subtitle {
+  width: min(760px, 100%);
+  margin: 0;
+  color: #66738b;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.new-thread__subtitle-separator {
+  display: inline-block;
+  margin: 0 10px;
+  color: #a0a9ba;
 }
 
 .new-thread__workspace-picker {
@@ -1995,22 +2023,27 @@
 }
 
 .new-thread__workspace {
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 999px;
-  border: 1px solid #dfe4ee;
-  background: #fff;
+  border: 1px solid #d7dfec;
+  background: rgba(255, 255, 255, 0.94);
   color: var(--text-strong);
   font: inherit;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(40, 52, 81, 0.05);
 }
 
 .new-thread__composer {
-  width: min(820px, 100%);
+  width: min(900px, 100%);
   margin: 0 auto;
 }
 
 .new-thread__composer.composer {
-  padding: 0;
-  background: transparent;
+  padding: 22px 22px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(218, 225, 238, 0.94);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 44px rgba(34, 47, 74, 0.06);
 }
 
 .new-thread__composer .conversation--composer {
@@ -2020,33 +2053,38 @@
 .new-thread__environment-group {
   display: inline-flex;
   gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(240, 243, 249, 0.92);
+  border: 1px solid rgba(220, 227, 238, 0.94);
 }
 
 .new-thread__environment {
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid #dfe4ee;
-  background: #f8f9fc;
-  color: var(--muted-strong);
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6e7a92;
   font-size: 13px;
-  font-weight: 560;
+  font-weight: 620;
 }
 
 .new-thread__environment--active {
-  border-color: #cfd7ea;
-  background: #eef2ff;
+  border-color: rgba(208, 217, 233, 0.92);
+  background: #ffffff;
   color: var(--text-strong);
+  box-shadow: 0 6px 14px rgba(52, 66, 101, 0.05);
 }
 
 .new-thread__textarea {
-  min-height: 120px;
+  min-height: 136px;
   resize: vertical;
   border: none;
   background: transparent;
   color: var(--text-strong);
   font: inherit;
   font-size: 18px;
-  line-height: 1.6;
+  line-height: 1.72;
 }
 
 .new-thread__textarea:focus {
@@ -2056,12 +2094,12 @@
 .new-thread__hint {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .new-thread__hint-separator {
-  color: var(--muted-soft);
+  color: #a2abbd;
 }
 
 
@@ -2101,24 +2139,25 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 0 0 8px;
 }
 
 .view-header__title {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: var(--text-strong);
-  font-size: 26px;
-  font-weight: 620;
+  font-size: 28px;
+  font-weight: 680;
   letter-spacing: -0.04em;
 }
 
 .view-header__body {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   max-width: 640px;
-  color: var(--muted-strong);
+  color: #66748d;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.72;
 }
 
 .view-header__actions {
@@ -2129,7 +2168,7 @@
 
 .settings-view,
 .skills-view {
-  padding-bottom: 24px;
+  padding-bottom: 32px;
   width: min(1120px, 100%);
   margin: 0 auto;
 }
@@ -2931,6 +2970,10 @@
 
   .topbar__actions {
     justify-content: flex-start;
+  }
+
+  .topbar__leading {
+    margin-left: 0;
   }
 
   .skills-layout {

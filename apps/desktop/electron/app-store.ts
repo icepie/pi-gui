@@ -328,6 +328,10 @@ export class DesktopAppStore implements AppStoreInternals {
     return workspace.unarchiveSession(this, target);
   }
 
+  async deleteSession(target: WorkspaceSessionTarget): Promise<DesktopAppState> {
+    return workspace.deleteSession(this, target);
+  }
+
   async syncCurrentWorkspace(): Promise<DesktopAppState> {
     return workspace.syncCurrentWorkspace(this);
   }
@@ -1934,8 +1938,6 @@ export class DesktopAppStore implements AppStoreInternals {
 
     this.clearSessionError(sessionRef);
     this.state = this.syncSelectedSessionHydrationState(this.state, sessionRef, snapshot, runtimeByWorkspace);
-    this.markSessionViewed(sessionRef);
-    this.schedulePersistUiState();
     this.emit();
     this.publishSelectedTranscriptFor(sessionRef);
   }

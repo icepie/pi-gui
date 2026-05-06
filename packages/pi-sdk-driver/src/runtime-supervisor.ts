@@ -461,11 +461,13 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
   private async buildProviderRecords(): Promise<readonly RuntimeProviderRecord[]> {
     const oauthProviders = new Map(this.authStorage.getOAuthProviders().map((provider) => [provider.id, provider]));
     const customProviderConfigs = await readCustomProviderConfigsFromFile(join(this.agentDir, "models.json"));
+    const externalApiKeyProviderIds = await readProviderOverrideApiKeyIdsFromFile(join(this.agentDir, "models.json"));
     const providerIds = new Set<string>([
       ...this.modelRegistry.getAll().map((model) => model.provider),
       ...oauthProviders.keys(),
       ...this.authStorage.list(),
       ...customProviderConfigs.keys(),
+      ...externalApiKeyProviderIds,
     ]);
 
     return [...providerIds]
@@ -474,8 +476,9 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
         const auth = this.authStorage.get(providerId);
         const oauthProvider = oauthProviders.get(providerId);
         const apiKeySetupSupported = providerSupportsDesktopApiKeySetup(providerId);
-        const hasAuth = this.authStorage.hasAuth(providerId);
         const customProviderConfig = customProviderConfigs.get(providerId);
+        const hasModelConfigApiKey = externalApiKeyProviderIds.has(providerId);
+        const hasAuth = this.authStorage.hasAuth(providerId) || hasModelConfigApiKey;
         return {
           id: providerId,
           name: oauthProvider?.name ?? providerId,
@@ -485,7 +488,7 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
             auth,
             hasAuth,
             apiKeySetupSupported,
-            providerHasModelConfigApiKey(this.modelRegistry, providerId),
+            hasModelConfigApiKey,
           ),
           oauthSupported: Boolean(oauthProvider),
           apiKeySetupSupported,
@@ -854,6 +857,22 @@ async function readCustomProviderConfigsFromFile(
   return result;
 }
 
+async function readProviderOverrideApiKeyIdsFromFile(filePath: string): Promise<ReadonlySet<string>> {
+  const current = await readJsonRecord(filePath);
+  const providers = cloneProvidersRecord(current);
+  const result = new Set<string>();
+  for (const [providerId, rawValue] of Object.entries(providers)) {
+    if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
+      continue;
+    }
+    const apiKey = (rawValue as Record<string, unknown>).apiKey;
+    if (typeof apiKey === "string" && apiKey.trim()) {
+      result.add(providerId);
+    }
+  }
+  return result;
+}
+
 function toRuntimeCustomProviderConfig(
   value: Record<string, unknown>,
 ): RuntimeCustomProviderConfig | undefined {
@@ -1043,13 +1062,6 @@ function inferProviderAuthSource(
     return "external";
   }
   return apiKeySetupSupported ? "env" : "external";
-}
-
-function providerHasModelConfigApiKey(modelRegistry: ModelRegistry, providerId: string): boolean {
-  const customProviderApiKeys = (
-    modelRegistry as unknown as { customProviderApiKeys?: ReadonlyMap<string, unknown> }
-  ).customProviderApiKeys;
-  return customProviderApiKeys?.has(providerId) ?? false;
 }
 
 function toRuntimeSourceInfo(path: string, metadata: PathMetadata): RuntimeSourceInfo {

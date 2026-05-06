@@ -533,6 +533,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.unarchiveSession, (_event, target: WorkspaceSessionTarget) =>
     store.unarchiveSession(target),
   );
+  ipcMain.handle(desktopIpc.deleteSession, (_event, target: WorkspaceSessionTarget) =>
+    store.deleteSession(target),
+  );
   ipcMain.handle(desktopIpc.setActiveView, (_event, activeView) => store.setActiveView(activeView));
   ipcMain.handle(desktopIpc.setSidebarCollapsed, (_event, collapsed: boolean) =>
     store.setSidebarCollapsed(collapsed),

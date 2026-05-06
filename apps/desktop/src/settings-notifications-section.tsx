@@ -1,6 +1,7 @@
 import type { DesktopNotificationPermissionStatus } from "./ipc";
 import type { NotificationPreferences } from "./desktop-state";
 import { SettingsGroup, SettingsRow } from "./settings-utils";
+import { t } from "./i18n";
 
 interface SettingsNotificationsSectionProps {
   readonly notificationPreferences: NotificationPreferences;
@@ -27,17 +28,17 @@ export function SettingsNotificationsSection({
 
   return (
     <>
-      <SettingsGroup title="System" description="macOS decides whether pi-gui can show desktop notifications at all.">
-        <SettingsRow title="macOS notification access" description={statusDescription}>
+      <SettingsGroup title={t("settings.notifications.system")} description={t("settings.notifications.system_description")}>
+        <SettingsRow title={t("settings.notifications.access")} description={statusDescription}>
           <span className="settings-row__value">{statusLabel}</span>
         </SettingsRow>
         {showRecoveryActions ? (
           <SettingsRow
-            title="Turn on notifications"
+            title={t("settings.notifications.turn_on")}
             description={
               showAskMacOs
-                ? "pi-gui asks macOS when active work first moves into the background. You can also ask now."
-                : "macOS notifications are already turned off for pi-gui. Open System Settings to enable them again."
+                ? t("settings.notifications.ask_now")
+                : t("settings.notifications.denied_recovery")
             }
           >
             <div className="settings-row__actions">
@@ -48,7 +49,7 @@ export function SettingsNotificationsSection({
                   type="button"
                   onClick={onRequestNotificationPermission}
                 >
-                  Ask macOS
+                  {t("settings.notifications.ask_macos")}
                 </button>
               ) : null}
               {showOpenSystemSettings ? (
@@ -58,7 +59,7 @@ export function SettingsNotificationsSection({
                   type="button"
                   onClick={onOpenSystemNotificationSettings}
                 >
-                  Open System Settings
+                  {t("settings.notifications.open_system_settings")}
                 </button>
               ) : null}
             </div>
@@ -66,26 +67,26 @@ export function SettingsNotificationsSection({
         ) : null}
       </SettingsGroup>
 
-      <SettingsGroup title="In-app alerts" description="Choose which background events should try to notify once macOS access is enabled.">
-        <SettingsRow title="Background completion" description="Notify when a background session finishes.">
+      <SettingsGroup title={t("settings.notifications.in_app_alerts")} description={t("settings.notifications.in_app_alerts_description")}>
+        <SettingsRow title={t("settings.notifications.background_completion")} description={t("settings.notifications.background_completion_description")}>
           <input
-            aria-label="Background completion"
+            aria-label={t("settings.notifications.background_completion")}
             checked={notificationPreferences.backgroundCompletion}
             type="checkbox"
             onChange={(event) => onSetNotificationPreferences({ backgroundCompletion: event.target.checked })}
           />
         </SettingsRow>
-        <SettingsRow title="Background failures" description="Notify when a background session fails.">
+        <SettingsRow title={t("settings.notifications.background_failures")} description={t("settings.notifications.background_failures_description")}>
           <input
-            aria-label="Background failures"
+            aria-label={t("settings.notifications.background_failures")}
             checked={notificationPreferences.backgroundFailure}
             type="checkbox"
             onChange={(event) => onSetNotificationPreferences({ backgroundFailure: event.target.checked })}
           />
         </SettingsRow>
-        <SettingsRow title="Needs input or approval" description="Notify when input is needed to continue.">
+        <SettingsRow title={t("settings.notifications.attention_needed")} description={t("settings.notifications.attention_needed_description")}>
           <input
-            aria-label="Needs input or approval"
+            aria-label={t("settings.notifications.attention_needed")}
             checked={notificationPreferences.attentionNeeded}
             type="checkbox"
             onChange={(event) => onSetNotificationPreferences({ attentionNeeded: event.target.checked })}
@@ -99,29 +100,29 @@ export function SettingsNotificationsSection({
 function labelForPermissionStatus(status: DesktopNotificationPermissionStatus): string {
   switch (status) {
     case "granted":
-      return "Enabled";
+      return t("settings.notifications.status.enabled");
     case "denied":
-      return "Turned off";
+      return t("settings.notifications.status.turned_off");
     case "default":
-      return "Not enabled yet";
+      return t("settings.notifications.status.not_enabled");
     case "unsupported":
-      return "Unavailable";
+      return t("settings.notifications.status.unavailable");
     default:
-      return "Checking…";
+      return t("settings.notifications.status.checking");
   }
 }
 
 function descriptionForPermissionStatus(status: DesktopNotificationPermissionStatus): string {
   switch (status) {
     case "granted":
-      return "macOS will allow pi-gui to show desktop notifications for background thread updates.";
+      return t("settings.notifications.desc.granted");
     case "denied":
-      return "macOS notifications are turned off for pi-gui. Enable them in System Settings to receive background completion alerts.";
+      return t("settings.notifications.desc.denied");
     case "default":
-      return "pi-gui has not asked macOS for desktop notification access yet.";
+      return t("settings.notifications.desc.default");
     case "unsupported":
-      return "Desktop notifications are unavailable on this system.";
+      return t("settings.notifications.desc.unsupported");
     default:
-      return "Checking whether macOS notifications are available for pi-gui.";
+      return t("settings.notifications.desc.unknown");
   }
 }

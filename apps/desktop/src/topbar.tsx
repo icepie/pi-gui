@@ -3,6 +3,8 @@ import type { AppView, DesktopAppState, SessionRecord, WorkspaceRecord, Worktree
 import { DiffIcon, FolderIcon, TerminalIcon } from "./icons";
 import { getDesktopShortcutLabel, type PiDesktopApi } from "./ipc";
 import type { WorkspaceMenuState } from "./hooks/use-workspace-menu";
+import { SidebarToggleButton } from "./sidebar-toggle-button";
+import { t } from "./i18n";
 
 interface TopbarProps {
   readonly activeView: AppView;
@@ -26,6 +28,10 @@ interface TopbarProps {
   readonly onToggleTerminal: () => void;
   readonly showDiffPanel: boolean;
   readonly onToggleDiffPanel: () => void;
+  readonly showSidebarToggle: boolean;
+  readonly sidebarCollapsed: boolean;
+  readonly sidebarToggleShortcutLabel: string;
+  readonly onToggleSidebar: () => void;
 }
 
 export function Topbar(props: TopbarProps) {
@@ -47,6 +53,10 @@ export function Topbar(props: TopbarProps) {
     onToggleTerminal,
     showDiffPanel,
     onToggleDiffPanel,
+    showSidebarToggle,
+    sidebarCollapsed,
+    sidebarToggleShortcutLabel,
+    onToggleSidebar,
   } = props;
   const terminalShortcut = getDesktopShortcutLabel(api.platform, "J");
   const diffShortcut = getDesktopShortcutLabel(api.platform, "D");
@@ -66,9 +76,18 @@ export function Topbar(props: TopbarProps) {
 
   return (
     <header className="topbar" data-testid="topbar" onDoubleClick={handleDoubleClick}>
+      {showSidebarToggle ? (
+        <div className="topbar__leading">
+          <SidebarToggleButton
+            collapsed={sidebarCollapsed}
+            shortcutLabel={sidebarToggleShortcutLabel}
+            onToggle={onToggleSidebar}
+          />
+        </div>
+      ) : null}
       <div className="topbar__title">
         <span className="topbar__workspace">
-          {rootWorkspace ? rootWorkspace.name : "Open a folder to begin"}
+          {rootWorkspace ? rootWorkspace.name : t("topbar.open_a_folder_to_begin")}
         </span>
         {selectedWorkspace && activeView === "threads" ? (
           <>
@@ -81,7 +100,7 @@ export function Topbar(props: TopbarProps) {
                 type="button"
                 onClick={() => wsMenu.setEnvironmentMenuOpen((current) => !current)}
               >
-                {selectedWorkspace.kind === "worktree" ? selectedWorktree?.name ?? selectedWorkspace.name : "Local"}
+                {selectedWorkspace.kind === "worktree" ? selectedWorktree?.name ?? selectedWorkspace.name : t("topbar.local")}
               </button>
               {wsMenu.environmentMenuOpen && rootWorkspace ? (
                 <div className="workspace-menu environment-picker__menu">
@@ -90,7 +109,7 @@ export function Topbar(props: TopbarProps) {
                     type="button"
                     onClick={() => wsMenu.selectWorkspace(rootWorkspace.id)}
                   >
-                    Local
+                    {t("topbar.local")}
                   </button>
                   {activeWorktrees.map((worktree) => {
                     const linkedWorkspace = workspaces.find(
@@ -110,7 +129,7 @@ export function Topbar(props: TopbarProps) {
                         }}
                       >
                         {worktree.name}
-                        {!worktreeSelectable ? ` (${worktree.status !== "ready" ? worktree.status : "unavailable"})` : ""}
+                        {!worktreeSelectable ? ` (${worktree.status !== "ready" ? worktree.status : t("topbar.unavailable")})` : ""}
                       </button>
                     );
                   })}
@@ -127,7 +146,7 @@ export function Topbar(props: TopbarProps) {
         ) : activeView === "new-thread" && rootWorkspace ? (
           <>
             <span className="topbar__separator">/</span>
-            <span className="topbar__session">New thread</span>
+            <span className="topbar__session">{t("topbar.new_thread")}</span>
           </>
         ) : null}
       </div>
@@ -135,7 +154,7 @@ export function Topbar(props: TopbarProps) {
       <div className="topbar__actions">
         <div className="shortcut-tooltip-wrap topbar__tooltip-wrap">
           <button
-            aria-label="Toggle terminal"
+            aria-label={t("topbar.toggle_terminal")}
             className={`icon-button topbar__icon ${terminalVisible ? "icon-button--active" : ""}`}
             type="button"
             disabled={!terminalAvailable}
@@ -144,13 +163,13 @@ export function Topbar(props: TopbarProps) {
             <TerminalIcon />
           </button>
           <span className="shortcut-tooltip topbar__tooltip" role="tooltip">
-            <span>Toggle terminal</span>
+            <span>{t("topbar.toggle_terminal")}</span>
             <kbd>{terminalShortcut}</kbd>
           </span>
         </div>
         <div className="shortcut-tooltip-wrap topbar__tooltip-wrap">
           <button
-            aria-label="Toggle changes"
+            aria-label={t("topbar.toggle_changes")}
             className={`icon-button topbar__icon ${showDiffPanel ? "icon-button--active" : ""}`}
             type="button"
             onClick={onToggleDiffPanel}
@@ -158,12 +177,12 @@ export function Topbar(props: TopbarProps) {
             <DiffIcon />
           </button>
           <span className="shortcut-tooltip topbar__tooltip" role="tooltip">
-            <span>Toggle changes</span>
+            <span>{t("topbar.toggle_changes")}</span>
             <kbd>{diffShortcut}</kbd>
           </span>
         </div>
         <button
-          aria-label="Add folder"
+          aria-label={t("topbar.add_folder")}
           className="icon-button topbar__icon"
           type="button"
           onClick={() => {

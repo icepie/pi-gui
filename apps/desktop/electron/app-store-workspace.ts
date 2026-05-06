@@ -205,6 +205,54 @@ export async function unarchiveSession(
   });
 }
 
+export async function deleteSession(
+  store: AppStoreInternals,
+  target: WorkspaceSessionTarget,
+): Promise<DesktopAppState> {
+  await store.initialize();
+
+  return store.withErrorHandling(async () => {
+    const sessionRef = toSessionRef(target);
+    store.clearPendingAutoTitle(sessionRef);
+    await store.cancelPendingDialogsForSession(sessionRef);
+    await store.driver.deleteSession(sessionRef);
+    return store.refreshState(selectionAfterDeleting(store.state, target));
+  });
+}
+
+function selectionAfterDeleting(state: DesktopAppState, target: WorkspaceSessionTarget): RefreshStateOptions {
+  if (state.selectedWorkspaceId !== target.workspaceId || state.selectedSessionId !== target.sessionId) {
+    return {
+      selectedWorkspaceId: state.selectedWorkspaceId,
+      selectedSessionId: state.selectedSessionId,
+      clearLastError: true,
+      activeView: "threads",
+    };
+  }
+
+  const targetWorkspace = state.workspaces.find((workspace) => workspace.id === target.workspaceId);
+  if (!targetWorkspace) {
+    return {
+      selectedWorkspaceId: state.selectedWorkspaceId,
+      selectedSessionId: "",
+      clearLastError: true,
+      activeView: "threads",
+    };
+  }
+
+  const candidates = targetWorkspace.sessions
+    .filter((session) => session.id !== target.sessionId)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const nextSession = candidates[0];
+
+  return {
+    selectedWorkspaceId: target.workspaceId,
+    selectedSessionId: nextSession?.id ?? "",
+    clearLastError: true,
+    activeView: "threads",
+  };
+}
+
 export async function createSession(store: AppStoreInternals, input: CreateSessionInput): Promise<DesktopAppState> {
   await store.initialize();
   const ws = store.workspaceRefFromState(input.workspaceId);

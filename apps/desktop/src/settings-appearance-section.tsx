@@ -1,21 +1,22 @@
 import type { ThemeMode } from "./desktop-state";
 import { SettingsGroup, SettingsRow } from "./settings-utils";
+import { t } from "./i18n";
 
 interface SettingsAppearanceSectionProps {
   readonly themeMode: ThemeMode;
   readonly onSetThemeMode: (mode: ThemeMode) => void;
 }
 
-const THEME_OPTIONS: { mode: ThemeMode; label: string; description: string }[] = [
-  { mode: "system", label: "System", description: "Follow your OS appearance setting" },
-  { mode: "light", label: "Light", description: "Always use the light theme" },
-  { mode: "dark", label: "Dark", description: "Always use the dark theme" },
-];
-
 export function SettingsAppearanceSection({ themeMode, onSetThemeMode }: SettingsAppearanceSectionProps) {
+  const themeOptions: { mode: ThemeMode; label: string; description: string }[] = [
+    { mode: "system", label: t("settings.theme.system"), description: t("settings.theme.system_description") },
+    { mode: "light", label: t("settings.theme.light"), description: t("settings.theme.light_description") },
+    { mode: "dark", label: t("settings.theme.dark"), description: t("settings.theme.dark_description") },
+  ];
+
   return (
-    <SettingsGroup title="Theme">
-      {THEME_OPTIONS.map((option) => (
+    <SettingsGroup title={t("settings.theme")}>
+      {themeOptions.map((option) => (
         <SettingsRow key={option.mode} title={option.label} description={option.description}>
           <input
             checked={themeMode === option.mode}

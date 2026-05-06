@@ -34,7 +34,6 @@ import { SecondarySurface } from "./secondary-surface";
 import { NewThreadView } from "./new-thread-view";
 import { buildThreadGroups } from "./thread-groups";
 import { Sidebar } from "./sidebar";
-import { SidebarToggleButton } from "./sidebar-toggle-button";
 import { Topbar } from "./topbar";
 import { TerminalPanel } from "./terminal-panel";
 import { ConversationTimeline, VIRTUALIZATION_THRESHOLD } from "./conversation-timeline";
@@ -46,6 +45,7 @@ import { buildExtensionDockModel, ExtensionDialog, hasExtensionDockContent } fro
 import { TreeModal } from "./tree-modal";
 import { getEffectiveModelRuntime } from "./model-settings";
 import { resolveRepoWorkspaceId } from "./workspace-roots";
+import { setLocale } from "./i18n";
 import {
   extractImageFilesFromClipboardData,
   extractFilesFromDataTransfer,
@@ -206,6 +206,7 @@ export default function App() {
   const [disableTimelineVirtualization, setDisableTimelineVirtualization] = useState(true);
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
+  setLocale(api?.locale ?? "zh-CN");
   const sidebarToggleStateRef = useRef<{
     readonly api: typeof window.piApp;
     readonly activeView: AppView | undefined;
@@ -1767,6 +1768,10 @@ export default function App() {
     void updateSnapshot(api, setSnapshot, () => api.unarchiveSession(target));
   };
 
+  const handleDeleteSession = (target: { workspaceId: string; sessionId: string }) => {
+    void updateSnapshot(api, setSnapshot, () => api.deleteSession(target));
+  };
+
   const handleStartThread = () => {
     if (!newThreadRootWorkspaceId || (!newThreadPrompt.trim() && newThreadAttachments.length === 0)) {
       return;
@@ -2043,13 +2048,6 @@ export default function App() {
 
   return (
     <div className={shellClassName}>
-      {primarySidebarToggleVisible ? (
-        <SidebarToggleButton
-          collapsed={snapshot.sidebarCollapsed}
-          shortcutLabel={sidebarToggleShortcutLabel}
-          onToggle={handleTogglePrimarySidebar}
-        />
-      ) : null}
       {!snapshot.sidebarCollapsed ? (
         <Sidebar
           activeView={snapshot.activeView}
@@ -2070,6 +2068,7 @@ export default function App() {
           onArchiveSession={handleArchiveSession}
           onSelectSession={handleSelectSession}
           onUnarchiveSession={handleUnarchiveSession}
+          onDeleteSession={handleDeleteSession}
         />
       ) : null}
 
@@ -2092,6 +2091,10 @@ export default function App() {
           onToggleTerminal={toggleTerminal}
           showDiffPanel={showDiffPanel}
           onToggleDiffPanel={toggleDiffPanel}
+          showSidebarToggle={primarySidebarToggleVisible}
+          sidebarCollapsed={snapshot.sidebarCollapsed}
+          sidebarToggleShortcutLabel={sidebarToggleShortcutLabel}
+          onToggleSidebar={handleTogglePrimarySidebar}
         />
 
         {showTerminalTakeover ? (

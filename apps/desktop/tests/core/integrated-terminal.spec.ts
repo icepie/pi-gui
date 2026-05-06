@@ -56,8 +56,6 @@ test("opens a workspace terminal with persistent output, tabs, and takeover cont
     await expect(window.getByTestId("integrated-terminal")).toBeVisible();
     await expect(window.getByTestId("integrated-terminal").locator(".xterm-rows")).not.toContainText("PI_TERMINAL_OK");
     await selectSession(window, "Terminal host thread");
-    await expect(window.getByTestId("integrated-terminal")).toHaveCount(0);
-    await window.keyboard.press(desktopShortcut("J"));
     await expect(window.getByTestId("integrated-terminal")).toBeVisible();
     await expect(window.getByTestId("integrated-terminal").locator(".xterm-rows")).toContainText("PI_TERMINAL_OK", {
       timeout: 15_000,
