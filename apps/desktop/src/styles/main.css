@@ -372,8 +372,8 @@
   margin: 0 auto;
   padding: 28px 30px;
   border-radius: 18px;
-  border: 1px solid rgba(220, 226, 237, 0.9);
-  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: 0 14px 36px rgba(41, 55, 87, 0.05);
 }
 
@@ -381,6 +381,23 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.workspace-thread-empty-panel {
+  border-color: rgba(220, 226, 237, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.workspace-thread-empty-panel h1 {
+  color: #1f2638;
+}
+
+.workspace-thread-empty-panel p {
+  color: #556077;
+}
+
+.workspace-thread-empty-panel .session-header__eyebrow {
+  color: #8f97aa;
 }
 
 .timeline {
@@ -4516,6 +4533,41 @@ mark.thread-find-active {
 
 :root.dark .settings-group > * + * {
   border-top-color: #252b2a;
+}
+
+:root.dark .empty-panel {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+:root.dark .empty-panel h1 {
+  color: var(--text-strong);
+}
+
+:root.dark .empty-panel p {
+  color: var(--muted-strong);
+}
+
+:root.dark .empty-panel .session-header__eyebrow {
+  color: var(--muted-soft);
+}
+
+:root.dark .workspace-thread-empty-panel {
+  border-color: rgba(220, 226, 237, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+:root.dark .workspace-thread-empty-panel h1 {
+  color: #1f2638;
+}
+
+:root.dark .workspace-thread-empty-panel p {
+  color: #556077;
+}
+
+:root.dark .workspace-thread-empty-panel .session-header__eyebrow {
+  color: #8f97aa;
 }
 
 :root.dark .new-thread__workspace {
