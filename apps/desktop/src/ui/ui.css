@@ -1,0 +1,314 @@
+/* ── UICheckbox ─────────────────────────────────── */
+
+.ui-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--line-strong, #c0c8d8);
+  background: var(--surface, #fff);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.ui-checkbox[data-checked] {
+  background: var(--accent, #4da6e8);
+  border-color: var(--accent, #4da6e8);
+}
+
+.ui-checkbox[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-checkbox__check {
+  width: 12px;
+  height: 12px;
+  stroke: #fff;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.ui-checkbox[data-checked] .ui-checkbox__check {
+  opacity: 1;
+}
+
+/* ── UISelect ──────────────────────────────────── */
+
+.ui-select {
+  position: relative;
+}
+
+.ui-select__button {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  padding-right: 32px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d9e0ec);
+  background: var(--surface, #fff);
+  color: var(--text-strong, #1a2138);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.ui-select__button[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-select__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-select__chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--muted-soft, #8d95a8);
+  pointer-events: none;
+}
+
+.ui-select__options {
+  z-index: 50;
+  min-width: var(--button-width, 180px);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--line, #d9e0ec);
+  background: var(--surface, #fff);
+  box-shadow: 0 16px 48px rgba(20, 27, 45, 0.14);
+  display: grid;
+  gap: 2px;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.ui-select__options[data-closed] {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.ui-select__option {
+  padding: 9px 11px;
+  border-radius: 10px;
+  color: var(--text-strong, #1a2138);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ui-select__option[data-focus] {
+  background: var(--surface-muted, #f3f5fa);
+}
+
+.ui-select__option[data-selected] {
+  font-weight: 590;
+}
+
+.ui-select__option[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── UIRadioGroup ──────────────────────────────── */
+
+.ui-radio-group {
+  display: contents;
+}
+
+.ui-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ui-radio-option[data-focus] {
+  background: var(--surface-muted, #f3f5fa);
+}
+
+.ui-radio-option__indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong, #c0c8d8);
+  background: var(--surface, #fff);
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.15s;
+}
+
+.ui-radio-option[data-checked] .ui-radio-option__indicator {
+  border-color: var(--accent, #4da6e8);
+}
+
+.ui-radio-option[data-checked] .ui-radio-option__indicator::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent, #4da6e8);
+}
+
+.ui-radio-option__content {
+  display: grid;
+  gap: 2px;
+}
+
+.ui-radio-option__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-strong, #1a2138);
+}
+
+.ui-radio-option__description {
+  font-size: 12px;
+  color: var(--muted, #6b7a99);
+}
+
+/* ── UIDialog ──────────────────────────────────── */
+
+.ui-dialog-root {
+  position: relative;
+  z-index: 50;
+}
+
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 31, 44, 0.26);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.2s ease-out;
+}
+
+.ui-dialog-backdrop[data-closed] {
+  opacity: 0;
+}
+
+.ui-dialog-container {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.ui-dialog:not(.tree-modal) {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 22px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #d9e0ec);
+  box-shadow: 0 28px 80px rgba(22, 29, 41, 0.16);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.ui-dialog[data-closed] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.ui-dialog__header {
+  display: grid;
+  gap: 4px;
+}
+
+.ui-dialog__eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-soft, #8d95a8);
+}
+
+.ui-dialog__title {
+  color: var(--text-strong, #1a2138);
+  font-size: 20px;
+  font-weight: 630;
+  letter-spacing: -0.02em;
+}
+
+/* ── UIMenu ────────────────────────────────────── */
+
+.ui-menu__items {
+  z-index: 50;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--line, #d9e0ec);
+  background: var(--surface, #fff);
+  box-shadow: 0 22px 56px rgba(20, 27, 45, 0.18);
+  display: grid;
+  gap: 2px;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.ui-menu__items[data-closed] {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.ui-menu__item {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-strong, #1a2138);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ui-menu__item[data-focus] {
+  background: var(--surface-muted, #f3f5fa);
+}
+
+.ui-menu__item--danger {
+  color: var(--error, #e05467);
+}
+
+/* ── UIRadio dot (inline in SettingsRow) ───────── */
+
+.ui-radio-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong, #c0c8d8);
+  background: var(--surface, #fff);
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.ui-radio-dot[data-checked] {
+  border-color: var(--accent, #4da6e8);
+}
+
+.ui-radio-dot[data-checked]::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent, #4da6e8);
+}

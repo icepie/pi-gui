@@ -192,7 +192,6 @@
 
 .workspace-row--menu-open {
   z-index: 20;
-  margin-bottom: 188px;
 }
 
 .workspace-row__select--draggable {
@@ -544,13 +543,27 @@
 
 .session-row__time,
 .session-row__action {
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.session-row__actions {
   grid-area: 1 / 1;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.92);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
 }
 
 .session-row__time {
+  grid-area: 1 / 1;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -594,10 +607,6 @@
   align-items: center;
   padding: 6px;
   padding-right: 0;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: scale(0.92);
 }
 
 .session-row .session-row__action svg {
@@ -610,8 +619,8 @@
   opacity: 0;
 }
 
-.session-row:hover .session-row__action,
-.session-row:focus-within .session-row__action {
+.session-row:hover .session-row__actions,
+.session-row:focus-within .session-row__actions {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;

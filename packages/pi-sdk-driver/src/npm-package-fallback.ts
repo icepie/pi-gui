@@ -9,6 +9,7 @@ import {
   type CreateAgentSessionOptions,
   type CreateAgentSessionRuntimeResult,
 } from "@mariozechner/pi-coding-agent";
+import { applyWindowsUtf8ProcessEnv } from "./windows-utf8-env.js";
 
 export function isGlobalNpmLookupError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -106,6 +107,7 @@ async function createAgentSessionResultWithNpmFallback(
 }
 
 export async function createAgentSessionWithNpmFallback(options?: CreateAgentSessionOptions) {
+  applyWindowsUtf8ProcessEnv();
   const cwd = options?.cwd ?? process.cwd();
   const agentDir = options?.agentDir ?? getAgentDir();
   const sessionManager = options?.sessionManager ?? SessionManager.create(cwd);
@@ -115,6 +117,7 @@ export async function createAgentSessionWithNpmFallback(options?: CreateAgentSes
 export async function createAgentSessionRuntimeWithNpmFallback(
   options?: CreateAgentSessionOptions,
 ): Promise<AgentSessionRuntime> {
+  applyWindowsUtf8ProcessEnv();
   const cwd = options?.cwd ?? process.cwd();
   const agentDir = options?.agentDir ?? getAgentDir();
   const initialSessionManager = options?.sessionManager ?? SessionManager.create(cwd);

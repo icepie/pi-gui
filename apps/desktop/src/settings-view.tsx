@@ -1,5 +1,5 @@
 import type { RuntimeSettingsSnapshot, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
-import type { ModelSettingsScopeMode, NotificationPreferences, WorkspaceRecord } from "./desktop-state";
+import type { ModelSettingsScopeMode, NotificationPreferences, WorkspaceRecord, AppLocale } from "./desktop-state";
 import type { DesktopNotificationPermissionStatus } from "./ipc";
 import { SettingsAppearanceSection } from "./settings-appearance-section";
 import { SettingsGeneralSection } from "./settings-general-section";
@@ -21,6 +21,7 @@ interface SettingsViewProps {
   readonly modelSettingsScopeMode: ModelSettingsScopeMode;
   readonly integratedTerminalShell: string;
   readonly themeMode: "system" | "light" | "dark";
+  readonly locale: AppLocale;
   readonly onSetModelSettingsScopeMode: (mode: ModelSettingsScopeMode) => void;
   readonly onSetDefaultModel: (provider: string, modelId: string) => void;
   readonly onSetThinkingLevel: (thinkingLevel: RuntimeSettingsSnapshot["defaultThinkingLevel"]) => void;
@@ -50,6 +51,7 @@ interface SettingsViewProps {
   readonly onRequestNotificationPermission: () => void;
   readonly onOpenSystemNotificationSettings: () => void;
   readonly onSetThemeMode: (mode: "system" | "light" | "dark") => void;
+  readonly onSetLocale: (locale: AppLocale) => void;
 }
 
 export function SettingsView({
@@ -62,6 +64,7 @@ export function SettingsView({
   modelSettingsScopeMode,
   integratedTerminalShell,
   themeMode,
+  locale,
   onSetModelSettingsScopeMode,
   onSetDefaultModel,
   onSetThinkingLevel,
@@ -78,6 +81,7 @@ export function SettingsView({
   onRequestNotificationPermission,
   onOpenSystemNotificationSettings,
   onSetThemeMode,
+  onSetLocale,
 }: SettingsViewProps) {
   if (!workspace && section !== "general" && section !== "notifications" && section !== "appearance") {
     return (
@@ -109,6 +113,8 @@ export function SettingsView({
             <SettingsAppearanceSection
               themeMode={themeMode}
               onSetThemeMode={onSetThemeMode}
+              locale={locale}
+              onSetLocale={onSetLocale}
             />
           ) : null}
 

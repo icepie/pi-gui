@@ -52,6 +52,11 @@ interface TerminalSession {
   exitSubscription: IDisposable | undefined;
 }
 
+interface TerminalLaunch {
+  readonly file: string;
+  readonly args: readonly string[];
+}
+
 export interface TerminalServiceOptions {
   readonly getWorkspacePath: (workspaceId: string) => string | undefined;
   readonly getIntegratedTerminalShell: () => string | undefined;
@@ -259,7 +264,8 @@ export class TerminalService {
   private spawnPty(webContents: WebContents, session: TerminalSession): void {
     try {
       ensureNodePtySpawnHelperExecutable(this.options.isPackaged);
-      session.pty = loadNodePty().spawn(session.shell, [], {
+      const launch = resolveTerminalLaunch(session.shell);
+      session.pty = loadNodePty().spawn(launch.file, [...launch.args], {
         name: "xterm-256color",
         cols: session.size.cols,
         rows: session.size.rows,
@@ -456,6 +462,53 @@ function defaultShellForPlatform(): string {
   return "/bin/bash";
 }
 
+function resolveTerminalLaunch(shell: string): TerminalLaunch {
+  if (process.platform !== "win32") {
+    return { file: shell, args: [] };
+  }
+
+  const trimmedShell = shell.trim();
+  const shellName = path.basename(trimmedShell).toLowerCase();
+  if (shellName === "powershell.exe" || shellName === "powershell") {
+    return {
+      file: trimmedShell,
+      args: [
+        "-NoLogo",
+        "-NoExit",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        windowsPowerShellUtf8Bootstrap(),
+      ],
+    };
+  }
+  if (shellName === "pwsh.exe" || shellName === "pwsh") {
+    return {
+      file: trimmedShell,
+      args: [
+        "-NoLogo",
+        "-NoExit",
+        "-Command",
+        windowsPowerShellUtf8Bootstrap(),
+      ],
+    };
+  }
+  if (shellName === "cmd.exe" || shellName === "cmd") {
+    return { file: trimmedShell, args: ["/K", "chcp 65001>nul"] };
+  }
+  return { file: trimmedShell, args: [] };
+}
+
+function windowsPowerShellUtf8Bootstrap(): string {
+  return [
+    "[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)",
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)",
+    "$OutputEncoding = [System.Text.UTF8Encoding]::new($false)",
+    "chcp 65001 > $null",
+    "Clear-Host",
+  ].join("; ");
+}
+
 function buildTerminalEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -464,6 +517,13 @@ function buildTerminalEnv(): Record<string, string> {
     }
   }
   env.TERM = "xterm-256color";
+  env.COLORTERM = "truecolor";
+  if (process.platform === "win32") {
+    env.PYTHONUTF8 = "1";
+    env.PYTHONIOENCODING = "utf-8";
+    env.LANG = "C.UTF-8";
+    env.LC_ALL = "C.UTF-8";
+  }
   delete env.TERMINFO;
   delete env.TERMINFO_DIRS;
   return env;

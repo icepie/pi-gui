@@ -28,6 +28,7 @@ const targetArch = normalizeWindowsArch(process.env.PI_APP_WINDOWS_ARCH);
 const archRuntimeDir = path.join(gitBashRoot, "runtime", targetArch);
 const currentRuntimeDir = path.join(gitBashRoot, "runtime", "current");
 const markerFile = path.join(archRuntimeDir, ".pi-gui-source.json");
+const refreshCurrentRuntimeEnabled = process.env.PI_APP_REFRESH_CURRENT_GIT_BASH_RUNTIME === "1";
 const defaultCacheDir = path.join(process.env.HOME ?? tmpdir(), ".cache", "pi-gui", "git-bash");
 const cacheDir = path.resolve(process.env.PI_APP_GIT_BASH_CACHE_DIR?.trim() || defaultCacheDir);
 const githubProxy = normalizeGithubProxy(process.env.PI_APP_GITHUB_PROXY);
@@ -37,7 +38,9 @@ const cacheArchivePath = path.join(cacheDir, `git-bash-portable-${targetArch}${a
 await mkdir(gitBashRoot, { recursive: true });
 
 if (await hasBundledBash(archRuntimeDir)) {
-  await refreshCurrentRuntime(archRuntimeDir, currentRuntimeDir);
+  if (refreshCurrentRuntimeEnabled) {
+    await refreshCurrentRuntime(archRuntimeDir, currentRuntimeDir);
+  }
   console.log(`[pi-gui] Reusing bundled Git Bash runtime at ${archRuntimeDir}`);
   process.exit(0);
 }
@@ -72,7 +75,9 @@ try {
     throw new Error(`Extracted Git Bash runtime is missing bin/bash.exe: ${archRuntimeDir}`);
   }
 
-  await refreshCurrentRuntime(archRuntimeDir, currentRuntimeDir);
+  if (refreshCurrentRuntimeEnabled) {
+    await refreshCurrentRuntime(archRuntimeDir, currentRuntimeDir);
+  }
 
   await writeFile(
     markerFile,

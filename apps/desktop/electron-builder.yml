@@ -1,7 +1,8 @@
-appId: com.pi-gui.desktop
-productName: pi-gui
+appId: dev.icepie.icetea
+productName: ice tea
 copyright: Copyright 2026 Matthew Lam
-electronVersion: 34.5.8
+electronVersion: 42.0.0
+generateUpdatesFilesForAllChannels: false
 
 directories:
   output: release
@@ -10,14 +11,22 @@ directories:
 files:
   - out/**/*
   - package.json
+  - "!**/.DS_Store"
+  - "!**/*.log"
+  - "!**/*.map"
+  - "!**/*.d.ts"
+  - "!**/*.d.mts"
+  - "!**/*.d.cts"
+  - "!**/*.tsbuildinfo"
+  - "!**/{test,tests,__tests__,coverage,docs,examples,benchmark,benchmarks}/**/*"
+  - "!**/*.{test,spec}.{js,cjs,mjs,ts,cts,mts,jsx,tsx}"
+  - "!**/{README,README.md,README.txt,CHANGELOG,CHANGELOG.md,HISTORY,HISTORY.md,AUTHORS,AUTHORS.md,CONTRIBUTORS,CONTRIBUTORS.md,CONTRIBUTING,CONTRIBUTING.md}"
 
 extraResources:
   - from: resources/icon.png
     to: icon.png
-  - from: resources/git-bash/runtime/current
-    to: git-bash
-    filter:
-      - "**/*"
+
+afterPack: ./scripts/after-pack.cjs
 
 asar: true
 npmRebuild: false
@@ -27,7 +36,7 @@ asarUnpack:
   - "**/node_modules/node-pty/**/*"
   - "**/node_modules/.pnpm/node-pty*/node_modules/node-pty/**/*"
 
-artifactName: ${productName}-${version}-${arch}.${ext}
+artifactName: pi-gui-${version}-${arch}.${ext}
 
 mac:
   category: public.app-category.developer-tools
@@ -37,10 +46,8 @@ mac:
   entitlementsInherit: resources/entitlements.mac.inherit.plist
   notarize: true
   target:
-    - target: dmg
-      arch: arm64
-    - target: zip
-      arch: arm64
+    - dmg
+    - zip
   darkModeSupport: true
   extraFiles:
     - from: build/native/pi-gui-notification-status-helper
@@ -48,23 +55,29 @@ mac:
 
 linux:
   category: Development
-  executableName: pi-gui
+  executableName: ice-tea
+  maintainer: Matthew Lam <icepie.dev@gmail.com>
   target:
     - target: AppImage
+    - target: deb
+    - target: rpm
+
+deb:
+  packageName: pi-gui
+
+rpm:
+  packageName: pi-gui
 
 win:
   target:
-    - target: nsis
-      arch:
-        - x64
-        - arm64
-  executableName: pi-gui
-  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+    - nsis
+  executableName: ice-tea
+  artifactName: pi-gui-${version}-${arch}-setup.${ext}
 
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  artifactName: pi-gui-${version}-${arch}-setup.${ext}
 
 toolsets:
   appimage: "1.0.2"
@@ -80,8 +93,3 @@ dmg:
   window:
     width: 540
     height: 380
-
-publish:
-  provider: github
-  owner: minghinmatthewlam
-  repo: pi-gui

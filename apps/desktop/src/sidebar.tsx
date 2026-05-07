@@ -18,6 +18,7 @@ import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FolderIcon, PlusIcon, Rest
 import type { PiDesktopApi } from "./ipc";
 import { formatRelativeTime } from "./string-utils";
 import type { WorkspaceMenuState } from "./hooks/use-workspace-menu";
+import { UIMenu } from "./ui";
 import type { ThreadGroup, ThreadListEntry } from "./thread-groups";
 import type { Dispatch, SetStateAction } from "react";
 import type { DesktopAppState } from "./desktop-state";
@@ -338,11 +339,10 @@ function WorkspaceGroupContent(
   const linkedWorktree = linkedWorktreeByWorkspaceId.get(rootWorkspace.id);
   const archivedSectionOpen = wsMenu.expandedArchivedByWorkspace[rootWorkspace.id] ?? false;
   const isCollapsed = wsMenu.collapsedWorkspaces[rootWorkspace.id] ?? false;
-  const workspaceMenuOpen = wsMenu.workspaceMenuId === rootWorkspace.id;
 
   return (
     <>
-      <div className={`workspace-row ${workspaceActive ? "workspace-row--active" : ""} ${workspaceMenuOpen ? "workspace-row--menu-open" : ""}`}>
+      <div className={`workspace-row ${workspaceActive ? "workspace-row--active" : ""}`}>
         <button
           className={`workspace-row__select ${dragHandleProps ? "workspace-row__select--draggable" : ""}`}
           onClick={() => wsMenu.toggleWorkspaceCollapsed(rootWorkspace.id)}
@@ -355,76 +355,21 @@ function WorkspaceGroupContent(
           </span>
           <span className="workspace-row__name">{rootWorkspace.name}</span>
         </button>
-        <span
-          className="workspace-row__menu-wrap"
-          ref={wsMenu.workspaceMenuId === rootWorkspace.id ? wsMenu.workspaceMenuWrapRef : undefined}
-        >
-          <button
+        <span className="workspace-row__menu-wrap">
+          <UIMenu
+            trigger={<span>…</span>}
+            triggerClassName="icon-button workspace-row__menu-button"
             aria-label={t("sidebar.workspace_actions", { name: rootWorkspace.name })}
-            aria-haspopup="menu"
-            className="icon-button workspace-row__menu-button"
-            aria-expanded={wsMenu.workspaceMenuId === rootWorkspace.id}
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              wsMenu.openWorkspaceMenu(rootWorkspace.id);
-            }}
-          >
-            …
-          </button>
-          {workspaceMenuOpen ? (
-            <div className="workspace-menu">
-              <button
-                className="workspace-menu__item"
-                type="button"
-                onClick={(event) =>
-                  wsMenu.runWorkspaceMenuAction(event, () => {
-                    void api.openWorkspaceInFinder(rootWorkspace.id);
-                  })
-                }
-              >
-                {t("common.open_folder")}
-              </button>
-              {linkedWorktree ? (
-                <button
-                  className="workspace-menu__item workspace-menu__item--danger"
-                  type="button"
-                  onClick={(event) =>
-                    wsMenu.runWorkspaceMenuAction(event, () =>
-                      wsMenu.removeWorktree(linkedWorktree.rootWorkspaceId || rootWorkspace.id, linkedWorktree),
-                    )
-                  }
-                >
-                  {t("sidebar.remove_worktree")}
-                </button>
-              ) : (
-                <button
-                  className="workspace-menu__item"
-                  type="button"
-                  onClick={(event) =>
-                    wsMenu.runWorkspaceMenuAction(event, () => wsMenu.createWorktree(rootWorkspace.id))
-                  }
-                >
-                  {t("sidebar.create_permanent_worktree")}
-                </button>
-              )}
-              <button
-                className="workspace-menu__item"
-                type="button"
-                onClick={(event) => wsMenu.runWorkspaceMenuAction(event, () => wsMenu.startRename(rootWorkspace))}
-              >
-                {t("sidebar.edit_name")}
-              </button>
-              <button
-                className="workspace-menu__item workspace-menu__item--danger"
-                type="button"
-                onClick={(event) => wsMenu.runWorkspaceMenuAction(event, () => wsMenu.removeWorkspace(rootWorkspace))}
-              >
-                {t("common.remove")}
-              </button>
-            </div>
-          ) : null}
+            items={[
+              { key: "open", label: t("common.open_folder"), onClick: () => { void api.openWorkspaceInFinder(rootWorkspace.id); } },
+              ...(linkedWorktree
+                ? [{ key: "remove-worktree", label: t("sidebar.remove_worktree"), danger: true, onClick: () => wsMenu.removeWorktree(linkedWorktree.rootWorkspaceId || rootWorkspace.id, linkedWorktree) }]
+                : [{ key: "create-worktree", label: t("sidebar.create_permanent_worktree"), onClick: () => wsMenu.createWorktree(rootWorkspace.id) }]
+              ),
+              { key: "rename", label: t("sidebar.edit_name"), onClick: () => wsMenu.startRename(rootWorkspace) },
+              { key: "remove", label: t("common.remove"), danger: true, onClick: () => wsMenu.removeWorkspace(rootWorkspace) },
+            ]}
+          />
         </span>
       </div>
       {wsMenu.workspaceRenameId === rootWorkspace.id ? (
@@ -597,26 +542,28 @@ function ThreadSessionRow({
           </span>
         ) : null}
         <span className="session-row__time">{formatRelativeTime(thread.session.updatedAt)}</span>
-        <button
-          aria-label={archiveLabel}
-          className="icon-button session-row__action"
-          type="button"
-          onClick={onAction}
-        >
-          {archived ? <RestoreIcon /> : <ArchiveIcon />}
-        </button>
-        <button
-          aria-label={deleteLabel}
-          className="icon-button session-row__action session-row__action--danger"
-          type="button"
-          onClick={() => {
-            if (window.confirm(t("sidebar.delete_confirm", { title: thread.session.title }))) {
-              onDelete();
-            }
-          }}
-        >
-          <TrashIcon />
-        </button>
+        <span className="session-row__actions">
+          <button
+            aria-label={archiveLabel}
+            className="icon-button session-row__action"
+            type="button"
+            onClick={onAction}
+          >
+            {archived ? <RestoreIcon /> : <ArchiveIcon />}
+          </button>
+          <button
+            aria-label={deleteLabel}
+            className="icon-button session-row__action session-row__action--danger"
+            type="button"
+            onClick={() => {
+              if (window.confirm(t("sidebar.delete_confirm", { title: thread.session.title }))) {
+                onDelete();
+              }
+            }}
+          >
+            <TrashIcon />
+          </button>
+        </span>
       </span>
     </div>
   );

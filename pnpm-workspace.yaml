@@ -4,6 +4,7 @@ packages:
   - video
 
 onlyBuiltDependencies:
+  - '@google/genai'
   - electron
   - electron-winstaller
   - esbuild
@@ -11,3 +12,14 @@ onlyBuiltDependencies:
   - node-pty
   - protobufjs
   - sharp
+
+supportedArchitectures:
+  os:
+    - current
+    - win32
+  cpu:
+    - current
+    - x64
+    - arm64
+  libc:
+    - current

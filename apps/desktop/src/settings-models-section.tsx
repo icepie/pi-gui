@@ -8,6 +8,7 @@ import {
   SettingsRow,
   THINKING_LEVELS,
 } from "./settings-utils";
+import { UICheckbox, UISelect } from "./ui";
 import { t } from "./i18n";
 
 interface SettingsModelsSectionProps {
@@ -65,28 +66,28 @@ export function SettingsModelsSection({
     <>
       <SettingsGroup>
         <SettingsRow title={t("settings.models.default_model")} description={t("settings.models.default_model_description")}>
-          <select
-            className="settings-select"
+          <UISelect
             value={
               defaultProvider && defaultModelId && defaultIsEnabled
                 ? `${defaultProvider}:${defaultModelId}`
                 : ""
             }
-            onChange={(event) => {
-              const [provider, ...modelParts] = event.target.value.split(":");
+            options={[
+              { value: "", label: t("settings.models.choose_model") },
+              ...enabledAvailableModels.map((model) => ({
+                value: `${model.providerId}:${model.modelId}`,
+                label: `${model.providerName} · ${model.label}`,
+              })),
+            ]}
+            onChange={(value) => {
+              const [provider, ...modelParts] = value.split(":");
               const modelId = modelParts.join(":");
               if (provider && modelId) {
                 onSetDefaultModel(provider, modelId);
               }
             }}
-          >
-            <option value="">{t("settings.models.choose_model")}</option>
-            {enabledAvailableModels.map((model) => (
-              <option key={`${model.providerId}:${model.modelId}`} value={`${model.providerId}:${model.modelId}`}>
-                {model.providerName} · {model.label}
-              </option>
-            ))}
-          </select>
+            aria-label={t("settings.models.default_model")}
+          />
         </SettingsRow>
         <SettingsRow title={t("settings.models.reasoning")} description={t("settings.models.reasoning_description")}>
           <div className="settings-pill-row">
@@ -154,12 +155,11 @@ export function SettingsModelsSection({
                 const isLast = enabled && activeScopedPatterns.length <= 1;
                 return (
                   <label className="settings-toggle settings-toggle--row" key={pattern}>
-                    <input
+                    <UICheckbox
                       checked={enabled}
                       disabled={isLast}
-                      title={isLast ? t("settings.models.must_keep_one") : undefined}
-                      type="checkbox"
-                      onChange={(event) => togglePattern(pattern, event.target.checked)}
+                      aria-label={isLast ? t("settings.models.must_keep_one") : undefined}
+                      onChange={(checked) => togglePattern(pattern, checked)}
                     />
                     <span>
                       <strong>{model.providerName}</strong> · {model.label}
@@ -206,14 +206,12 @@ export function SettingsModelsSection({
                     </span>
                     {model.available ? (
                       <label className="settings-toggle settings-toggle--inline">
-                        <input
+                        <UICheckbox
                           checked={enabled}
                           disabled={isLast}
-                          title={isLast ? t("settings.models.must_keep_one") : undefined}
-                          type="checkbox"
-                          onChange={(event) => togglePattern(pattern, event.target.checked)}
+                          aria-label={isLast ? t("settings.models.must_keep_one") : t("settings.models.enable")}
+                          onChange={(checked) => togglePattern(pattern, checked)}
                         />
-                        <span className="sr-only">{t("settings.models.enable")}</span>
                       </label>
                     ) : null}
                   </div>

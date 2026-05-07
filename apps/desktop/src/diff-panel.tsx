@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PiDesktopApi } from "./ipc";
 import { InlineDiff } from "./diff-inline";
 import { RefreshIcon } from "./icons";
+import { UICheckbox } from "./ui";
 import { extensionToLanguage } from "./syntax-highlight";
 import { loadReviewed, pruneReviewed, saveReviewed } from "./reviewed-files-store";
 
@@ -158,11 +159,8 @@ export function DiffPanel({
                 .join(" ");
               return (
                 <div className={className} key={file.path} data-file-path={file.path}>
-                  <input
+                  <UICheckbox
                     aria-label={`Mark ${file.path} reviewed`}
-                    className="diff-panel__reviewed-checkbox"
-                    data-testid={`diff-panel-reviewed-${file.path}`}
-                    type="checkbox"
                     checked={isReviewed}
                     onChange={() => toggleReviewed(file.path)}
                   />

@@ -1,20 +1,38 @@
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 const desktopDir = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(desktopDir, "..", "..");
 const rawArgs = process.argv.slice(2);
 const extraArgs = rawArgs[0] === "--" ? rawArgs.slice(1) : rawArgs;
 const packageFilters = ["@pi-gui/session-driver", "@pi-gui/pi-sdk-driver", "@pi-gui/catalogs"];
+const electronViteCli = path.resolve(path.dirname(require.resolve("electron-vite")), "..", "bin", "electron-vite.js");
+
+function nodeExecutable() {
+  if (process.env.ELECTRON_RUN_AS_NODE && process.platform !== "win32" && existsSync("/usr/bin/node")) {
+    return "/usr/bin/node";
+  }
+
+  return process.execPath;
+}
+
+function childEnv(overrides = {}) {
+  const env = { ...process.env, ...overrides };
+  delete env.ELECTRON_RUN_AS_NODE;
+  return env;
+}
 
 async function run(cmd, args, cwd) {
   await new Promise((resolve, reject) => {
     const child = spawn(cmd, args, {
       cwd,
       stdio: "inherit",
-      env: process.env,
+      env: childEnv(),
     });
 
     child.once("error", reject);
@@ -33,7 +51,7 @@ function start(cmd, args, cwd) {
   return spawn(cmd, args, {
     cwd,
     stdio: "inherit",
-    env: process.env,
+    env: childEnv(),
   });
 }
 
@@ -63,7 +81,7 @@ async function main() {
       ],
       desktopDir,
     ),
-    start("pnpm", ["exec", "electron-vite", "dev", "--watch", ...extraArgs], desktopDir),
+    start(nodeExecutable(), [electronViteCli, "dev", "--watch", ...extraArgs], desktopDir),
   ];
 
   let exiting = false;

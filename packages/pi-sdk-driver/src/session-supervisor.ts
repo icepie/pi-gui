@@ -970,6 +970,7 @@ export class SessionSupervisor {
         });
       },
       setWorkingMessage: () => {},
+      setWorkingVisible: () => {},
       setWorkingIndicator: () => {},
       setHiddenThinkingLabel: () => {},
       setWidget: (key, content: unknown, options?: ExtensionWidgetOptions) => {
@@ -1028,6 +1029,7 @@ export class SessionSupervisor {
           (response) => ("cancelled" in response && response.cancelled ? undefined : "value" in response ? response.value : undefined),
         ),
       setEditorComponent: () => {},
+      getEditorComponent: () => undefined,
       addAutocompleteProvider: () => {},
       get theme() {
         return noOpTheme;

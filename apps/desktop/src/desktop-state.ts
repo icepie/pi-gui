@@ -10,6 +10,7 @@ export type WorktreeStatus = "ready" | "missing" | "error";
 export type NewThreadEnvironment = "local" | "worktree";
 export type ThemeMode = "system" | "light" | "dark";
 export type ModelSettingsScopeMode = "app-global" | "per-repo";
+export type AppLocale = "en-US" | "zh-CN";
 export type ComposerDraftSyncSource =
   | "state"
   | "selection"
@@ -174,6 +175,7 @@ export interface DesktopAppState {
   readonly modelSettingsScopeMode: ModelSettingsScopeMode;
   readonly globalModelSettings: ModelSettingsSnapshot;
   readonly sidebarCollapsed: boolean;
+  readonly locale: AppLocale;
   readonly revision: number;
   readonly lastError?: string;
 }
@@ -217,6 +219,7 @@ export function createEmptyDesktopAppState(): DesktopAppState {
       enabledModelPatterns: [],
     },
     sidebarCollapsed: false,
+    locale: "zh-CN",
     revision: 0,
   };
 }

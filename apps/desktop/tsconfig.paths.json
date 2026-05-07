@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@pi-gui/pi-sdk-driver": ["../../packages/pi-sdk-driver/src/index.ts"],
       "@pi-gui/pi-sdk-driver/dev-reload-probe": ["../../packages/pi-sdk-driver/src/dev-reload-probe.ts"],

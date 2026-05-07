@@ -39,6 +39,8 @@ export function SkillsView({
   }, [query, skills]);
   const selectedSkill =
     filteredSkills.find((skill) => skill.filePath === selectedSkillPath) ?? filteredSkills[0];
+  const enabledSkillCount = skills.filter((skill) => skill.enabled).length;
+  const slashOnlySkillCount = skills.filter((skill) => skill.disableModelInvocation).length;
 
   if (!workspace) {
     return (
@@ -72,7 +74,7 @@ export function SkillsView({
               onClick={() =>
                 onTrySkill({
                   name: "new-skill",
-                  description: "Create a new skill for this workspace",
+                  description: t("skills.create_new_skill_description"),
                   filePath: "",
                   baseDir: workspace.path,
                   source: "project",
@@ -97,6 +99,11 @@ export function SkillsView({
               setQuery(event.target.value);
             }}
           />
+          <div className="skills-toolbar__stats" aria-label="Skill summary">
+            <span>{filteredSkills.length} / {skills.length}</span>
+            <span>{enabledSkillCount} {t("common.enabled")}</span>
+            {slashOnlySkillCount > 0 ? <span>{slashOnlySkillCount} {t("skills.slash_only")}</span> : null}
+          </div>
         </div>
 
         <div className="skills-layout">

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { t } from "./i18n";
 
 export interface SecondarySurfaceNavItem {
   readonly id: string;
@@ -29,7 +30,7 @@ export function SecondarySurface({
       <aside className="secondary-surface__sidebar">
         <button className="secondary-surface__back" type="button" onClick={onBack}>
           <span aria-hidden="true">←</span>
-          <span>Back to app</span>
+          <span>{t("common.back_to_app")}</span>
         </button>
         <div className="secondary-surface__title">{title}</div>
         {navItems.length > 0 ? (

@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState, type MutableRefObject, 
 import type { TranscriptMessage } from "./desktop-state";
 import { ThreadSearchBar } from "./thread-search";
 import { TimelineItem } from "./timeline-item";
+import { t } from "./i18n";
 
 const OVERSCAN_PX = 720;
 const ROW_GAP_PX = 14;
@@ -190,7 +191,7 @@ export function ConversationTimeline({
       )}
       {showJumpToLatest ? (
         <button className="timeline-jump" data-testid="timeline-jump" type="button" onClick={onJumpToLatest}>
-          New activity below
+          {t("timeline.new_activity_below")}
         </button>
       ) : null}
     </div>

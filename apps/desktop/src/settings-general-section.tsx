@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { ModelSettingsScopeMode } from "./desktop-state";
 import { SettingsGroup, SettingsInfoRow, SettingsRow } from "./settings-utils";
+import { UICheckbox } from "./ui";
 import { t } from "./i18n";
 
 interface SettingsGeneralSectionProps {
@@ -63,11 +64,10 @@ export function SettingsGeneralSection({
           </div>
         </SettingsRow>
         <SettingsRow title={t("settings.skill_slash_commands")} description={t("settings.skill_slash_commands_description")}>
-          <input
+          <UICheckbox
             aria-label={t("settings.skill_slash_commands")}
             checked={runtime?.settings.enableSkillCommands ?? true}
-            type="checkbox"
-            onChange={(event) => onToggleSkillCommands(event.target.checked)}
+            onChange={(checked) => onToggleSkillCommands(checked)}
           />
         </SettingsRow>
         <SettingsRow title={t("settings.integrated_terminal_shell")} description={t("settings.integrated_terminal_shell_description")}>

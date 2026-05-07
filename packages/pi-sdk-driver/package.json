@@ -20,7 +20,7 @@
     "test": "pnpm run build && node --test dist/**/*.test.js"
   },
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.70.2",
+    "@mariozechner/pi-coding-agent": "^0.73.0",
     "@pi-gui/catalogs": "workspace:*",
     "@pi-gui/session-driver": "workspace:*"
   }

@@ -30,6 +30,7 @@ import type { WorkspaceRef } from "@pi-gui/session-driver";
 import { createRuntimeDependencies } from "./runtime-deps.js";
 import { createSettingsManagerWithoutNpmPackages, isGlobalNpmLookupError } from "./npm-package-fallback.js";
 import { skillSlashCommand } from "./runtime-command-utils.js";
+import { applyWindowsUtf8ProcessEnv } from "./windows-utf8-env.js";
 import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 
 interface ModelSettingsSnapshot {
@@ -68,6 +69,7 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
   private readonly contexts = new Map<string, RuntimeContext>();
 
   constructor(options: RuntimeSupervisorOptions = {}) {
+    applyWindowsUtf8ProcessEnv();
     const deps = createRuntimeDependencies(options);
     this.agentDir = deps.agentDir;
     this.authStorage = deps.authStorage;

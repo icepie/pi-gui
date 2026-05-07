@@ -1,6 +1,7 @@
 import type { DesktopNotificationPermissionStatus } from "./ipc";
 import type { NotificationPreferences } from "./desktop-state";
 import { SettingsGroup, SettingsRow } from "./settings-utils";
+import { UICheckbox } from "./ui";
 import { t } from "./i18n";
 
 interface SettingsNotificationsSectionProps {
@@ -69,27 +70,24 @@ export function SettingsNotificationsSection({
 
       <SettingsGroup title={t("settings.notifications.in_app_alerts")} description={t("settings.notifications.in_app_alerts_description")}>
         <SettingsRow title={t("settings.notifications.background_completion")} description={t("settings.notifications.background_completion_description")}>
-          <input
+          <UICheckbox
             aria-label={t("settings.notifications.background_completion")}
             checked={notificationPreferences.backgroundCompletion}
-            type="checkbox"
-            onChange={(event) => onSetNotificationPreferences({ backgroundCompletion: event.target.checked })}
+            onChange={(checked) => onSetNotificationPreferences({ backgroundCompletion: checked })}
           />
         </SettingsRow>
         <SettingsRow title={t("settings.notifications.background_failures")} description={t("settings.notifications.background_failures_description")}>
-          <input
+          <UICheckbox
             aria-label={t("settings.notifications.background_failures")}
             checked={notificationPreferences.backgroundFailure}
-            type="checkbox"
-            onChange={(event) => onSetNotificationPreferences({ backgroundFailure: event.target.checked })}
+            onChange={(checked) => onSetNotificationPreferences({ backgroundFailure: checked })}
           />
         </SettingsRow>
         <SettingsRow title={t("settings.notifications.attention_needed")} description={t("settings.notifications.attention_needed_description")}>
-          <input
+          <UICheckbox
             aria-label={t("settings.notifications.attention_needed")}
             checked={notificationPreferences.attentionNeeded}
-            type="checkbox"
-            onChange={(event) => onSetNotificationPreferences({ attentionNeeded: event.target.checked })}
+            onChange={(checked) => onSetNotificationPreferences({ attentionNeeded: checked })}
           />
         </SettingsRow>
       </SettingsGroup>

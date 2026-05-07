@@ -9,6 +9,7 @@ import {
 import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import type { SessionModelSelection, WorkspaceRef } from "@pi-gui/session-driver";
 import { messageText as sessionMessageText } from "./session-supervisor-utils.js";
+import { applyWindowsUtf8ProcessEnv } from "./windows-utf8-env.js";
 
 export interface GenerateThreadTitleOptions {
   readonly prompt: string;
@@ -38,6 +39,7 @@ export async function generateThreadTitle(
   options: GenerateThreadTitleOptions,
   deps: ThreadTitleGeneratorDeps,
 ): Promise<string | null> {
+  applyWindowsUtf8ProcessEnv();
   const prompt = options.prompt.trim();
   if (!prompt || options.signal?.aborted) {
     return null;

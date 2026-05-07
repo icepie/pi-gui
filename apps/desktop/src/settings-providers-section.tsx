@@ -5,6 +5,7 @@ import type {
   RuntimeSnapshot,
 } from "@pi-gui/session-driver/runtime-types";
 import { filterProviders, ProviderRow, SettingsGroup } from "./settings-utils";
+import { UIDialog, UISelect } from "./ui";
 import { t } from "./i18n";
 
 const CUSTOM_PROVIDER_APIS = [
@@ -270,45 +271,52 @@ export function SettingsProvidersSection({
             {customProviderMode === "edit" ? t("settings.providers.edit_custom") : t("settings.providers.add_custom")}
           </h3>
           <div className="settings-group">
-            <input
-              aria-label={t("settings.providers.custom_id")}
-              className="settings-search"
-              disabled={customProviderPending || customProviderMode === "edit"}
-              placeholder={t("settings.providers.custom_id_placeholder")}
-              value={customProviderDraft.id}
-              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, id: event.target.value }))}
-            />
-            <input
-              aria-label={t("settings.providers.custom_display_name")}
-              className="settings-search"
+            <div className="settings-form-row">
+              <input
+                aria-label={t("settings.providers.custom_id")}
+                className="settings-search"
+                disabled={customProviderPending || customProviderMode === "edit"}
+                placeholder={t("settings.providers.custom_id_placeholder")}
+                value={customProviderDraft.id}
+                onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, id: event.target.value }))}
+              />
+              <input
+                aria-label={t("settings.providers.custom_display_name")}
+                className="settings-search"
+                disabled={customProviderPending}
+                placeholder={t("settings.providers.custom_display_name_placeholder")}
+                value={customProviderDraft.displayName}
+                onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, displayName: event.target.value }))}
+              />
+            </div>
+            <div className="settings-form-row">
+              <UISelect
+                aria-label={t("settings.providers.custom_api")}
+                disabled={customProviderPending}
+                value={customProviderDraft.api}
+                options={CUSTOM_PROVIDER_APIS.map((api) => ({ value: api, label: api }))}
+                onChange={(value) =>
+                  setCustomProviderDraft((draft) => ({ ...draft, api: value as CustomProviderApi }))
+                }
+              />
+              <input
+                aria-label={t("settings.providers.custom_base_url")}
+                className="settings-search"
+                disabled={customProviderPending}
+                placeholder={t("settings.providers.custom_base_url_placeholder")}
+                type="url"
+                value={customProviderDraft.baseUrl}
+                onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, baseUrl: event.target.value }))}
+              />
+            </div>
+            <textarea
+              aria-label={t("settings.providers.custom_model_ids")}
+              className="extension-dialog__editor"
               disabled={customProviderPending}
-              placeholder={t("settings.providers.custom_display_name_placeholder")}
-              value={customProviderDraft.displayName}
-              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, displayName: event.target.value }))}
-            />
-            <select
-              aria-label={t("settings.providers.custom_api")}
-              className="settings-select"
-              disabled={customProviderPending}
-              value={customProviderDraft.api}
-              onChange={(event) =>
-                setCustomProviderDraft((draft) => ({ ...draft, api: event.target.value as CustomProviderApi }))
-              }
-            >
-              {CUSTOM_PROVIDER_APIS.map((api) => (
-                <option key={api} value={api}>
-                  {api}
-                </option>
-              ))}
-            </select>
-            <input
-              aria-label={t("settings.providers.custom_base_url")}
-              className="settings-search"
-              disabled={customProviderPending}
-              placeholder={t("settings.providers.custom_base_url_placeholder")}
-              type="url"
-              value={customProviderDraft.baseUrl}
-              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, baseUrl: event.target.value }))}
+              placeholder={t("settings.providers.custom_model_ids_placeholder")}
+              rows={4}
+              value={customProviderDraft.modelIds}
+              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, modelIds: event.target.value }))}
             />
             <input
               aria-label={t("settings.providers.custom_api_key")}
@@ -318,15 +326,6 @@ export function SettingsProvidersSection({
               type="password"
               value={customProviderDraft.apiKey}
               onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, apiKey: event.target.value }))}
-            />
-            <textarea
-              aria-label={t("settings.providers.custom_model_ids")}
-              className="extension-dialog__editor"
-              disabled={customProviderPending}
-              placeholder={t("settings.providers.custom_model_ids_placeholder")}
-              rows={6}
-              value={customProviderDraft.modelIds}
-              onChange={(event) => setCustomProviderDraft((draft) => ({ ...draft, modelIds: event.target.value }))}
             />
             {customProviderError ? <p className="extension-dialog__body settings-warning">{customProviderError}</p> : null}
             <div className="extension-dialog__actions">
@@ -442,55 +441,52 @@ function ProviderApiKeyDialog({
       : t("settings.providers.save_local_api_key", { providerName: provider.name });
 
   return (
-    <div className="extension-dialog-backdrop">
-      <div className="extension-dialog" data-testid="provider-api-key-dialog">
-        <div className="extension-dialog__title">{title}</div>
-        <p className="extension-dialog__body">{body}</p>
-        <input
-          aria-label={t("settings.providers.provider_api_url", { providerName: provider.name })}
-          className="settings-search"
-          disabled={pending}
-          placeholder={t("settings.providers.provider_api_url_placeholder")}
-          type="url"
-          value={baseUrlDraft}
-          onChange={(event) => onChangeBaseUrlDraft(event.target.value)}
-        />
-        <input
-          aria-label={t("settings.providers.provider_api_key", { providerName: provider.name })}
-          autoFocus
-          className="settings-search"
-          disabled={pending}
-          placeholder={t("settings.providers.provider_api_key_placeholder")}
-          type="password"
-          value={draft}
-          onChange={(event) => onChangeDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              onClose();
-              return;
-            }
-            if (event.key === "Enter" && draft.trim()) {
-              event.preventDefault();
-              void onSave();
-            }
-          }}
-        />
-        {error ? <p className="extension-dialog__body settings-warning">{error}</p> : null}
-        <div className="extension-dialog__actions">
-          <button className="button button--secondary" disabled={pending} type="button" onClick={onClose}>
-            {t("common.cancel")}
+    <UIDialog open onClose={onClose} title={title} testId="provider-api-key-dialog">
+      <p className="extension-dialog__body">{body}</p>
+      <input
+        aria-label={t("settings.providers.provider_api_url", { providerName: provider.name })}
+        className="settings-search"
+        disabled={pending}
+        placeholder={t("settings.providers.provider_api_url_placeholder")}
+        type="url"
+        value={baseUrlDraft}
+        onChange={(event) => onChangeBaseUrlDraft(event.target.value)}
+      />
+      <input
+        aria-label={t("settings.providers.provider_api_key", { providerName: provider.name })}
+        autoFocus
+        className="settings-search"
+        disabled={pending}
+        placeholder={t("settings.providers.provider_api_key_placeholder")}
+        type="password"
+        value={draft}
+        onChange={(event) => onChangeDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+            return;
+          }
+          if (event.key === "Enter" && draft.trim()) {
+            event.preventDefault();
+            void onSave();
+          }
+        }}
+      />
+      {error ? <p className="extension-dialog__body settings-warning">{error}</p> : null}
+      <div className="extension-dialog__actions">
+        <button className="button button--secondary" disabled={pending} type="button" onClick={onClose}>
+          {t("common.cancel")}
+        </button>
+        {onRemove ? (
+          <button className="button button--secondary" disabled={pending} type="button" onClick={() => void onRemove()}>
+            {t("settings.providers.remove_saved_key")}
           </button>
-          {onRemove ? (
-            <button className="button button--secondary" disabled={pending} type="button" onClick={() => void onRemove()}>
-              {t("settings.providers.remove_saved_key")}
-            </button>
-          ) : null}
-          <button className="button" disabled={pending || draft.trim().length === 0} type="button" onClick={() => void onSave()}>
-            {provider.authSource === "auth_file" ? t("common.save") : t("settings.providers.set")}
-          </button>
-        </div>
+        ) : null}
+        <button className="button" disabled={pending || draft.trim().length === 0} type="button" onClick={() => void onSave()}>
+          {provider.authSource === "auth_file" ? t("common.save") : t("settings.providers.set")}
+        </button>
       </div>
-    </div>
+    </UIDialog>
   );
 }

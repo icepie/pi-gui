@@ -45,7 +45,8 @@ import { buildExtensionDockModel, ExtensionDialog, hasExtensionDockContent } fro
 import { TreeModal } from "./tree-modal";
 import { getEffectiveModelRuntime } from "./model-settings";
 import { resolveRepoWorkspaceId } from "./workspace-roots";
-import { setLocale } from "./i18n";
+import { setLocale, t, type AppLocale } from "./i18n";
+import { UISelect } from "./ui";
 import {
   extractImageFilesFromClipboardData,
   extractFilesFromDataTransfer,
@@ -135,18 +136,18 @@ function useRunningLabel(startedAt: string | undefined) {
 
 function formatRunningLabel(startedAt: string | undefined): string {
   if (!startedAt) {
-    return "Working…";
+    return t("common.working");
   }
 
   const diffMs = Math.max(0, Date.now() - Date.parse(startedAt));
   const seconds = Math.max(1, Math.floor(diffMs / 1000));
   if (seconds < 60) {
-    return `Working for ${seconds}s`;
+    return t("common.working_seconds", { seconds });
   }
 
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
-  return remaining === 0 ? `Working for ${minutes}m` : `Working for ${minutes}m ${remaining}s`;
+  return remaining === 0 ? t("common.working_minutes", { minutes, remaining: 0 }) : t("common.working_minutes", { minutes, remaining });
 }
 
 export default function App() {
@@ -206,7 +207,18 @@ export default function App() {
   const [disableTimelineVirtualization, setDisableTimelineVirtualization] = useState(true);
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
-  setLocale(api?.locale ?? "zh-CN");
+
+  useEffect(() => {
+    if (api?.locale) {
+      setLocale(api.locale);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    if (!snapshot?.locale) return;
+    setLocale(snapshot.locale);
+  }, [snapshot?.locale]);
+
   const sidebarToggleStateRef = useRef<{
     readonly api: typeof window.piApp;
     readonly activeView: AppView | undefined;
@@ -1261,8 +1273,8 @@ export default function App() {
       <div className="shell shell--loading">
         <main className="loading-card">
           <div className="loading-card__eyebrow">pi-gui</div>
-          <h1>Loading sessions</h1>
-          <p>The desktop shell is restoring folder and thread state from the main process.</p>
+          <h1>{t("common.loading_sessions")}</h1>
+          <p>{t("common.loading_sessions_description")}</p>
         </main>
       </div>
     );
@@ -1607,7 +1619,7 @@ export default function App() {
     config: { readonly apiKey: string; readonly baseUrl?: string },
   ): Promise<string | undefined> => {
     if (!api || !settingsWorkspace) {
-      return "Select a workspace first.";
+      return t("common.select_workspace_first");
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
       api.setProviderApiKey(settingsWorkspace.id, providerId, config),
@@ -1617,7 +1629,7 @@ export default function App() {
 
   const handleRemoveProviderApiKey = async (providerId: string): Promise<string | undefined> => {
     if (!api || !settingsWorkspace) {
-      return "Select a workspace first.";
+      return t("common.select_workspace_first");
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
       api.logoutProvider(settingsWorkspace.id, providerId),
@@ -1634,7 +1646,7 @@ export default function App() {
     readonly modelIds: readonly string[];
   }): Promise<string | undefined> => {
     if (!api || !settingsWorkspace) {
-      return "Select a workspace first.";
+      return t("common.select_workspace_first");
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
       api.upsertCustomProvider(settingsWorkspace.id, input),
@@ -1644,7 +1656,7 @@ export default function App() {
 
   const handleRemoveCustomProvider = async (providerId: string): Promise<string | undefined> => {
     if (!api || !settingsWorkspace) {
-      return "Select a workspace first.";
+      return t("common.select_workspace_first");
     }
     const state = await updateSnapshot(api, setSnapshot, () =>
       api.removeCustomProvider(settingsWorkspace.id, providerId),
@@ -1689,6 +1701,12 @@ export default function App() {
     if (!api) return;
     setThemeMode(mode);
     void api.setThemeMode(mode);
+  };
+
+  const handleSetLocale = (locale: AppLocale) => {
+    if (!api) return;
+    setLocale(locale);
+    void api.setLocale(locale);
   };
 
   const handleSetNotificationPreferences = (preferences: Partial<DesktopAppState["notificationPreferences"]>) => {
@@ -1903,11 +1921,11 @@ export default function App() {
   };
 
   const settingsNav = [
-    { id: "appearance", label: "Appearance" },
-    { id: "general", label: "General" },
-    { id: "providers", label: "Providers" },
-    { id: "models", label: "Models" },
-    { id: "notifications", label: "Notifications" },
+    { id: "appearance", label: t("settings.appearance") },
+    { id: "general", label: t("settings.general") },
+    { id: "providers", label: t("settings.providers") },
+    { id: "models", label: t("settings.models") },
+    { id: "notifications", label: t("settings.notifications") },
   ] as const;
 
   if (snapshot.activeView === "settings") {
@@ -1918,22 +1936,18 @@ export default function App() {
         onBack={() => setActiveView("threads")}
         onSelectNav={(section) => setSettingsSection(section as SettingsSection)}
         testId="settings-surface"
-        title="Settings"
+        title={t("settings.title")}
       >
         {settingsSection === "providers" || (settingsSection === "models" && snapshot.modelSettingsScopeMode === "per-repo") ? (
           <div className="surface-toolbar">
             <label className="surface-toolbar__field">
-              <span>Workspace</span>
-              <select
+              <span>{t("common.workspace")}</span>
+              <UISelect
                 value={settingsWorkspace?.id ?? ""}
-                onChange={(event) => setSettingsWorkspaceId(event.target.value)}
-              >
-                {rootWorkspaceOptions.map((workspace) => (
-                  <option key={workspace.id} value={workspace.id}>
-                    {workspace.name}
-                  </option>
-                ))}
-              </select>
+                options={rootWorkspaceOptions.map((ws) => ({ value: ws.id, label: ws.name }))}
+                onChange={(value) => setSettingsWorkspaceId(value)}
+                aria-label={t("common.workspace")}
+              />
             </label>
           </div>
         ) : null}
@@ -1947,6 +1961,7 @@ export default function App() {
           modelSettingsScopeMode={snapshot.modelSettingsScopeMode}
           integratedTerminalShell={snapshot.integratedTerminalShell}
           themeMode={themeMode}
+          locale={snapshot.locale}
           onLoginProvider={handleLoginProvider}
           onLogoutProvider={handleLogoutProvider}
           onSetProviderApiKey={handleSetProviderApiKey}
@@ -1961,6 +1976,7 @@ export default function App() {
           onOpenSystemNotificationSettings={handleOpenSystemNotificationSettings}
           onSetScopedModelPatterns={handleSetScopedModelPatterns}
           onSetThemeMode={handleSetThemeMode}
+          onSetLocale={handleSetLocale}
           onSetThinkingLevel={handleSetThinkingLevel}
           onToggleSkillCommands={handleToggleSkillCommands}
         />
@@ -1970,20 +1986,16 @@ export default function App() {
 
   if (snapshot.activeView === "skills") {
     return (
-      <SecondarySurface onBack={() => setActiveView("threads")} testId="skills-surface" title="Skills">
+      <SecondarySurface onBack={() => setActiveView("threads")} testId="skills-surface" title={t("skills.title")}>
         <div className="surface-toolbar">
           <label className="surface-toolbar__field">
-            <span>Workspace</span>
-            <select
+            <span>{t("common.workspace")}</span>
+            <UISelect
               value={skillsWorkspace?.id ?? ""}
-              onChange={(event) => setSkillsWorkspaceId(event.target.value)}
-            >
-              {rootWorkspaceOptions.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
+              options={rootWorkspaceOptions.map((ws) => ({ value: ws.id, label: ws.name }))}
+              onChange={(value) => setSkillsWorkspaceId(value)}
+              aria-label={t("common.workspace")}
+            />
           </label>
         </div>
         <SkillsView
@@ -2001,7 +2013,7 @@ export default function App() {
             handleTrySkill(
               skill.filePath
                 ? `${skill.slashCommand} `
-                : "Create a new skill for this workspace and explain which files you will add.",
+                : t("skills.create_new_skill_prompt"),
             )
           }
         />
@@ -2011,20 +2023,16 @@ export default function App() {
 
   if (snapshot.activeView === "extensions") {
     return (
-      <SecondarySurface onBack={() => setActiveView("threads")} testId="extensions-surface" title="Extensions">
+      <SecondarySurface onBack={() => setActiveView("threads")} testId="extensions-surface" title={t("extensions.title")}>
         <div className="surface-toolbar">
           <label className="surface-toolbar__field">
-            <span>Workspace</span>
-            <select
+            <span>{t("common.workspace")}</span>
+            <UISelect
               value={extensionsWorkspace?.id ?? ""}
-              onChange={(event) => setExtensionsWorkspaceId(event.target.value)}
-            >
-              {rootWorkspaceOptions.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
+              options={rootWorkspaceOptions.map((ws) => ({ value: ws.id, label: ws.name }))}
+              onChange={(value) => setExtensionsWorkspaceId(value)}
+              aria-label={t("common.workspace")}
+            />
           </label>
         </div>
         <ExtensionsView
@@ -2152,9 +2160,9 @@ export default function App() {
           ) : (
             <section className="canvas canvas--empty">
               <div className="empty-panel">
-                <div className="session-header__eyebrow">Workspace</div>
-                <h1>Open a folder to start</h1>
-                <p>Add a project folder before creating a new thread.</p>
+                <div className="session-header__eyebrow">{t("common.workspace")}</div>
+                <h1>{t("common.open_folder_to_start")}</h1>
+                <p>{t("common.open_folder_to_start_description")}</p>
               </div>
             </section>
           )
@@ -2165,8 +2173,8 @@ export default function App() {
                 <div className="chat-header">
                   <div className="chat-header__eyebrow">
                     {selectedWorkspace.kind === "worktree"
-                      ? `${rootWorkspace?.name ?? selectedWorkspace.name} · ${selectedWorktree?.name ?? selectedWorkspace.branchName ?? "Worktree"}`
-                      : `${selectedWorkspace.name} · Local`}
+                      ? `${rootWorkspace?.name ?? selectedWorkspace.name} · ${selectedWorktree?.name ?? selectedWorkspace.branchName ?? t("new_thread.worktree")}`
+                      : `${selectedWorkspace.name} · ${t("new_thread.local")}`}
                   </div>
                   <div className="chat-header__row">
                     <h1 className="chat-header__title">{displayedSessionTitle}</h1>
@@ -2264,16 +2272,16 @@ export default function App() {
         ) : selectedWorkspace ? (
           <section className="canvas canvas--empty">
             <div className="empty-panel">
-              <div className="session-header__eyebrow">Workspace</div>
+              <div className="session-header__eyebrow">{t("common.workspace")}</div>
               <h1>{selectedWorkspace.name}</h1>
-              <p>Create a thread for this folder, then jump between sessions from the sidebar.</p>
+              <p>{t("common.create_thread_description")}</p>
               <div className="empty-panel__actions">
                 <button
                   className="button button--primary"
                   type="button"
                   onClick={() => openNewThreadSurface(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
                 >
-                  New thread
+                  {t("topbar.new_thread")}
                 </button>
               </div>
             </div>
@@ -2281,9 +2289,9 @@ export default function App() {
         ) : (
           <section className="canvas canvas--empty">
             <div className="empty-panel">
-              <div className="session-header__eyebrow">Workspace</div>
-              <h1>Open a folder to start</h1>
-              <p>Add project folders, group sessions under them, and jump between threads from the sidebar.</p>
+              <div className="session-header__eyebrow">{t("common.workspace")}</div>
+              <h1>{t("common.open_folder_to_start")}</h1>
+              <p>{t("common.open_folder_to_start_description_multi")}</p>
             </div>
           </section>
         )}

@@ -45,6 +45,8 @@ Package a Windows installer locally:
 pnpm --filter @pi-gui/desktop run package:win
 pnpm --filter @pi-gui/desktop run package:win:x64
 pnpm --filter @pi-gui/desktop run package:win:arm64
+pnpm --filter @pi-gui/desktop run package:win:dir:x64
+pnpm --filter @pi-gui/desktop run package:win:dir:arm64
 ```
 
 Windows packaged builds can bundle a portable Git Bash runtime for `pi`'s `bash`
@@ -56,6 +58,14 @@ script uses `gh release view` against `git-for-windows/git` to resolve the
 latest portable asset name, supports `PI_APP_GITHUB_PROXY` as a GitHub mirror
 prefix, and falls back to a pinned official Git for Windows release URL if `gh`
 is unavailable.
+
+Cross-target packaging writes into target-scoped release folders such as
+`apps/desktop/release/win32-x64-dir/` and `apps/desktop/release/win32-arm64-dir/`.
+The Windows Git Bash runtime is injected during `afterPack` from
+`resources/git-bash/runtime/<arch>/`, not from a shared `runtime/current` folder,
+so x64 and arm64 builds can run without overwriting each other's runtime input.
+The `afterPack` step also prunes safe package weight such as unused Electron
+locales, cross-target `node-pty` artifacts, and bundled Git Bash documentation.
 
 Live agent tests use your existing `pi` runtime and provider auth. If local `pi` runs do not work, the `live` lane will not be meaningful either.
 

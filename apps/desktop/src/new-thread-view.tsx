@@ -13,6 +13,7 @@ import { ComposerSurface } from "./composer-surface";
 import { ModelOnboardingNoticeBanner } from "./model-onboarding-notice";
 import type { ModelOnboardingState, ModelOnboardingSettingsSection } from "./model-onboarding";
 import { ModelSelector } from "./model-selector";
+import { UISelect } from "./ui";
 import { t } from "./i18n";
 
 interface NewThreadViewProps {
@@ -145,17 +146,13 @@ export function NewThreadView({
           </p>
           <label className="new-thread__workspace-picker">
             <span className="sr-only">{t("new_thread.workspace")}</span>
-            <select
+            <UISelect
               className="new-thread__workspace"
               value={workspace.id}
-              onChange={(event) => onSelectWorkspace(event.target.value)}
-            >
-              {workspaces.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
+              options={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+              onChange={(value) => onSelectWorkspace(value)}
+              aria-label={t("new_thread.workspace")}
+            />
           </label>
         </div>
 

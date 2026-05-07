@@ -2,6 +2,7 @@ import { type ClipboardEvent, type Dispatch, type DragEvent, type KeyboardEvent,
 import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { ComposerAttachment, QueuedComposerMessage, SessionRecord } from "./desktop-state";
 import { ArrowUpIcon, PlusIcon, StopSquareIcon } from "./icons";
+import { t } from "./i18n";
 import type {
   ComposerSlashCommand,
   ComposerSlashCommandSection,
@@ -154,7 +155,7 @@ export function ComposerPanel({
           onSelectMention={onSelectMention}
           textareaLabel="Composer"
           textareaTestId="composer"
-          textareaPlaceholder="Ask pi to inspect the repo, run a fix, or continue the current thread..."
+          textareaPlaceholder={t("composer.placeholder")}
           extensionDock={extensionDock}
           extensionDockExpanded={extensionDockExpanded}
           onToggleExtensionDock={onToggleExtensionDock}
@@ -163,8 +164,8 @@ export function ComposerPanel({
               <div className="composer__footer-row">
                 <div className="composer__hint">
                   {selectedSession.status === "running"
-                    ? `${runningLabel} · Enter to queue · Cmd+Enter to steer`
-                    : "Enter to send · Shift+Enter for newline"}
+                    ? t("composer.hint_running", { runningLabel })
+                    : t("composer.hint_idle")}
                   {" · "}
                   <ModelSelector
                     runtime={runtime}
@@ -181,7 +182,7 @@ export function ComposerPanel({
                 </div>
                 <div className="composer__actions">
                   <button
-                    aria-label="Attach files"
+                    aria-label={t("composer.attach_files")}
                     className="icon-button composer__attach"
                     type="button"
                     onClick={onPickAttachments}
@@ -189,7 +190,7 @@ export function ComposerPanel({
                     <PlusIcon />
                   </button>
                   <button
-                    aria-label={primaryActionIsStop ? "Stop run" : "Send message"}
+                    aria-label={primaryActionIsStop ? t("composer.stop_run") : t("composer.send_message")}
                     className="button button--primary button--cta-icon"
                     data-testid="send"
                     type="button"

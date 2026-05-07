@@ -41,6 +41,7 @@ import {
   type ComposerDraftSyncSource,
   type ExtensionCommandCompatibilityRecord,
   type ModelSettingsScopeMode,
+  type AppLocale,
   createEmptyDesktopAppState,
   type CreateSessionInput,
   type CreateWorktreeInput,
@@ -501,6 +502,21 @@ export class DesktopAppStore implements AppStoreInternals {
     return this.emit();
   }
 
+  async setLocale(locale: AppLocale): Promise<DesktopAppState> {
+    await this.initialize();
+    if (this.state.locale === locale) {
+      return this.emit();
+    }
+    this.state = {
+      ...this.state,
+      locale,
+      lastError: undefined,
+      revision: this.state.revision + 1,
+    };
+    await this.persistUiState();
+    return this.emit();
+  }
+
   async setModelSettingsScopeMode(modelSettingsScopeMode: ModelSettingsScopeMode): Promise<DesktopAppState> {
     await this.initialize();
     if (this.state.modelSettingsScopeMode === modelSettingsScopeMode) {
@@ -770,6 +786,7 @@ export class DesktopAppStore implements AppStoreInternals {
         lastViewedAtBySession: persisted.lastViewedAtBySession ?? {},
         workspaceOrder: persisted.workspaceOrder ?? [],
         sidebarCollapsed: persisted.sidebarCollapsed ?? this.state.sidebarCollapsed,
+        locale: persisted.locale ?? this.state.locale,
       };
       await this.migrateLegacyPersistence(persisted);
       this.sessionState.lastViewedAtBySession.clear();
@@ -1713,6 +1730,7 @@ export class DesktopAppStore implements AppStoreInternals {
       modelSettingsScopeMode: this.state.modelSettingsScopeMode,
       appGlobalModelSettings: hasStoredModelSettings(this.state.globalModelSettings) ? this.state.globalModelSettings : undefined,
       sidebarCollapsed: this.state.sidebarCollapsed || undefined,
+      locale: this.state.locale,
     };
 
     await writePersistedUiState(this.uiStateFilePath, payload);

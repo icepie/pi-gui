@@ -10,6 +10,76 @@ type TranslationKey =
   | "common.enabled"
   | "common.disabled"
   | "common.open_folder"
+  | "common.back_to_app"
+  | "common.working"
+  | "common.working_seconds"
+  | "common.working_minutes"
+  | "common.loading_sessions"
+  | "common.loading_sessions_description"
+  | "common.select_workspace_first"
+  | "common.workspace"
+  | "common.open_folder_to_start"
+  | "common.open_folder_to_start_description"
+  | "common.open_folder_to_start_description_multi"
+  | "common.create_thread_description"
+  | "composer.placeholder"
+  | "composer.hint_running"
+  | "composer.hint_idle"
+  | "composer.steer"
+  | "composer.edit"
+  | "composer.delete"
+  | "composer.editing_queued"
+  | "composer.attach_files"
+  | "composer.stop_run"
+  | "composer.send_message"
+  | "host_actions.title"
+  | "host_actions.model"
+  | "host_actions.model_description"
+  | "host_actions.reasoning"
+  | "host_actions.reasoning_description"
+  | "host_actions.tree"
+  | "host_actions.tree_description"
+  | "host_actions.status"
+  | "host_actions.status_description"
+  | "host_actions.login"
+  | "host_actions.login_description"
+  | "host_actions.logout"
+  | "host_actions.logout_description"
+  | "host_actions.settings"
+  | "host_actions.settings_description"
+  | "host_actions.enabled_models"
+  | "host_actions.enabled_models_description"
+  | "host_actions.session"
+  | "host_actions.session_description"
+  | "tree.eyebrow"
+  | "tree.browse_branches"
+  | "tree.switch_branch"
+  | "tree.loading"
+  | "tree.search_placeholder"
+  | "tree.search_hint"
+  | "tree.default_hint"
+  | "tree.select_hint"
+  | "tree.no_matches"
+  | "tree.footer_hint"
+  | "tree.already_here"
+  | "tree.continue"
+  | "tree.back"
+  | "tree.summary_copy"
+  | "tree.no_summary"
+  | "tree.no_summary_description"
+  | "tree.summarize"
+  | "tree.summarize_description"
+  | "tree.summarize_custom"
+  | "tree.summarize_custom_description"
+  | "tree.custom_placeholder"
+  | "tree.switching"
+  | "tree.switch_button"
+  | "tree.hint_switching"
+  | "tree.hint_no_summary"
+  | "tree.hint_summary"
+  | "timeline.new_activity_below"
+  | "skills.create_new_skill_prompt"
+  | "skills.create_new_skill_description"
   | "topbar.open_a_folder_to_begin"
   | "topbar.local"
   | "topbar.unavailable"
@@ -94,6 +164,11 @@ type TranslationKey =
   | "settings.select_workspace_description"
   | "settings.appearance"
   | "settings.appearance_description"
+  | "settings.language"
+  | "settings.language.en_us"
+  | "settings.language.en_us_description"
+  | "settings.language.zh_cn"
+  | "settings.language.zh_cn_description"
   | "settings.providers"
   | "settings.providers_description"
   | "settings.models"
@@ -244,6 +319,74 @@ const EN_US: TranslationTable = {
   "common.enabled": "Enabled",
   "common.disabled": "Disabled",
   "common.open_folder": "Open folder",
+  "common.back_to_app": "Back to app",
+  "common.working": "Working…",
+  "common.working_seconds": "Working for {seconds}s",
+  "common.working_minutes": "Working for {minutes}m {remaining}s",
+  "common.loading_sessions": "Loading sessions",
+  "common.loading_sessions_description": "The desktop shell is restoring folder and thread state from the main process.",
+  "common.select_workspace_first": "Select a workspace first.",
+  "common.workspace": "Workspace",
+  "common.open_folder_to_start": "Open a folder to start",
+  "common.open_folder_to_start_description": "Add a project folder before creating a new thread.",
+  "common.open_folder_to_start_description_multi": "Add project folders, group sessions under them, and jump between threads from the sidebar.",
+  "common.create_thread_description": "Create a thread for this folder, then jump between sessions from the sidebar.",
+  "composer.placeholder": "Ask pi to inspect the repo, run a fix, or continue the current thread...",
+  "composer.hint_running": "{runningLabel} · Enter to queue · Cmd+Enter to steer",
+  "composer.hint_idle": "Enter to send · Shift+Enter for newline",
+  "composer.steer": "Steer",
+  "composer.edit": "Edit",
+  "composer.delete": "Delete",
+  "composer.editing_queued": "Editing queued message",
+  "composer.attach_files": "Attach files",
+  "composer.stop_run": "Stop run",
+  "composer.send_message": "Send message",
+  "host_actions.title": "Host Actions",
+  "host_actions.model": "Model",
+  "host_actions.model_description": "Choose the model for this session",
+  "host_actions.reasoning": "Reasoning",
+  "host_actions.reasoning_description": "Set thinking level for this session",
+  "host_actions.tree": "Tree",
+  "host_actions.tree_description": "Browse and jump between branches in this session",
+  "host_actions.status": "Status",
+  "host_actions.status_description": "Show current session overrides in the timeline",
+  "host_actions.login": "Login",
+  "host_actions.login_description": "Authenticate a provider for this workspace",
+  "host_actions.logout": "Logout",
+  "host_actions.logout_description": "Remove a provider login from this workspace",
+  "host_actions.settings": "Settings",
+  "host_actions.settings_description": "Open model, skill, and notification settings",
+  "host_actions.enabled_models": "Enabled models",
+  "host_actions.enabled_models_description": "Choose which models appear in pickers",
+  "host_actions.session": "Session",
+  "host_actions.session_description": "Show current session details in the timeline",
+  "tree.eyebrow": "Session tree",
+  "tree.browse_branches": "Browse branches",
+  "tree.switch_branch": "Switch branch",
+  "tree.loading": "Loading session tree…",
+  "tree.search_placeholder": "Search visible tree entries",
+  "tree.search_hint": "Search expands matching branches.",
+  "tree.default_hint": "Tree opens at the most recent entries.",
+  "tree.select_hint": "Select a node to branch from it.",
+  "tree.no_matches": "No matching nodes.",
+  "tree.footer_hint": "Selecting a user prompt reopens it in the composer. Selecting any other node jumps directly there.",
+  "tree.already_here": "Already here",
+  "tree.continue": "Continue",
+  "tree.back": "Back",
+  "tree.summary_copy": "You're leaving the current branch. Choose whether pi should summarize the abandoned path before switching.",
+  "tree.no_summary": "No summary",
+  "tree.no_summary_description": "Jump immediately with no branch summary.",
+  "tree.summarize": "Summarize",
+  "tree.summarize_description": "Generate a branch summary before switching.",
+  "tree.summarize_custom": "Summarize with custom prompt",
+  "tree.summarize_custom_description": "Provide extra instructions for the summary.",
+  "tree.custom_placeholder": "Focus the summary on decisions, changed files, and unresolved risks.",
+  "tree.switching": "Switching…",
+  "tree.switch_button": "Switch branch",
+  "tree.hint_switching": "Switching branches…",
+  "tree.hint_no_summary": "The current branch will be left as-is.",
+  "tree.hint_summary": "The summary will be attached to the branch you switch to.",
+  "timeline.new_activity_below": "New activity below",
   "topbar.open_a_folder_to_begin": "Open a folder to begin",
   "topbar.local": "Local",
   "topbar.unavailable": "unavailable",
@@ -296,6 +439,8 @@ const EN_US: TranslationTable = {
   "skills.disable": "Disable",
   "skills.enable": "Enable",
   "skills.try": "Try",
+  "skills.create_new_skill_prompt": "Create a new skill for this workspace and explain which files you will add.",
+  "skills.create_new_skill_description": "Create a new skill for this workspace",
   "extensions.title": "Extensions",
   "extensions.select_workspace": "Select a workspace",
   "extensions.empty_workspace_description": "Extensions are discovered from the selected workspace plus your user-level extension directories.",
@@ -328,6 +473,11 @@ const EN_US: TranslationTable = {
   "settings.select_workspace_description": "Provider and skill settings need a selected workspace.",
   "settings.appearance": "Appearance",
   "settings.appearance_description": "Choose between light, dark, or automatic system theme.",
+  "settings.language": "Language",
+  "settings.language.en_us": "English",
+  "settings.language.en_us_description": "Use English interface",
+  "settings.language.zh_cn": "简体中文",
+  "settings.language.zh_cn_description": "使用简体中文界面",
   "settings.providers": "Providers",
   "settings.providers_description": "Connect providers and manage auth for {workspaceName}.",
   "settings.models": "Models",
@@ -477,6 +627,74 @@ const ZH_CN: TranslationTable = {
   "common.enabled": "已启用",
   "common.disabled": "已禁用",
   "common.open_folder": "打开文件夹",
+  "common.back_to_app": "返回应用",
+  "common.working": "运行中…",
+  "common.working_seconds": "已运行 {seconds} 秒",
+  "common.working_minutes": "已运行 {minutes} 分 {remaining} 秒",
+  "common.loading_sessions": "加载会话中",
+  "common.loading_sessions_description": "桌面 Shell 正在从主进程恢复文件夹和线程状态。",
+  "common.select_workspace_first": "请先选择一个工作区。",
+  "common.workspace": "工作区",
+  "common.open_folder_to_start": "先打开一个文件夹",
+  "common.open_folder_to_start_description": "创建新线程前，请先添加一个项目文件夹。",
+  "common.open_folder_to_start_description_multi": "添加项目文件夹，将会话分组管理，并从侧边栏切换线程。",
+  "common.create_thread_description": "为此文件夹创建一个线程，然后从侧边栏切换会话。",
+  "composer.placeholder": "让 pi 检查仓库、修复问题，或继续当前线程...",
+  "composer.hint_running": "{runningLabel} · Enter 排队 · Cmd+Enter 引导",
+  "composer.hint_idle": "Enter 发送 · Shift+Enter 换行",
+  "composer.steer": "引导",
+  "composer.edit": "编辑",
+  "composer.delete": "删除",
+  "composer.editing_queued": "正在编辑排队消息",
+  "composer.attach_files": "附加文件",
+  "composer.stop_run": "停止运行",
+  "composer.send_message": "发送消息",
+  "host_actions.title": "主机操作",
+  "host_actions.model": "模型",
+  "host_actions.model_description": "选择当前会话的模型",
+  "host_actions.reasoning": "推理",
+  "host_actions.reasoning_description": "设置当前会话的推理级别",
+  "host_actions.tree": "分支树",
+  "host_actions.tree_description": "浏览并跳转到当前会话的不同分支",
+  "host_actions.status": "状态",
+  "host_actions.status_description": "在时间线中显示当前会话的覆盖设置",
+  "host_actions.login": "登录",
+  "host_actions.login_description": "为当前工作区认证一个服务商",
+  "host_actions.logout": "退出登录",
+  "host_actions.logout_description": "移除当前工作区的服务商登录",
+  "host_actions.settings": "设置",
+  "host_actions.settings_description": "打开模型、技能和通知设置",
+  "host_actions.enabled_models": "已启用模型",
+  "host_actions.enabled_models_description": "选择在选择器中显示哪些模型",
+  "host_actions.session": "会话",
+  "host_actions.session_description": "在时间线中显示当前会话详情",
+  "tree.eyebrow": "会话树",
+  "tree.browse_branches": "浏览分支",
+  "tree.switch_branch": "切换分支",
+  "tree.loading": "加载会话树中…",
+  "tree.search_placeholder": "搜索可见的树节点",
+  "tree.search_hint": "搜索会展开匹配的分支。",
+  "tree.default_hint": "树从最近的条目打开。",
+  "tree.select_hint": "选择一个节点以从此处分支。",
+  "tree.no_matches": "没有匹配的节点。",
+  "tree.footer_hint": "选择用户提示词会在输入框中重新打开它。选择其他节点会直接跳转到那里。",
+  "tree.already_here": "已在此处",
+  "tree.continue": "继续",
+  "tree.back": "返回",
+  "tree.summary_copy": "你即将离开当前分支。选择 pi 是否在切换前总结被放弃的路径。",
+  "tree.no_summary": "不总结",
+  "tree.no_summary_description": "直接跳转，不生成分支总结。",
+  "tree.summarize": "总结",
+  "tree.summarize_description": "切换前生成分支总结。",
+  "tree.summarize_custom": "使用自定义提示词总结",
+  "tree.summarize_custom_description": "为总结提供额外指令。",
+  "tree.custom_placeholder": "重点总结决策、修改的文件和未解决的风险。",
+  "tree.switching": "切换中…",
+  "tree.switch_button": "切换分支",
+  "tree.hint_switching": "正在切换分支…",
+  "tree.hint_no_summary": "当前分支将保持原样。",
+  "tree.hint_summary": "总结将附加到你切换到的分支。",
+  "timeline.new_activity_below": "下方有新活动",
   "topbar.open_a_folder_to_begin": "先打开一个文件夹开始",
   "topbar.local": "本地",
   "topbar.unavailable": "不可用",
@@ -494,25 +712,25 @@ const ZH_CN: TranslationTable = {
   "sidebar.no_folders_description": "先打开一个项目文件夹，开始构建工作区和会话列表。",
   "sidebar.open_first_folder": "打开第一个文件夹",
   "sidebar.workspace_actions": "{name} 的工作区操作",
-  "sidebar.remove_worktree": "移除 worktree",
-  "sidebar.create_permanent_worktree": "创建永久 worktree",
+  "sidebar.remove_worktree": "移除工作树",
+  "sidebar.create_permanent_worktree": "创建永久工作树",
   "sidebar.edit_name": "编辑名称",
   "sidebar.remove_workspace": "移除",
   "sidebar.archived": "已归档",
-  "sidebar.worktree": "Worktree",
+  "sidebar.worktree": "工作树",
   "sidebar.archive": "归档",
   "sidebar.restore": "恢复",
   "sidebar.delete": "删除",
   "sidebar.delete_confirm": "确定删除会话“{title}”吗？此操作无法撤销。",
   "new_thread.title": "新线程",
   "new_thread.open_folder_to_begin": "先打开一个文件夹开始",
-  "new_thread.empty_description": "先在侧边栏选择一个仓库，然后开始本地线程或基于 worktree 的线程。",
+  "new_thread.empty_description": "先在侧边栏选择一个仓库，然后开始本地线程或基于工作树的线程。",
   "new_thread.lets_build": "开始构建",
   "new_thread.workspace": "工作区",
   "new_thread.prompt_label": "新线程提示词",
   "new_thread.prompt_placeholder": "向 pi 提任何问题，输入 / 使用命令和技能",
   "new_thread.local": "本地",
-  "new_thread.worktree": "Worktree",
+  "new_thread.worktree": "工作树",
   "new_thread.attach_files": "附加文件",
   "new_thread.start_thread": "开始线程",
   "skills.title": "技能",
@@ -529,6 +747,8 @@ const ZH_CN: TranslationTable = {
   "skills.disable": "禁用",
   "skills.enable": "启用",
   "skills.try": "试用",
+  "skills.create_new_skill_prompt": "为当前工作区创建一个新技能，并说明你将添加哪些文件。",
+  "skills.create_new_skill_description": "为当前工作区创建一个新技能",
   "extensions.title": "扩展",
   "extensions.select_workspace": "选择工作区",
   "extensions.empty_workspace_description": "扩展会从当前工作区以及你的用户级扩展目录中发现。",
@@ -561,8 +781,13 @@ const ZH_CN: TranslationTable = {
   "settings.select_workspace_description": "Provider 和技能设置需要先选中一个工作区。",
   "settings.appearance": "外观",
   "settings.appearance_description": "选择浅色、深色或跟随系统主题。",
-  "settings.providers": "Providers",
-  "settings.providers_description": "连接 provider 并管理 {workspaceName} 的鉴权。",
+  "settings.language": "语言",
+  "settings.language.en_us": "English",
+  "settings.language.en_us_description": "Use English interface",
+  "settings.language.zh_cn": "简体中文",
+  "settings.language.zh_cn_description": "使用简体中文界面",
+  "settings.providers": "服务商",
+  "settings.providers_description": "连接服务商并管理 {workspaceName} 的鉴权。",
   "settings.models": "模型",
   "settings.models_description": "选择默认模型，以及在选择器中展示哪些模型。",
   "settings.notifications": "通知",
@@ -576,7 +801,7 @@ const ZH_CN: TranslationTable = {
   "settings.theme.light_description": "始终使用浅色主题",
   "settings.theme.dark": "深色",
   "settings.theme.dark_description": "始终使用深色主题",
-  "settings.connected_providers": "已连接的 Providers",
+  "settings.connected_providers": "已连接的服务商",
   "settings.none": "无",
   "settings.discovered_skills": "已发现技能",
   "settings.model_scope": "模型设置范围",
@@ -621,38 +846,38 @@ const ZH_CN: TranslationTable = {
   "settings.notifications.desc.unsupported": "当前系统不支持桌面通知。",
   "settings.notifications.desc.unknown": "正在检查 macOS 是否允许 pi-gui 显示通知。",
   "settings.providers.connected": "已连接",
-  "settings.providers.connected_description": "已连接的内置 provider 会优先用于选择模型。",
-  "settings.providers.none_connected": "还没有连接任何内置 provider。",
-  "settings.providers.custom": "自定义 Providers",
-  "settings.providers.custom_description": "从你自己的端点添加兼容 OpenAI、Anthropic 或 Google 的 provider。",
-  "settings.providers.definitions": "Provider 定义",
+  "settings.providers.connected_description": "已连接的内置服务商会优先用于选择模型。",
+  "settings.providers.none_connected": "还没有连接任何内置服务商。",
+  "settings.providers.custom": "自定义服务商",
+  "settings.providers.custom_description": "从你自己的端点添加兼容 OpenAI、Anthropic 或 Google 的服务商。",
+  "settings.providers.definitions": "服务商定义",
   "settings.providers.definitions_description": "这些条目会写入 `models.json`，并在整个应用中可用。",
-  "settings.providers.new_custom": "新建自定义 Provider",
+  "settings.providers.new_custom": "新建自定义服务商",
   "settings.providers.edit": "编辑",
   "settings.providers.delete": "删除",
-  "settings.providers.none_custom": "还没有自定义 provider。",
-  "settings.providers.edit_custom": "编辑自定义 Provider",
-  "settings.providers.add_custom": "添加自定义 Provider",
-  "settings.providers.custom_id": "自定义 Provider ID",
-  "settings.providers.custom_id_placeholder": "Provider ID，例如 my-proxy",
-  "settings.providers.custom_display_name": "自定义 Provider 显示名",
+  "settings.providers.none_custom": "还没有自定义服务商。",
+  "settings.providers.edit_custom": "编辑自定义服务商",
+  "settings.providers.add_custom": "添加自定义服务商",
+  "settings.providers.custom_id": "自定义服务商 ID",
+  "settings.providers.custom_id_placeholder": "服务商 ID，例如 my-proxy",
+  "settings.providers.custom_display_name": "自定义服务商显示名",
   "settings.providers.custom_display_name_placeholder": "可选显示名",
-  "settings.providers.custom_api": "自定义 Provider API",
-  "settings.providers.custom_base_url": "自定义 Provider Base URL",
+  "settings.providers.custom_api": "自定义服务商 API",
+  "settings.providers.custom_base_url": "自定义服务商 Base URL",
   "settings.providers.custom_base_url_placeholder": "Base URL",
-  "settings.providers.custom_api_key": "自定义 Provider API Key",
+  "settings.providers.custom_api_key": "自定义服务商 API Key",
   "settings.providers.custom_api_key_placeholder": "可选 API Key",
-  "settings.providers.custom_model_ids": "自定义 Provider 模型 ID",
+  "settings.providers.custom_model_ids": "自定义服务商模型 ID",
   "settings.providers.custom_model_ids_placeholder": "每行一个模型 ID\n例如：\ngpt-4.1\ngpt-4o-mini",
   "settings.providers.cancel_edit": "取消编辑",
-  "settings.providers.save_provider": "保存 Provider",
-  "settings.providers.add_provider": "添加 Provider",
+  "settings.providers.save_provider": "保存服务商",
+  "settings.providers.add_provider": "添加服务商",
   "settings.providers.sign_in": "登录",
-  "settings.providers.sign_in_description": "支持 OAuth 的 provider 可以直接在桌面应用中登录。",
-  "settings.providers.all": "全部 Providers",
-  "settings.providers.all_description": "浏览完整的 provider 清单。",
-  "settings.providers.browse_all": "浏览全部 Providers",
-  "settings.providers.search": "搜索 Providers",
+  "settings.providers.sign_in_description": "支持 OAuth 的服务商可以直接在桌面应用中登录。",
+  "settings.providers.all": "全部服务商",
+  "settings.providers.all_description": "浏览完整的服务商清单。",
+  "settings.providers.browse_all": "浏览全部服务商",
+  "settings.providers.search": "搜索服务商",
   "settings.providers.manage_api_key": "管理 API Key",
   "settings.providers.set_api_key": "设置 API Key",
   "settings.providers.replace_api_key": "替换 {providerName} 已保存的 API Key，并可选覆盖其 API URL。",

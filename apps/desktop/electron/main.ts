@@ -23,10 +23,10 @@ import { NotificationManager } from "./notification-manager";
 import {
   NotificationPermissionService,
 } from "./notification-permission";
-import { checkForUpdate, initUpdateChecker } from "./update-checker";
+import { checkForUpdate } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
-import type { DesktopAppState, ThemeMode } from "../src/desktop-state";
+import type { DesktopAppState, ThemeMode, AppLocale } from "../src/desktop-state";
 import { desktopIpc, getDesktopCommandFromShortcut } from "../src/ipc";
 import { SUPPORTED_COMPOSER_IMAGE_TYPES } from "../src/composer-attachments";
 import type {
@@ -58,7 +58,6 @@ let stopPublishingState: (() => void) | undefined;
 let stopPublishingSelectedTranscript: (() => void) | undefined;
 let stopTrackingWindowActivation: (() => void) | undefined;
 let stopNotifications: (() => void) | undefined;
-let stopUpdateChecker: (() => void) | undefined;
 let stopPruningTerminals: (() => void) | undefined;
 let retainedTerminalWorkspacePathSignature = "";
 const terminalFocusedWebContentsIds = new Set<number>();
@@ -326,6 +325,7 @@ async function runManualUpdateCheck(): Promise<void> {
 
 function installApplicationMenu(): void {
   if (process.platform !== "darwin") {
+    Menu.setApplicationMenu(null);
     return;
   }
 
@@ -480,10 +480,6 @@ app.whenReady().then(async () => {
   });
   notificationManager = new NotificationManager(store, () => mainWindow, notificationPermissionService);
   stopNotifications = notificationManager.start();
-  if (!isDev) {
-    stopUpdateChecker = initUpdateChecker();
-  }
-
   ipcMain.handle(desktopIpc.ping, () =>
     devReloadMarkersEnabled ? `pi desktop ready:${MAIN_DEV_RELOAD_MARKER}` : "pi desktop ready",
   );
@@ -492,6 +488,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.setThemeMode, (_event, mode: ThemeMode) => {
     themeManager.setMode(mode);
     return mode;
+  });
+  ipcMain.handle(desktopIpc.setLocale, async (_event, locale: AppLocale) => {
+    await store.setLocale(locale);
+    return locale;
   });
   ipcMain.handle(desktopIpc.openExternal, (_event, url: string) => {
     const parsed = new URL(url);
@@ -770,8 +770,6 @@ app.on("window-all-closed", () => {
     notificationManager = undefined;
     notificationPermissionService?.dispose();
     notificationPermissionService = undefined;
-    stopUpdateChecker?.();
-    stopUpdateChecker = undefined;
     stopPruningTerminals?.();
     stopPruningTerminals = undefined;
     terminalService?.dispose();
@@ -786,8 +784,6 @@ app.on("before-quit", (event) => {
   notificationManager = undefined;
   notificationPermissionService?.dispose();
   notificationPermissionService = undefined;
-  stopUpdateChecker?.();
-  stopUpdateChecker = undefined;
   stopPruningTerminals?.();
   stopPruningTerminals = undefined;
   terminalService?.dispose();

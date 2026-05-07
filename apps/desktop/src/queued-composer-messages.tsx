@@ -1,5 +1,6 @@
 import type { ComposerAttachment, QueuedComposerMessage } from "./desktop-state";
 import { FileIcon } from "./icons";
+import { t } from "./i18n";
 
 interface QueuedComposerMessagesProps {
   readonly messages: readonly QueuedComposerMessage[];
@@ -26,9 +27,9 @@ export function QueuedComposerMessages({
     <div className="queued-composer-messages" data-testid="queued-composer-messages">
       {editingQueuedMessageId ? (
         <div className="queued-composer-messages__editing" data-testid="queued-composer-editing">
-          <span>Editing queued message</span>
+          <span>{t("composer.editing_queued")}</span>
           <button type="button" onClick={onCancelEdit}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       ) : null}
@@ -43,14 +44,14 @@ export function QueuedComposerMessages({
             <div className="queued-composer-message__actions">
               {message.mode !== "steer" ? (
                 <button type="button" onClick={() => onSteerMessage(message.id)}>
-                  Steer
+                  {t("composer.steer")}
                 </button>
               ) : null}
               <button type="button" onClick={() => onEditMessage(message.id)}>
-                Edit
+                {t("composer.edit")}
               </button>
               <button aria-label={`Delete queued message ${message.text || message.id}`} type="button" onClick={() => onRemoveMessage(message.id)}>
-                Delete
+                {t("composer.delete")}
               </button>
             </div>
           </div>

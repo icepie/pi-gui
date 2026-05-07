@@ -12,7 +12,7 @@
     "declaration": true,
     "sourceMap": true,
     "composite": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0"
   }
 }
-
