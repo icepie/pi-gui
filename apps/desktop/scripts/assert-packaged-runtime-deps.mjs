@@ -37,10 +37,7 @@ const desktopDir = path.resolve(scriptDir, "..");
 const packagePlatform = (process.env.PI_APP_PACKAGE_PLATFORM ?? process.platform).trim().toLowerCase();
 const packageArch = (process.env.PI_APP_PACKAGE_ARCH ?? process.arch).trim().toLowerCase();
 const asarPath = resolveAsarPath(desktopDir, packagePlatform);
-const notificationHelperPath =
-  packagePlatform === "darwin"
-    ? path.join(desktopDir, "release", "mac-arm64", "pi-fit.app", "Contents", "MacOS", "pi-gui-notification-status-helper")
-    : undefined;
+const notificationHelperPath = packagePlatform === "darwin" ? resolveMacNotificationHelperPath(desktopDir) : undefined;
 const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@mariozechner/pi-coding-agent");
 
 if (!existsSync(asarPath)) {
@@ -67,21 +64,17 @@ console.log(`Verified packaged runtime dependencies in ${asarPath}`);
 
 function resolveAsarPath(desktopDir, packagePlatform) {
   if (packagePlatform === "darwin") {
-    const targetScopedAsarPath = path.join(
+    const targetScopedAsarPath = findMacAppAsarPath(path.join(
       desktopDir,
       "release",
       `darwin-${packageArch}-dir`,
       `mac${packageArch === "arm64" ? "-arm64" : ""}`,
-      "pi-fit.app",
-      "Contents",
-      "Resources",
-      "app.asar",
-    );
+    ));
     if (existsSync(targetScopedAsarPath)) {
       return targetScopedAsarPath;
     }
 
-    return path.join(desktopDir, "release", "mac-arm64", "pi-fit.app", "Contents", "Resources", "app.asar");
+    return findMacAppAsarPath(path.join(desktopDir, "release", "mac-arm64"));
   }
 
   if (packagePlatform === "linux") {
@@ -144,6 +137,31 @@ function resolveAsarPath(desktopDir, packagePlatform) {
   }
 
   throw new Error(`Unsupported packaged runtime dependency target: ${packagePlatform}`);
+}
+
+function resolveMacNotificationHelperPath(desktopDir) {
+  const appBundle = findMacAppBundlePath(path.join(
+    desktopDir,
+    "release",
+    `darwin-${packageArch}-dir`,
+    `mac${packageArch === "arm64" ? "-arm64" : ""}`,
+  )) ?? findMacAppBundlePath(path.join(desktopDir, "release", "mac-arm64"));
+  return appBundle ? path.join(appBundle, "Contents", "MacOS", "pi-gui-notification-status-helper") : undefined;
+}
+
+function findMacAppAsarPath(macOutputDir) {
+  const appBundle = findMacAppBundlePath(macOutputDir);
+  return appBundle ? path.join(appBundle, "Contents", "Resources", "app.asar") : path.join(macOutputDir, "pi-fit.app", "Contents", "Resources", "app.asar");
+}
+
+function findMacAppBundlePath(macOutputDir) {
+  if (!existsSync(macOutputDir)) {
+    return undefined;
+  }
+  const entries = readdirSync(macOutputDir, { withFileTypes: true });
+  const appEntry = entries.find((entry) => entry.isDirectory() && entry.name === "pi-fit.app")
+    ?? entries.find((entry) => entry.isDirectory() && entry.name.endsWith(".app"));
+  return appEntry ? path.join(macOutputDir, appEntry.name) : undefined;
 }
 
 function findFirstExistingPath(candidatePaths) {
