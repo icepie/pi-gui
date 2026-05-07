@@ -249,16 +249,41 @@ function resolveWindowsNodeProxyCompiler(arch) {
         ];
 
   for (const candidate of candidates) {
-    const probe = spawnSync(candidate.command, ["--version"], {
+    const command = resolveWindowsCompilerCommand(candidate.command);
+    const probe = spawnSync(command, ["--version"], {
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
     });
     if (!probe.error && probe.status === 0) {
-      return candidate;
+      return { ...candidate, command };
     }
   }
 
   throw new Error(`no compiler found for ${arch}`);
+}
+
+function resolveWindowsCompilerCommand(command) {
+  if (path.isAbsolute(command) || process.platform !== "win32") {
+    return command;
+  }
+
+  for (const candidatePath of windowsCompilerFallbackPaths(command)) {
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return command;
+}
+
+function windowsCompilerFallbackPaths(command) {
+  const chocolateyInstall = process.env.ChocolateyInstall || "C:\\ProgramData\\chocolatey";
+  const localAppData = process.env.LOCALAPPDATA;
+  return [
+    path.join(chocolateyInstall, "bin", command),
+    path.join(chocolateyInstall, "lib", "zig", "tools", command),
+    localAppData ? path.join(localAppData, "Microsoft", "WinGet", "Packages", "zig.zig_Microsoft.Winget.Source_8wekyb3d8bbwe", command) : "",
+  ].filter(Boolean);
 }
 
 function buildWindowsElectronNodeProxySource(electronExeName) {
