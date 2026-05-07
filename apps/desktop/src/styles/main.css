@@ -246,80 +246,59 @@
 }
 
 .chat-header {
-  display: grid;
-  gap: 4px;
-  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 56px;
+  margin-bottom: 14px;
 }
 
-.chat-header__breadcrumb {
+.chat-header__identity {
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 9px;
-  color: var(--muted-path);
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1;
+  gap: 10px;
+  flex: 1 1 auto;
 }
 
-.chat-header__breadcrumb-icon {
+.chat-header__identity-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: 9px;
   color: var(--muted-icon);
   background: var(--surface-muted);
   border: 1px solid var(--line);
   flex: 0 0 auto;
 }
 
-.chat-header__breadcrumb-icon svg {
+.chat-header__identity-icon svg {
   width: 14px;
   height: 14px;
 }
 
-.chat-header__breadcrumb-label,
-.chat-header__breadcrumb-title {
+.chat-header__title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1 1 auto;
 }
 
-.chat-header__breadcrumb-label {
-  max-width: 220px;
-}
-
-.chat-header__breadcrumb-title {
-  color: var(--text);
-  font-weight: 610;
-}
-
-.chat-header__breadcrumb-separator {
-  color: var(--muted-subtle);
-  font-weight: 520;
-  flex: 0 0 auto;
-}
-
-.chat-header__environment-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  max-width: 180px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface-muted) 78%, transparent);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 610;
-  line-height: 1;
-  white-space: nowrap;
+.chat-header__project-title {
+  min-width: 0;
+  max-width: 60%;
   overflow: hidden;
+  color: var(--muted-path);
+  font-size: 14px;
+  font-weight: 520;
+  line-height: 1.2;
   text-overflow: ellipsis;
-  flex: 0 1 auto;
+  white-space: nowrap;
 }
 
 .chat-header__eyebrow {
@@ -335,15 +314,20 @@
   align-items: baseline;
   justify-content: flex-end;
   gap: 12px;
+  flex: 0 0 auto;
 }
 
 .chat-header__title {
   margin: 0;
   color: var(--text-strong);
-  font-size: 18px;
-  font-weight: 610;
-  letter-spacing: -0.03em;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
   line-height: 1.15;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-header__status {
