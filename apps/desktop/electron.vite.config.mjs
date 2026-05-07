@@ -44,6 +44,9 @@ export default defineConfig(({ command }) => {
         port: devPort,
         strictPort: true,
       },
+      optimizeDeps: {
+        entries: [path.resolve(projectRoot, "index.html")],
+      },
       build: {
         outDir: "out/renderer",
         emptyOutDir: true,
