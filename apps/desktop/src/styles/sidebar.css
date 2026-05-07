@@ -1,5 +1,5 @@
 .shell {
-  --sidebar-width: 292px;
+  --sidebar-width: 264px;
   --titlebar-toggle-left: 86px;
   --titlebar-toggle-size: 30px;
   --titlebar-toggle-main-gap: 16px;
@@ -33,37 +33,37 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;
-  background: #f6f7fa;
-  border-right: 1px solid #dde1ea;
+  background: var(--sidebar);
+  border-right: 1px solid var(--line);
 }
 
 .sidebar__top,
 .sidebar__section,
 .sidebar__footer {
-  padding: 14px 16px;
+  padding: 12px 12px;
 }
 
 .sidebar__top {
-  padding-top: 54px;
+  padding-top: 46px;
 }
 
 .sidebar__nav {
   display: grid;
-  gap: 4px;
-  margin-top: 12px;
+  gap: 3px;
+  margin-top: 10px;
 }
 
 .sidebar__nav-item {
   width: 100%;
-  min-height: 34px;
-  padding: 7px 10px;
-  border-radius: 10px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   gap: 9px;
   color: var(--muted-strong);
-  font-size: 14px;
-  font-weight: 560;
+  font-size: 13px;
+  font-weight: 520;
   border: 1px solid transparent;
 }
 
@@ -73,21 +73,21 @@
 }
 
 .sidebar__nav-item--active {
-  background: #eef1f6;
-  border-color: #e1e5ee;
+  background: var(--surface-muted);
+  border-color: var(--line);
   color: var(--text-strong);
 }
 
 .sidebar__new {
   -webkit-app-region: no-drag;
   width: 100%;
-  min-height: 36px;
-  padding: 8px 12px;
+  min-height: 34px;
+  padding: 7px 12px;
   border-radius: 10px;
-  background: #eef1f6;
-  border: 1px solid #e1e5ee;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   color: var(--text-strong);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -109,11 +109,11 @@
   align-items: center;
   justify-content: space-between;
   color: var(--muted-subtle);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .section__tools {
@@ -132,9 +132,9 @@
 }
 
 .icon-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   color: var(--muted-strong);
@@ -150,18 +150,18 @@
 
 .workspace-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .workspace-group {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .worktree-list {
   display: grid;
-  gap: 4px;
-  padding-left: 24px;
+  gap: 3px;
+  padding-left: 18px;
 }
 
 .worktree-group {
@@ -183,8 +183,8 @@
 }
 
 .workspace-row {
-  padding: 2px 4px 1px;
-  border-radius: 9px;
+  padding: 3px 6px;
+  border-radius: 10px;
   position: relative;
   grid-template-columns: minmax(0, 1fr) auto;
   z-index: 0;
@@ -212,8 +212,8 @@
 }
 
 .worktree-row {
-  padding: 2px 4px 1px;
-  border-radius: 9px;
+  padding: 3px 6px;
+  border-radius: 10px;
   position: relative;
   grid-template-columns: minmax(0, 1fr) auto;
 }
@@ -225,7 +225,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   min-width: 0;
-  padding-left: 23px;
+  padding-left: 20px;
   text-align: left;
   color: inherit;
   position: relative;
@@ -249,8 +249,8 @@
 }
 
 .workspace-row__icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: grid;
   place-items: center;
   color: var(--muted-icon);
@@ -262,8 +262,8 @@
 }
 
 .workspace-row__icon svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 /* Expanded: always show chevron, hide folder */
@@ -304,13 +304,13 @@
 }
 
 .workspace-row__name {
-  font-size: 15px;
-  font-weight: 470;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--muted-strong);
 }
 
 .worktree-row__name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 560;
   color: var(--text-strong);
 }
@@ -340,10 +340,10 @@
 }
 
 .workspace-row__menu-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  font-size: 18px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  font-size: 16px;
   line-height: 1;
   color: var(--muted-soft);
   background: transparent;
@@ -357,8 +357,8 @@
   min-width: 160px;
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid #d7dce8;
-  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
   box-shadow: 0 22px 56px rgba(20, 27, 45, 0.18);
   display: grid;
   gap: 2px;
@@ -374,7 +374,7 @@
 }
 
 .workspace-menu__item:hover {
-  background: rgba(243, 245, 250, 0.95);
+  background: var(--surface-muted);
 }
 
 .workspace-menu__item--danger {
@@ -384,28 +384,28 @@
 .workspace-rename {
   display: grid;
   gap: 8px;
-  margin: 4px 0 2px 22px;
+  margin: 4px 0 2px 18px;
   padding: 10px 10px 11px;
   border-radius: 12px;
-  border: 1px solid #d8deea;
-  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
 }
 
 .workspace-rename__input {
   width: 100%;
-  min-height: 34px;
+  min-height: 32px;
   padding: 7px 10px;
   border-radius: 10px;
-  border: 1px solid #d3d9e6;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--surface);
   color: var(--text-strong);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 520;
 }
 
 .workspace-rename__input:focus {
-  border-color: rgba(84, 99, 220, 0.35);
-  box-shadow: 0 0 0 3px rgba(84, 99, 220, 0.08);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .workspace-rename__actions {
@@ -416,44 +416,44 @@
 }
 
 .workspace-rename__button {
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 9px;
-  border: 1px solid #d3d9e6;
-  background: #f8f9fd;
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
   color: var(--muted-strong);
   font-size: 12px;
   font-weight: 560;
 }
 
 .workspace-rename__button--primary {
-  border-color: #4657cf;
-  background: #4657cf;
+  border-color: var(--accent);
+  background: var(--accent);
   color: #fff;
 }
 
 .session-list {
   padding-left: 0;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .session-list--nested {
-  padding-left: 16px;
+  padding-left: 14px;
 }
 
 .session-row {
-  padding: 7px 9px;
+  padding: 6px 8px;
   border-radius: 10px;
-  min-height: 36px;
+  min-height: 34px;
   grid-template-columns: minmax(0, 1fr) auto;
   position: relative;
   overflow: visible;
 }
 
 .session-row--active {
-  background: #ffffff;
-  border-color: #d7dce8;
+  background: var(--surface-muted);
+  border-color: var(--line);
   color: var(--text-strong);
   box-shadow: 0 1px 2px rgba(20, 27, 45, 0.04);
 }
@@ -465,7 +465,7 @@
   align-items: center;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding-left: 18px;
+  padding-left: 16px;
   text-align: left;
   color: inherit;
   position: relative;
@@ -488,12 +488,12 @@
 }
 
 .session-row__status--running {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
-  border: 2px solid #d6ddf3;
-  border-top-color: #697aff;
-  border-right-color: #697aff;
+  border: 2px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
   animation: session-row-spin 900ms linear infinite;
 }
 
@@ -501,7 +501,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #4657cf;
+  background: var(--accent);
 }
 
 .session-row__body {
@@ -518,15 +518,15 @@
 }
 
 .session-row__title {
-  font-size: 14px;
-  font-weight: 470;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--text-strong);
   min-width: 0;
 }
 
 .session-row__preview {
-  font-size: 12px;
-  color: #8d95a8;
+  font-size: 11px;
+  color: var(--muted-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -534,7 +534,7 @@
 
 .session-row__trailing {
   min-width: 60px;
-  height: 28px;
+  height: 24px;
   position: relative;
   display: grid;
   justify-items: end;
@@ -573,8 +573,8 @@
 .session-row__workspace-icon {
   grid-area: 1 / 1;
   justify-self: start;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   display: grid;
   place-items: center;
   color: var(--muted-soft);
@@ -592,8 +592,8 @@
 }
 
 .session-row__workspace-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 
 .session-row--active .session-row__workspace-icon {
@@ -605,7 +605,7 @@
   height: auto;
   display: inline-flex;
   align-items: center;
-  padding: 6px;
+  padding: 5px;
   padding-right: 0;
 }
 
@@ -628,28 +628,28 @@
 }
 
 .archived-thread-group {
-  padding-left: 24px;
+  padding-left: 14px;
   display: grid;
   gap: 4px;
 }
 
 .archived-thread-group__toggle {
-  min-height: 28px;
+  min-height: 26px;
   padding: 2px 8px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   width: fit-content;
   border-radius: 999px;
-  color: #7f889c;
-  font-size: 11px;
+  color: var(--muted-soft);
+  font-size: 10px;
   font-weight: 620;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .archived-thread-group__toggle:hover {
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--surface-muted);
 }
 
 .archived-thread-group__chevron {
@@ -669,7 +669,7 @@
 }
 
 .archived-thread-group__count {
-  color: #9ba3b4;
+  color: var(--muted-soft);
 }
 
 .session-list--archived {
@@ -677,8 +677,8 @@
 }
 
 .sidebar__footer {
-  border-top: 1px solid #dde2eb;
-  background: rgba(255, 255, 255, 0.2);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
 
 .sidebar__settings {
@@ -686,7 +686,7 @@
   align-items: center;
   gap: 10px;
   color: var(--muted-strong);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   padding: 6px 8px;
   border-radius: 10px;
@@ -700,7 +700,7 @@
 
 @media (max-width: 1180px) {
   .shell {
-    grid-template-columns: 272px minmax(0, 1fr);
+    grid-template-columns: 256px minmax(0, 1fr);
   }
 }
 
@@ -717,31 +717,31 @@
 /* ---------- Dark mode overrides ---------- */
 
 :root.dark .sidebar {
-  background: var(--sidebar);
-  border-right-color: var(--line);
+  background: #141716;
+  border-right-color: #252b2a;
 }
 
 :root.dark .sidebar__nav-item--active {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--line);
+  background: #1c1f1e;
+  border-color: #252b2a;
 }
 
 :root.dark .sidebar__new:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--line);
+  background: #1c1f1e;
+  border-color: #252b2a;
 }
 
 :root.dark .workspace-row:hover,
 :root.dark .session-row:hover,
 :root.dark .icon-button:hover:not(:disabled),
 :root.dark .sidebar__settings:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: #1c1f1e;
+  border-color: #252b2a;
 }
 
 :root.dark .session-row--active {
-  background: var(--surface);
-  border-color: var(--line);
+  background: #1c1f1e;
+  border-color: #252b2a;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -752,24 +752,24 @@
 }
 
 :root.dark .workspace-menu {
-  border-color: var(--line);
-  background: rgba(43, 45, 49, 0.96);
+  border-color: #252b2a;
+  background: color-mix(in srgb, #272a29 96%, transparent);
   box-shadow: 0 22px 56px rgba(0, 0, 0, 0.4);
 }
 
 :root.dark .workspace-rename {
-  border-color: var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: #252b2a;
+  background: #1c1f1e;
 }
 
 :root.dark .workspace-rename__input {
-  border-color: var(--line);
-  background: var(--surface);
+  border-color: #252b2a;
+  background: #272a29;
 }
 
 :root.dark .workspace-rename__button {
-  border-color: var(--line);
-  background: var(--surface-muted);
+  border-color: #252b2a;
+  background: #272a29;
 }
 
 :root.dark .workspace-rename__button--primary {
@@ -778,10 +778,10 @@
 }
 
 :root.dark .sidebar__footer {
-  border-top-color: var(--line);
-  background: rgba(255, 255, 255, 0.02);
+  border-top-color: #252b2a;
+  background: #141716;
 }
 
 :root.dark .archived-thread-group__toggle:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: #1c1f1e;
 }

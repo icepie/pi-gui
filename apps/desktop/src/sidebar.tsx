@@ -171,22 +171,6 @@ export function Sidebar(props: SidebarProps) {
       </div>
 
       <div className="sidebar__section">
-        <div className="section__head">
-          <span>{t("sidebar.threads")}</span>
-          <div className="section__tools">
-            <button
-              aria-label={t("common.open_folder")}
-              className="icon-button"
-              type="button"
-              onClick={() => {
-                void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
-              }}
-            >
-              <FolderIcon />
-            </button>
-          </div>
-        </div>
-
         {visibleWorkspaces.length === 0 ? (
           <div className="empty-state" data-testid="empty-state">
             <h2>{t("sidebar.no_folders_yet")}</h2>
@@ -203,6 +187,21 @@ export function Sidebar(props: SidebarProps) {
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={headerCollision} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="section__head">
+              <span>{t("sidebar.threads")}</span>
+              <div className="section__tools">
+                <button
+                  aria-label={t("common.open_folder")}
+                  className="icon-button"
+                  type="button"
+                  onClick={() => {
+                    void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
+                  }}
+                >
+                  <FolderIcon />
+                </button>
+              </div>
+            </div>
             <SortableContext items={rootGroupIds} strategy={verticalListSortingStrategy}>
               <div className="workspace-list" data-testid="workspace-list">
                 {rootGroups.map((group) => (
