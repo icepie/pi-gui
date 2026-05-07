@@ -219,12 +219,32 @@ function buildElectronBuilderArgs(options, outputDir) {
     args.push("--dir");
   }
   args.push(`-c.directories.output=${outputDir}`);
+  if (shouldPackageUnsigned(options)) {
+    args.push(...buildUnsignedPackageArgs(options));
+  }
   if (shouldSkipWindowsExecutableEditing(options)) {
     args.push("-c.win.signAndEditExecutable=false");
   }
   args.push("--publish", "never");
 
   return args;
+}
+
+function shouldPackageUnsigned() {
+  return process.env.PI_APP_UNSIGNED_PACKAGE === "1";
+}
+
+function buildUnsignedPackageArgs(options) {
+  if (options.platform === "darwin") {
+    return [
+      "-c.mac.identity=null",
+      "-c.mac.notarize=false",
+    ];
+  }
+  if (options.platform === "win32") {
+    return ["-c.win.signAndEditExecutable=false"];
+  }
+  return [];
 }
 
 function shouldSkipWindowsExecutableEditing(options) {
