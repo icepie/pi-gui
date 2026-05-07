@@ -5,9 +5,9 @@ import { dirname, join } from "node:path";
 import type { PlatformAccountState, PlatformAccountUser } from "../src/desktop-state";
 
 const PLATFORM_PROVIDER_ID = "feidu" as const;
-const PLATFORM_AI_BASE_URL = "https://ai-api.singzer.cn/v1";
+const PLATFORM_AI_BASE_URL = "https://ai-api.feidu.fit/v1";
 const PLATFORM_PROVIDER_API = "openai-completions" as const;
-const DEFAULT_PLATFORM_ORIGIN = "https://fd-one.singzer.cn";
+const DEFAULT_PLATFORM_ORIGIN = "https://fd-one.feidu.fit";
 const TEST_FIXTURE_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_FIXTURE !== "0" && Boolean(process.env.PI_APP_TEST_MODE);
 const TEST_INITIAL_AUTH_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_INITIAL_AUTH !== "0";
 

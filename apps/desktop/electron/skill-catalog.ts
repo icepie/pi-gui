@@ -14,7 +14,7 @@ import type {
 const execFileAsync = promisify(execFile);
 const requireFromHere = createRequire(__filename);
 
-export const SKILLHUB_SINGZER_REGISTRY = "https://skillhub.singzer.cn";
+export const SKILLHUB_FEIDU_REGISTRY = "https://skillhub.feidu.fit";
 export const DEFAULT_CHINA_NPM_REGISTRY = "https://registry.npmmirror.com";
 const SKILLHUB_SOURCE_ID = "skillhub-singzer";
 const TEST_FIXTURE_ENABLED = process.env.PI_APP_TEST_SKILLHUB_FIXTURE === "1";
@@ -23,7 +23,7 @@ const skillCatalogSources: readonly SkillCatalogSource[] = [
   {
     id: SKILLHUB_SOURCE_ID,
     label: "SkillHub",
-    registryUrl: SKILLHUB_SINGZER_REGISTRY,
+    registryUrl: SKILLHUB_FEIDU_REGISTRY,
     npmRegistryUrl: DEFAULT_CHINA_NPM_REGISTRY,
   },
 ];

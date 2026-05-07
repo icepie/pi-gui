@@ -244,7 +244,7 @@ export function createEmptyDesktopAppState(): DesktopAppState {
     platformAccount: {
       authenticated: false,
       providerId: "feidu",
-      baseUrl: "https://ai-api.singzer.cn/v1",
+      baseUrl: "https://ai-api.feidu.fit/v1",
       modelIds: [],
     },
     revision: 0,
