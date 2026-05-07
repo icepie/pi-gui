@@ -255,8 +255,11 @@ function resolveWindowsNodeProxyCompiler(arch) {
       stdio: ["ignore", "pipe", "pipe"],
     });
     if (!probe.error && probe.status === 0) {
+      console.log(`[afterPack] using Windows Node proxy compiler for ${arch}: ${command}`);
       return { ...candidate, command };
     }
+    const detail = probe.error?.message || probe.stderr?.trim() || probe.stdout?.trim() || `exit code ${probe.status}`;
+    console.warn(`[afterPack] compiler probe failed for ${arch}: ${command} (${detail})`);
   }
 
   throw new Error(`no compiler found for ${arch}`);

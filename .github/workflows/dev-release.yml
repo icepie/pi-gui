@@ -102,12 +102,11 @@ jobs:
 
       - name: Install Zig for Windows arm64 cross-packaging
         if: ${{ matrix.output == 'win32-arm64' }}
-        shell: pwsh
-        run: |
-          choco install zig --no-progress -y
-          $zig = (Get-Command zig.exe).Source
-          Split-Path -Parent $zig | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          zig version
+        uses: mlugg/setup-zig@v2
+
+      - name: Verify Zig for Windows arm64 cross-packaging
+        if: ${{ matrix.output == 'win32-arm64' }}
+        run: zig version
 
       - name: Build package
         env:
