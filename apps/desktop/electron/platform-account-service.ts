@@ -3,6 +3,7 @@ import { BrowserWindow as ElectronBrowserWindow, session as electronSession } fr
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { PlatformAccountState, PlatformAccountUser } from "../src/desktop-state";
+import { fetchWithRetry } from "./fetch-retry";
 
 const PLATFORM_PROVIDER_ID = "feidu" as const;
 const PLATFORM_AI_BASE_URL = "https://ai-api.feidu.fit/v1";
@@ -278,7 +279,7 @@ export class PlatformAccountService {
     const url = `${this.platformOrigin()}${path}`;
     let response: Response;
     try {
-      response = await fetch(url, init);
+      response = await fetchWithRetry(url, init);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`Platform request failed for ${url}: ${reason}`);

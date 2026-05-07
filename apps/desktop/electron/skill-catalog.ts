@@ -10,6 +10,7 @@ import type {
   SkillCatalogQuery,
   SkillCatalogSource,
 } from "../src/ipc";
+import { fetchWithRetry } from "./fetch-retry";
 
 const execFileAsync = promisify(execFile);
 const requireFromHere = createRequire(__filename);
@@ -55,7 +56,7 @@ export async function listSkillCatalog(input: SkillCatalogQuery): Promise<readon
     url.searchParams.set("q", query);
   }
 
-  const response = await fetch(url);
+  const response = await fetchWithRetry(url);
   if (!response.ok) {
     throw new Error(`SkillHub returned ${response.status} while listing skills.`);
   }
@@ -172,7 +173,7 @@ async function downloadSkillHubZip(
   const url = new URL("/api/v1/download", registryUrl);
   url.searchParams.set("slug", slug);
   url.searchParams.set("version", version);
-  const response = await fetch(url);
+  const response = await fetchWithRetry(url);
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(body.trim() || `SkillHub download returned ${response.status}.`);
