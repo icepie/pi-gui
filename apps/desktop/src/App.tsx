@@ -47,6 +47,7 @@ import { getEffectiveModelRuntime } from "./model-settings";
 import { resolveRepoWorkspaceId } from "./workspace-roots";
 import { setLocale, t, type AppLocale } from "./i18n";
 import { UISelect } from "./ui";
+import { FolderIcon, WorktreeIcon } from "./icons";
 import {
   extractImageFilesFromClipboardData,
   extractFilesFromDataTransfer,
@@ -2171,13 +2172,23 @@ export default function App() {
             <section className="canvas canvas--thread">
               <div className="conversation conversation--thread">
                 <div className="chat-header">
-                  <div className="chat-header__eyebrow">
-                    {selectedWorkspace.kind === "worktree"
-                      ? `${rootWorkspace?.name ?? selectedWorkspace.name} · ${selectedWorktree?.name ?? selectedWorkspace.branchName ?? t("new_thread.worktree")}`
-                      : `${selectedWorkspace.name} · ${t("new_thread.local")}`}
+                  <div className="chat-header__breadcrumb" aria-label={t("common.workspace")}>
+                    <span className="chat-header__breadcrumb-icon" aria-hidden="true">
+                      {selectedWorkspace.kind === "worktree" ? <WorktreeIcon /> : <FolderIcon />}
+                    </span>
+                    <span className="chat-header__breadcrumb-label">
+                      {selectedWorkspace.kind === "worktree" ? (rootWorkspace?.name ?? selectedWorkspace.name) : selectedWorkspace.name}
+                    </span>
+                    <span className="chat-header__breadcrumb-separator" aria-hidden="true">/</span>
+                    <span className="chat-header__environment-chip">
+                      {selectedWorkspace.kind === "worktree"
+                        ? (selectedWorktree?.name ?? selectedWorkspace.branchName ?? t("new_thread.worktree"))
+                        : t("new_thread.local")}
+                    </span>
+                    <span className="chat-header__breadcrumb-separator" aria-hidden="true">/</span>
+                    <span className="chat-header__breadcrumb-title">{displayedSessionTitle}</span>
                   </div>
                   <div className="chat-header__row">
-                    <h1 className="chat-header__title">{displayedSessionTitle}</h1>
                     <div className="chat-header__status">
                       {selectedSession.status === "running" ? runningLabel : formatRelativeTime(selectedSession.updatedAt)}
                     </div>
