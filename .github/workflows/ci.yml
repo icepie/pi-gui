@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - pi-fit
   pull_request:
 
 jobs:
