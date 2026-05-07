@@ -37,6 +37,8 @@ type TranslationKey =
   | "host_actions.model_description"
   | "host_actions.reasoning"
   | "host_actions.reasoning_description"
+  | "host_actions.skill"
+  | "host_actions.skill_description"
   | "host_actions.tree"
   | "host_actions.tree_description"
   | "host_actions.status"
@@ -184,6 +186,14 @@ type TranslationKey =
   | "skills.catalog_error"
   | "skills.catalog_refresh"
   | "skills.catalog_source"
+  | "skills.catalog_sort"
+  | "skills.catalog_sort_updated"
+  | "skills.catalog_sort_newest"
+  | "skills.catalog_sort_downloads"
+  | "skills.catalog_sort_stars"
+  | "skills.catalog_previous"
+  | "skills.catalog_next"
+  | "skills.catalog_page"
   | "skills.install"
   | "skills.installing"
   | "skills.installed_version"
@@ -411,6 +421,8 @@ const EN_US: TranslationTable = {
   "host_actions.model_description": "Choose the model for this session",
   "host_actions.reasoning": "Reasoning",
   "host_actions.reasoning_description": "Set thinking level for this session",
+  "host_actions.skill": "Skill",
+  "host_actions.skill_description": "Choose an enabled skill command",
   "host_actions.tree": "Tree",
   "host_actions.tree_description": "Browse and jump between branches in this session",
   "host_actions.status": "Status",
@@ -556,6 +568,14 @@ const EN_US: TranslationTable = {
   "skills.catalog_error": "Could not load SkillHub skills.",
   "skills.catalog_refresh": "Refresh SkillHub",
   "skills.catalog_source": "Source",
+  "skills.catalog_sort": "Sort",
+  "skills.catalog_sort_updated": "Recently updated",
+  "skills.catalog_sort_newest": "Newest",
+  "skills.catalog_sort_downloads": "Downloads",
+  "skills.catalog_sort_stars": "Stars",
+  "skills.catalog_previous": "Previous",
+  "skills.catalog_next": "Next",
+  "skills.catalog_page": "Page {page}",
   "skills.install": "Install",
   "skills.installing": "Installing...",
   "skills.installed_version": "Version {version}",
@@ -784,6 +804,8 @@ const ZH_CN: TranslationTable = {
   "host_actions.model_description": "选择当前会话的模型",
   "host_actions.reasoning": "推理",
   "host_actions.reasoning_description": "设置当前会话的推理级别",
+  "host_actions.skill": "技能",
+  "host_actions.skill_description": "选择一个已启用的技能命令",
   "host_actions.tree": "分支树",
   "host_actions.tree_description": "浏览并跳转到当前会话的不同分支",
   "host_actions.status": "状态",
@@ -929,6 +951,14 @@ const ZH_CN: TranslationTable = {
   "skills.catalog_error": "无法加载 SkillHub 技能。",
   "skills.catalog_refresh": "刷新 SkillHub",
   "skills.catalog_source": "来源",
+  "skills.catalog_sort": "排序",
+  "skills.catalog_sort_updated": "最近更新",
+  "skills.catalog_sort_newest": "最新发布",
+  "skills.catalog_sort_downloads": "下载量",
+  "skills.catalog_sort_stars": "星标",
+  "skills.catalog_previous": "上一页",
+  "skills.catalog_next": "下一页",
+  "skills.catalog_page": "第 {page} 页",
   "skills.install": "安装",
   "skills.installing": "安装中...",
   "skills.installed_version": "版本 {version}",

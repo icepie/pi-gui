@@ -59,9 +59,11 @@ Use this skill when the user wants a short demo workflow.
     await skillCommandsToggle.click();
     await window.getByRole("button", { name: "Back to app", exact: true }).click();
     await composer.fill("/skill");
-    const slashMenu = window.getByTestId("slash-menu");
-    await expect(slashMenu).toContainText("Runtime Commands");
-    await expect(slashMenu).toContainText("Demo Skill");
+    const skillOptionsMenu = window.getByTestId("slash-options-menu");
+    await expect(skillOptionsMenu).toContainText("Skill");
+    await expect(skillOptionsMenu).toContainText("Demo Skill");
+    await composer.press("Enter");
+    await expect(composer).toHaveValue("/skill:demo-skill ");
   } finally {
     await harness.close();
   }

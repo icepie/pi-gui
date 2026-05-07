@@ -46,8 +46,10 @@ export async function listSkillCatalog(input: SkillCatalogQuery): Promise<readon
 
   const url = new URL("/api/v1/skills", source.registryUrl);
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
+  const offset = Math.max(input.offset ?? 0, 0);
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("sort", input.sort ?? "updated");
+  url.searchParams.set("offset", String(offset));
   const query = input.q?.trim();
   if (query) {
     url.searchParams.set("q", query);

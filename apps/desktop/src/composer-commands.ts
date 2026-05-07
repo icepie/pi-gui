@@ -19,6 +19,7 @@ export type ComposerSlashCommandKind =
   | "reload"
   | "compact"
   | "name"
+  | "skill"
   | "login"
   | "logout"
   | "settings"
@@ -48,6 +49,7 @@ export interface ComposerSlashOption {
   readonly value: string;
   readonly label: string;
   readonly description: string;
+  readonly command?: string;
 }
 
 export interface ComposerSlashOptionEmptyState {
@@ -89,6 +91,16 @@ const INCOMPLETE_COMMAND_MESSAGES: Readonly<Record<string, string>> = {
 } as const;
 
 const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
+  {
+    id: "host:skill",
+    kind: "skill",
+    command: "/skill",
+    template: "/skill",
+    get title() { return t("host_actions.skill"); },
+    get description() { return t("host_actions.skill_description"); },
+    submitMode: "pick-option",
+    section: "host",
+  },
   {
     id: "host:model",
     kind: "model",
@@ -425,6 +437,9 @@ export function slashOptionsForCommand(
   if (command.kind === "model") {
     return buildModelOptions(runtime);
   }
+  if (command.kind === "skill") {
+    return buildSkillOptions(runtime);
+  }
   if (command.kind === "login") {
     return buildProviderOptions(runtime?.providers ?? [], (provider) => provider.oauthSupported);
   }
@@ -436,6 +451,21 @@ export function slashOptionsForCommand(
   }
 
   return [];
+}
+
+export function buildSkillOptions(runtime: RuntimeSnapshot | undefined): readonly ComposerSlashOption[] {
+  if (!runtime?.settings.enableSkillCommands) {
+    return [];
+  }
+  return runtime.skills
+    .filter((skill) => skill.enabled)
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((skill) => ({
+      value: skill.slashCommand,
+      label: titleCase(skill.name),
+      description: skill.description || "Skill command",
+      command: `${skill.slashCommand} `,
+    }));
 }
 
 export function slashOptionEmptyState(
@@ -450,6 +480,13 @@ export function slashOptionEmptyState(
     return {
       title: MODEL_OPTIONS_EMPTY_TITLE,
       description: MODEL_OPTIONS_EMPTY_DESCRIPTION,
+    };
+  }
+
+  if (command.kind === "skill" && buildSkillOptions(runtime).length === 0) {
+    return {
+      title: "No skills available",
+      description: "Install or enable a skill from the Skills view.",
     };
   }
 
@@ -490,6 +527,11 @@ function buildSlashSearchAliases(command: ComposerSlashCommand): readonly string
   if (command.runtimeCommand) {
     aliases.add(command.runtimeCommand.name.toLowerCase());
     aliases.add(command.runtimeCommand.name.replace(/^skill:/, "").toLowerCase());
+  }
+
+  if (command.kind === "skill") {
+    aliases.add("skills");
+    aliases.add("skill:");
   }
 
   return [...aliases].filter(Boolean);

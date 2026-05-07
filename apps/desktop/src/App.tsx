@@ -27,6 +27,7 @@ import {
   type DesktopNotificationPermissionStatus,
   type PiDesktopCommand,
   type SkillCatalogEntry,
+  type SkillCatalogSort,
   type SkillCatalogSource,
   type TextPromptRequest,
 } from "./ipc";
@@ -66,6 +67,7 @@ const DEFAULT_WORKSPACE_PANEL_WIDTH = 400;
 const MIN_WORKSPACE_PANEL_WIDTH = 320;
 const MAX_WORKSPACE_PANEL_WIDTH = 720;
 const DEFAULT_SKILL_CATALOG_SOURCE_ID = "skillhub-singzer";
+const SKILL_CATALOG_PAGE_SIZE = 12;
 
 function useDesktopAppState() {
   const [snapshot, setSnapshot] = useState<DesktopAppState | null>(null);
@@ -187,6 +189,8 @@ export default function App() {
   const [skillCatalogSources, setSkillCatalogSources] = useState<readonly SkillCatalogSource[]>([]);
   const [skillCatalogEntries, setSkillCatalogEntries] = useState<readonly SkillCatalogEntry[]>([]);
   const [skillCatalogQuery, setSkillCatalogQuery] = useState("");
+  const [skillCatalogSort, setSkillCatalogSort] = useState<SkillCatalogSort>("updated");
+  const [skillCatalogPage, setSkillCatalogPage] = useState(0);
   const [skillCatalogLoading, setSkillCatalogLoading] = useState(false);
   const [skillCatalogError, setSkillCatalogError] = useState<string | undefined>();
   const [installingSkillCatalogKey, setInstallingSkillCatalogKey] = useState<string | undefined>();
@@ -246,7 +250,11 @@ export default function App() {
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
 
-  const refreshSkillCatalog = useCallback((query = skillCatalogQuery) => {
+  const refreshSkillCatalog = useCallback((
+    query = skillCatalogQuery,
+    sort = skillCatalogSort,
+    page = skillCatalogPage,
+  ) => {
     const piApi = window.piApp;
     if (!piApi) {
       return;
@@ -258,7 +266,9 @@ export default function App() {
       piApi.listSkillCatalog({
         sourceId: DEFAULT_SKILL_CATALOG_SOURCE_ID,
         q: query,
-        limit: 50,
+        sort,
+        limit: SKILL_CATALOG_PAGE_SIZE,
+        offset: page * SKILL_CATALOG_PAGE_SIZE,
       }),
     ])
       .then(([sources, entries]) => {
@@ -272,19 +282,19 @@ export default function App() {
       .finally(() => {
         setSkillCatalogLoading(false);
       });
-  }, [skillCatalogQuery]);
+  }, [skillCatalogPage, skillCatalogQuery, skillCatalogSort]);
 
   useEffect(() => {
     if (snapshot?.activeView !== "skills") {
       return undefined;
     }
     const timeout = window.setTimeout(() => {
-      refreshSkillCatalog(skillCatalogQuery);
+      refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage);
     }, 150);
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [refreshSkillCatalog, skillCatalogQuery, snapshot?.activeView]);
+  }, [refreshSkillCatalog, skillCatalogPage, skillCatalogQuery, skillCatalogSort, snapshot?.activeView]);
 
   useEffect(() => {
     if (!api?.onAppNoticeRequest) {
@@ -2166,9 +2176,20 @@ export default function App() {
           catalogLoading={skillCatalogLoading}
           catalogError={skillCatalogError}
           catalogQuery={skillCatalogQuery}
+          catalogSort={skillCatalogSort}
+          catalogPage={skillCatalogPage}
+          catalogPageSize={SKILL_CATALOG_PAGE_SIZE}
           installingCatalogKey={installingSkillCatalogKey}
-          onCatalogQueryChange={setSkillCatalogQuery}
-          onRefreshCatalog={() => refreshSkillCatalog(skillCatalogQuery)}
+          onCatalogQueryChange={(query) => {
+            setSkillCatalogQuery(query);
+            setSkillCatalogPage(0);
+          }}
+          onCatalogSortChange={(sort) => {
+            setSkillCatalogSort(sort);
+            setSkillCatalogPage(0);
+          }}
+          onCatalogPageChange={setSkillCatalogPage}
+          onRefreshCatalog={() => refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage)}
           onInstallCatalogSkill={handleInstallCatalogSkill}
           onOpenSkillFolder={handleOpenSkillFolder}
           onRefresh={() => {

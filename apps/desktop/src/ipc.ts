@@ -176,6 +176,7 @@ export interface SkillCatalogQuery {
   readonly q?: string;
   readonly sort?: SkillCatalogSort;
   readonly limit?: number;
+  readonly offset?: number;
 }
 
 export interface SkillCatalogEntry {

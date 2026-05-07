@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import type { RuntimeSkillRecord, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { WorkspaceRecord } from "./desktop-state";
-import type { SkillCatalogEntry, SkillCatalogSource } from "./ipc";
+import type { SkillCatalogEntry, SkillCatalogSort, SkillCatalogSource } from "./ipc";
 import { RefreshIcon } from "./icons";
 import { titleCase } from "./string-utils";
 import { t } from "./i18n";
+import { UISelect } from "./ui";
 
 interface SkillsViewProps {
   readonly workspace?: WorkspaceRecord;
@@ -18,8 +19,13 @@ interface SkillsViewProps {
   readonly catalogLoading: boolean;
   readonly catalogError?: string;
   readonly catalogQuery: string;
+  readonly catalogSort: SkillCatalogSort;
+  readonly catalogPage: number;
+  readonly catalogPageSize: number;
   readonly installingCatalogKey?: string;
   readonly onCatalogQueryChange: (query: string) => void;
+  readonly onCatalogSortChange: (sort: SkillCatalogSort) => void;
+  readonly onCatalogPageChange: (page: number) => void;
   readonly onRefreshCatalog: () => void;
   readonly onInstallCatalogSkill: (skill: SkillCatalogEntry) => void;
 }
@@ -36,8 +42,13 @@ export function SkillsView({
   catalogLoading,
   catalogError,
   catalogQuery,
+  catalogSort,
+  catalogPage,
+  catalogPageSize,
   installingCatalogKey,
   onCatalogQueryChange,
+  onCatalogSortChange,
+  onCatalogPageChange,
   onRefreshCatalog,
   onInstallCatalogSkill,
 }: SkillsViewProps) {
@@ -60,6 +71,7 @@ export function SkillsView({
     filteredSkills.find((skill) => skill.filePath === selectedSkillPath) ?? filteredSkills[0];
   const enabledSkillCount = skills.filter((skill) => skill.enabled).length;
   const slashOnlySkillCount = skills.filter((skill) => skill.disableModelInvocation).length;
+  const hasNextCatalogPage = catalogSkills.length >= catalogPageSize;
 
   if (!workspace) {
     return (
@@ -133,6 +145,18 @@ export function SkillsView({
               value={catalogQuery}
               onChange={(event) => onCatalogQueryChange(event.target.value)}
             />
+            <UISelect
+              aria-label={t("skills.catalog_sort")}
+              className="skills-catalog__sort"
+              value={catalogSort}
+              options={[
+                { value: "updated", label: t("skills.catalog_sort_updated") },
+                { value: "newest", label: t("skills.catalog_sort_newest") },
+                { value: "downloads", label: t("skills.catalog_sort_downloads") },
+                { value: "stars", label: t("skills.catalog_sort_stars") },
+              ]}
+              onChange={(value) => onCatalogSortChange(value as SkillCatalogSort)}
+            />
             <div className="skills-toolbar__stats">
               {catalogSources.map((source) => (
                 <span key={source.id}>{source.registryUrl}</span>
@@ -176,6 +200,25 @@ export function SkillsView({
               })}
             </div>
           )}
+          <div className="skills-catalog__pager" aria-label={t("skills.catalog_page", { page: catalogPage + 1 })}>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => onCatalogPageChange(Math.max(0, catalogPage - 1))}
+              disabled={catalogLoading || catalogPage === 0}
+            >
+              {t("skills.catalog_previous")}
+            </button>
+            <span>{t("skills.catalog_page", { page: catalogPage + 1 })}</span>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => onCatalogPageChange(catalogPage + 1)}
+              disabled={catalogLoading || !hasNextCatalogPage}
+            >
+              {t("skills.catalog_next")}
+            </button>
+          </div>
         </section>
 
         <div className="skills-toolbar">

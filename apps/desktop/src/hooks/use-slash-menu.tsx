@@ -350,6 +350,12 @@ export function useSlashMenu(params: UseSlashMenuParams): SlashMenuState {
       return;
     }
 
+    if (activeSlashOptionCommand.kind === "skill") {
+      closeSlashOptionMenu();
+      fillComposerFromSlash(option.command ?? `${option.value} `, { suppressMenu: true });
+      return;
+    }
+
     if (activeSlashOptionCommand.kind === "login") {
       resetSlashUi();
       setComposerDraft("");

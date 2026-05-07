@@ -3206,6 +3206,15 @@
   gap: 12px;
 }
 
+.skills-catalog__toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.skills-catalog__sort {
+  min-width: 180px;
+}
+
 .skills-catalog__header h2 {
   margin: 0;
   color: var(--text-strong);
@@ -3283,6 +3292,16 @@
   border-radius: 999px;
   border: 1px solid #e2e7f0;
   background: #f8fafc;
+}
+
+.skills-catalog__pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted-soft);
+  font-size: 12px;
+  font-weight: 620;
 }
 
 .skills-search {
@@ -4182,6 +4201,10 @@
   }
 
   .skills-catalog__item > .button {
+    width: 100%;
+  }
+
+  .skills-catalog__sort {
     width: 100%;
   }
 
