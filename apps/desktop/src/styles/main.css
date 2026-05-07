@@ -3235,7 +3235,14 @@
   background: #fff;
 }
 
+.skills-catalog__item > .button {
+  flex: 0 0 auto;
+  min-width: 64px;
+  white-space: nowrap;
+}
+
 .skills-catalog__item-body {
+  flex: 1 1 auto;
   min-width: 0;
   display: grid;
   gap: 6px;
@@ -4172,6 +4179,10 @@
   .view-header__actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .skills-catalog__item > .button {
+    width: 100%;
   }
 
   .surface-toolbar__field select,

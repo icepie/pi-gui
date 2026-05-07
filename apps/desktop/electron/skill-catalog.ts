@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type {
   SkillCatalogEntry,
@@ -82,8 +83,13 @@ export async function installSkillFromCatalog(
     return;
   }
 
-  const clawhubBinPath = requireFromHere.resolve("clawhub/bin/clawdhub.js");
   const installKey = input.installKey || input.slug;
+  if (source.id === SKILLHUB_SOURCE_ID) {
+    await installSkillHubDownload(agentDir, source, input, installKey);
+    return;
+  }
+
+  const clawhubBinPath = requireFromHere.resolve("clawhub/bin/clawdhub.js");
   const args = [
     clawhubBinPath,
     "--workdir",
@@ -122,6 +128,75 @@ export async function installSkillFromCatalog(
     const detail = [execError.stderr, execError.stdout].filter(Boolean).join("\n").trim();
     throw new Error(detail ? `Failed to install ${installKey}: ${detail}` : `Failed to install ${installKey}: ${execError.message}`);
   }
+}
+
+async function installSkillHubDownload(
+  agentDir: string,
+  source: SkillCatalogSource,
+  input: SkillCatalogInstallInput,
+  installKey: string,
+): Promise<void> {
+  const version = input.version?.trim();
+  if (!version) {
+    throw new Error(`Cannot install ${installKey}: missing SkillHub version.`);
+  }
+  const skillsDir = join(agentDir, "skills");
+  const targetDir = join(skillsDir, installKey);
+  const zip = await downloadSkillHubZip(source.registryUrl, installKey, version);
+  const clawhubSkills = await loadClawhubSkillsModule();
+  await mkdir(skillsDir, { recursive: true });
+  await rm(targetDir, { recursive: true, force: true });
+  await clawhubSkills.extractZipToDir(zip, targetDir);
+  await clawhubSkills.writeSkillOrigin(targetDir, {
+    version: 1,
+    registry: source.registryUrl,
+    slug: installKey,
+    installedVersion: version,
+    installedAt: Date.now(),
+  });
+  const lock = await clawhubSkills.readLockfile(agentDir);
+  lock.skills[installKey] = {
+    version,
+    installedAt: Date.now(),
+  };
+  await clawhubSkills.writeLockfile(agentDir, lock);
+}
+
+async function downloadSkillHubZip(
+  registryUrl: string,
+  slug: string,
+  version: string,
+): Promise<Uint8Array> {
+  const url = new URL("/api/v1/download", registryUrl);
+  url.searchParams.set("slug", slug);
+  url.searchParams.set("version", version);
+  const response = await fetch(url);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body.trim() || `SkillHub download returned ${response.status}.`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+interface ClawhubSkillsModule {
+  extractZipToDir(zipBytes: Uint8Array, targetDir: string): Promise<void>;
+  readLockfile(workdir: string): Promise<{ version: 1; skills: Record<string, { version: string; installedAt: number }> }>;
+  writeLockfile(workdir: string, lock: { version: 1; skills: Record<string, { version: string; installedAt: number }> }): Promise<void>;
+  writeSkillOrigin(
+    skillFolder: string,
+    origin: {
+      version: 1;
+      registry: string;
+      slug: string;
+      installedVersion: string;
+      installedAt: number;
+    },
+  ): Promise<void>;
+}
+
+async function loadClawhubSkillsModule(): Promise<ClawhubSkillsModule> {
+  const modulePath = requireFromHere.resolve("clawhub/dist/skills.js");
+  return await import(pathToFileURL(modulePath).toString()) as ClawhubSkillsModule;
 }
 
 function resolveSkillCatalogSource(sourceId: string): SkillCatalogSource {
