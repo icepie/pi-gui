@@ -240,17 +240,17 @@ function resolveWindowsNodeProxyCompiler(arch) {
   const candidates =
     arch === "arm64"
       ? [
-          { command: "aarch64-w64-mingw32-gcc", args: ["-municode", "-Os", "-s"] },
-          { command: "zig", args: ["cc", "-target", "aarch64-windows-gnu", "-municode", "-Os", "-s"] },
+          { command: "aarch64-w64-mingw32-gcc", args: ["-municode", "-Os", "-s"], probeArgs: ["--version"] },
+          { command: "zig", args: ["cc", "-target", "aarch64-windows-gnu", "-municode", "-Os", "-s"], probeArgs: ["version"] },
         ]
       : [
-          { command: "x86_64-w64-mingw32-gcc", args: ["-municode", "-Os", "-s"] },
-          { command: "zig", args: ["cc", "-target", "x86_64-windows-gnu", "-municode", "-Os", "-s"] },
+          { command: "x86_64-w64-mingw32-gcc", args: ["-municode", "-Os", "-s"], probeArgs: ["--version"] },
+          { command: "zig", args: ["cc", "-target", "x86_64-windows-gnu", "-municode", "-Os", "-s"], probeArgs: ["version"] },
         ];
 
   for (const candidate of candidates) {
     const command = resolveWindowsCompilerCommand(candidate.command);
-    const probe = spawnSync(command, ["--version"], {
+    const probe = spawnSync(command, candidate.probeArgs, {
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
     });
