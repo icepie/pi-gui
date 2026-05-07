@@ -2463,7 +2463,7 @@ export default function App() {
           </>
         ) : selectedWorkspace ? (
           <section className="canvas canvas--empty">
-            <div className="empty-panel">
+            <div className="empty-panel workspace-thread-empty-panel">
               <div className="session-header__eyebrow">{t("common.workspace")}</div>
               <h1>{selectedWorkspace.name}</h1>
               <p>{t("common.create_thread_description")}</p>
