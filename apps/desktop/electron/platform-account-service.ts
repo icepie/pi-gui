@@ -126,12 +126,11 @@ export class PlatformAccountService {
     }
     const modelIds = models
       .filter((model) => model.enabled !== false)
-      .filter((model) => !model.provider || model.provider === PLATFORM_PROVIDER_ID)
       .map((model) => model.model_id?.trim() ?? "")
       .filter(Boolean);
     const uniqueModelIds = [...new Set(modelIds)];
     if (uniqueModelIds.length === 0) {
-      throw new Error("Platform returned no enabled feidu models.");
+      throw new Error("Platform returned no enabled models.");
     }
 
     this.state = {
