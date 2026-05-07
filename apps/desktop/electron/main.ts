@@ -6,9 +6,10 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  net,
+  protocol,
   shell,
   type MenuItemConstructorOptions,
-  type MessageBoxOptions,
 } from "electron";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -17,7 +18,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { DesktopAppStore } from "./app-store";
 import { getChangedFiles, getFileDiff, stageFile } from "./app-store-diff";
-import { listWorkspaceFiles } from "./app-store-files";
+import { listWorkspaceFiles, readWorkspaceFile, resolveWorkspaceMediaFile } from "./app-store-files";
 import { MAIN_DEV_RELOAD_MARKER } from "./dev-reload-main-probe";
 import { NotificationManager } from "./notification-manager";
 import {
@@ -62,6 +63,11 @@ let stopPruningTerminals: (() => void) | undefined;
 let retainedTerminalWorkspacePathSignature = "";
 const terminalFocusedWebContentsIds = new Set<number>();
 let quittingAfterStoreFlush = false;
+const pendingTextPrompts = new Map<string, {
+  readonly resolve: (value: string) => void;
+  readonly reject: (error: Error) => void;
+}>();
+const pendingAppNotices = new Map<string, () => void>();
 
 const SUPPORTED_IMAGE_TYPES = SUPPORTED_COMPOSER_IMAGE_TYPES;
 const SUPPORTED_IMAGE_MIME_TYPES = new Set<string>(SUPPORTED_IMAGE_TYPES.map((type) => type.mimeType));
@@ -69,6 +75,19 @@ const OPEN_FOLDER_MENU_ITEM_ID = "file.open-folder";
 const CHECK_FOR_UPDATES_MENU_ITEM_ID = "app.check-for-updates";
 const MAX_CLIPBOARD_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_CLIPBOARD_IMAGE_DIMENSION = 8_192;
+const WORKSPACE_MEDIA_PROTOCOL = "pi-gui-media";
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: WORKSPACE_MEDIA_PROTOCOL,
+    privileges: {
+      standard: true,
+      secure: true,
+      stream: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
 
 function getTerminalService(): TerminalService {
   if (!terminalService) {
@@ -195,6 +214,25 @@ function createWindow(): BrowserWindow {
   return window;
 }
 
+function registerWorkspaceMediaProtocol(): void {
+  protocol.handle(WORKSPACE_MEDIA_PROTOCOL, async (request) => {
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId") ?? "";
+    const filePath = url.searchParams.get("path") ?? "";
+    const workspacePath = store.getWorkspacePath(workspaceId);
+    if (!workspacePath || !filePath) {
+      return new Response(null, { status: 404 });
+    }
+
+    const resolved = resolveWorkspaceMediaFile(workspacePath, filePath);
+    if (!resolved) {
+      return new Response(null, { status: 404 });
+    }
+
+    return net.fetch(pathToFileURL(resolved).toString());
+  });
+}
+
 function attachStatePublisher(window: BrowserWindow): void {
   const webContentsId = window.webContents.id;
   stopPublishingState?.();
@@ -223,6 +261,8 @@ function attachStatePublisher(window: BrowserWindow): void {
     if (mainWindow === window) {
       mainWindow = null;
     }
+    rejectPendingTextPrompts(new Error("Main window closed before the prompt was answered."));
+    resolvePendingAppNotices();
     terminalFocusedWebContentsIds.delete(webContentsId);
     terminalService?.dispose();
   });
@@ -256,6 +296,48 @@ function canPublishToWindow(window: BrowserWindow): boolean {
   return !window.isDestroyed() && !window.webContents.isDestroyed() && !window.webContents.isCrashed();
 }
 
+function rejectPendingTextPrompts(error: Error): void {
+  const pending = [...pendingTextPrompts.values()];
+  pendingTextPrompts.clear();
+  for (const prompt of pending) {
+    prompt.reject(error);
+  }
+}
+
+function resolvePendingAppNotices(): void {
+  const pending = [...pendingAppNotices.values()];
+  pendingAppNotices.clear();
+  for (const resolve of pending) {
+    resolve();
+  }
+}
+
+async function showAppNotice(input: {
+  readonly title: string;
+  readonly message: string;
+  readonly detail?: string;
+  readonly tone?: "default" | "warning";
+}): Promise<void> {
+  const window = mainWindow && canPublishToWindow(mainWindow) ? mainWindow : undefined;
+  if (!window) {
+    return;
+  }
+
+  window.show();
+  window.focus();
+  const requestId = randomUUID();
+  window.webContents.send(desktopIpc.appNoticeRequest, {
+    requestId,
+    title: input.title,
+    message: input.message,
+    detail: input.detail,
+    tone: input.tone ?? "default",
+  });
+  await new Promise<void>((resolve) => {
+    pendingAppNotices.set(requestId, resolve);
+  });
+}
+
 function resolveWindowTestMode(): "foreground" | "background" {
   return process.env.PI_APP_TEST_MODE?.trim().toLowerCase() === "background" ? "background" : "foreground";
 }
@@ -287,7 +369,6 @@ async function pickWorkspaceViaDialog(): Promise<DesktopAppState> {
 }
 
 async function runManualUpdateCheck(): Promise<void> {
-  const window = mainWindow && canPublishToWindow(mainWindow) ? mainWindow : undefined;
   const result = await checkForUpdate();
 
   if (result.status === "update-available") {
@@ -295,32 +376,20 @@ async function runManualUpdateCheck(): Promise<void> {
   }
 
   if (result.status === "up-to-date") {
-    const options: MessageBoxOptions = {
-      type: "info",
+    await showAppNotice({
       title: "pi-gui",
       message: `You're up to date on version ${result.currentVersion}.`,
-      buttons: ["OK"],
-    };
-    if (window) {
-      await dialog.showMessageBox(window, options);
-    } else {
-      await dialog.showMessageBox(options);
-    }
+      tone: "default",
+    });
     return;
   }
 
-  const options: MessageBoxOptions = {
-    type: "warning",
+  await showAppNotice({
     title: "pi-gui",
     message: "Could not check for updates right now.",
     detail: result.message,
-    buttons: ["OK"],
-  };
-  if (window) {
-    await dialog.showMessageBox(window, options);
-  } else {
-    await dialog.showMessageBox(options);
-  }
+    tone: "warning",
+  });
 }
 
 function installApplicationMenu(): void {
@@ -431,6 +500,7 @@ app.whenReady().then(async () => {
     generateThreadTitleOverride: async (workspace, options) => generateThreadTitleOverride?.(workspace, options),
   });
   await store.initialize();
+  registerWorkspaceMediaProtocol();
   integratedTerminalShell = (await store.getState()).integratedTerminalShell;
   stopPruningTerminals = store.subscribe((state) => {
     integratedTerminalShell = state.integratedTerminalShell;
@@ -499,6 +569,27 @@ app.whenReady().then(async () => {
       throw new Error(`Refusing to open unsupported URL: ${url}`);
     }
     return shell.openExternal(url);
+  });
+  ipcMain.handle(desktopIpc.appNoticeResponse, (_event, requestId: string) => {
+    const resolve = pendingAppNotices.get(requestId);
+    if (!resolve) {
+      return;
+    }
+    pendingAppNotices.delete(requestId);
+    resolve();
+  });
+  ipcMain.handle(desktopIpc.textPromptResponse, (_event, requestId: string, value: string | null) => {
+    const pending = pendingTextPrompts.get(requestId);
+    if (!pending) {
+      return;
+    }
+    pendingTextPrompts.delete(requestId);
+    const trimmed = typeof value === "string" ? value.trim() : "";
+    if (trimmed) {
+      pending.resolve(trimmed);
+    } else {
+      pending.reject(new Error("Login cancelled."));
+    }
   });
   ipcMain.handle(desktopIpc.stateRequest, () => store.getState());
   ipcMain.handle(desktopIpc.selectedTranscriptRequest, () => store.getSelectedTranscript());
@@ -706,6 +797,13 @@ app.whenReady().then(async () => {
       return [];
     }
     return listWorkspaceFiles(workspacePath);
+  });
+  ipcMain.handle(desktopIpc.readWorkspaceFile, async (_event, workspaceId: string, filePath: string) => {
+    const workspacePath = store.getWorkspacePath(workspaceId);
+    if (!workspacePath) {
+      return null;
+    }
+    return readWorkspaceFile(workspacePath, filePath);
   });
   ipcMain.handle(desktopIpc.getChangedFiles, async (_event, workspaceId: string) => {
     const workspacePath = store.getWorkspacePath(workspaceId);
@@ -969,17 +1067,18 @@ function createRuntimeLoginCallbacks() {
 
 async function promptForText(message: string, placeholder = ""): Promise<string> {
   const window = mainWindow;
-  if (!window || window.isDestroyed()) {
+  if (!window || !canPublishToWindow(window)) {
     throw new Error("Main window is not available for login.");
   }
   window.show();
   window.focus();
-  const result = await window.webContents.executeJavaScript(
-    `window.prompt(${JSON.stringify(message)}, ${JSON.stringify(placeholder)})`,
-    true,
-  );
-  if (typeof result !== "string" || result.trim().length === 0) {
-    throw new Error("Login cancelled.");
-  }
-  return result.trim();
+  const requestId = randomUUID();
+  window.webContents.send(desktopIpc.textPromptRequest, {
+    requestId,
+    message,
+    placeholder,
+  });
+  return await new Promise<string>((resolve, reject) => {
+    pendingTextPrompts.set(requestId, { resolve, reject });
+  });
 }

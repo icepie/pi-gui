@@ -78,6 +78,41 @@ type TranslationKey =
   | "tree.hint_no_summary"
   | "tree.hint_summary"
   | "timeline.new_activity_below"
+  | "workspace_panel.title_changes"
+  | "workspace_panel.title_files"
+  | "workspace_panel.aria_label"
+  | "workspace_panel.loading_changes"
+  | "workspace_panel.no_changes"
+  | "workspace_panel.uncommitted"
+  | "workspace_panel.reviewed_count"
+  | "workspace_panel.mark_reviewed"
+  | "workspace_panel.new_badge"
+  | "workspace_panel.deleted_badge"
+  | "workspace_panel.expand_all"
+  | "workspace_panel.collapse_all"
+  | "workspace_panel.staged"
+  | "workspace_panel.stage"
+  | "workspace_panel.search_files"
+  | "workspace_panel.files_count"
+  | "workspace_panel.files_count_filtered"
+  | "workspace_panel.loading_files"
+  | "workspace_panel.no_files"
+  | "workspace_panel.file_unavailable"
+  | "workspace_panel.failed_read_file"
+  | "workspace_panel.select_file_preview"
+  | "workspace_panel.loading_preview"
+  | "workspace_panel.no_preview"
+  | "workspace_panel.binary_change_unavailable"
+  | "workspace_panel.binary_preview_unavailable"
+  | "workspace_panel.media_preview_alt"
+  | "workspace_panel.media_preview_failed"
+  | "workspace_panel.media_preview_unsupported"
+  | "workspace_panel.preview_truncated"
+  | "workspace_panel.copy_file_path"
+  | "workspace_panel.sort_name"
+  | "workspace_panel.sort_path"
+  | "workspace_panel.sort_type"
+  | "workspace_panel.resize_panel"
   | "skills.create_new_skill_prompt"
   | "skills.create_new_skill_description"
   | "topbar.open_a_folder_to_begin"
@@ -86,10 +121,12 @@ type TranslationKey =
   | "topbar.new_thread"
   | "topbar.toggle_terminal"
   | "topbar.toggle_changes"
+  | "topbar.toggle_files"
   | "topbar.add_folder"
   | "topbar.toggle_sidebar"
   | "sidebar.new_thread"
   | "sidebar.threads"
+  | "sidebar.sessions"
   | "sidebar.skills"
   | "sidebar.extensions"
   | "sidebar.settings"
@@ -106,7 +143,22 @@ type TranslationKey =
   | "sidebar.archive"
   | "sidebar.restore"
   | "sidebar.delete"
+  | "sidebar.delete_confirm_title"
   | "sidebar.delete_confirm"
+  | "dialog.cancel"
+  | "dialog.delete"
+  | "dialog.ok"
+  | "workspace.remove_confirm_title"
+  | "workspace.remove_confirm"
+  | "worktree.remove_confirm_title"
+  | "worktree.remove_confirm"
+  | "sessions.title"
+  | "sessions.page_description"
+  | "sessions.search"
+  | "sessions.empty"
+  | "sessions.empty_state"
+  | "sessions.archived_badge"
+  | "sessions.running_badge"
   | "new_thread.title"
   | "new_thread.open_folder_to_begin"
   | "new_thread.empty_description"
@@ -387,16 +439,53 @@ const EN_US: TranslationTable = {
   "tree.hint_no_summary": "The current branch will be left as-is.",
   "tree.hint_summary": "The summary will be attached to the branch you switch to.",
   "timeline.new_activity_below": "New activity below",
+  "workspace_panel.title_changes": "Changes",
+  "workspace_panel.title_files": "Files",
+  "workspace_panel.aria_label": "Workspace panel",
+  "workspace_panel.loading_changes": "Loading changes…",
+  "workspace_panel.no_changes": "No changes",
+  "workspace_panel.uncommitted": "Uncommitted",
+  "workspace_panel.reviewed_count": "Reviewed {reviewed} of {total}",
+  "workspace_panel.mark_reviewed": "Mark {path} reviewed",
+  "workspace_panel.new_badge": "New",
+  "workspace_panel.deleted_badge": "Deleted",
+  "workspace_panel.expand_all": "Expand all",
+  "workspace_panel.collapse_all": "Collapse all",
+  "workspace_panel.staged": "Staged",
+  "workspace_panel.stage": "Stage",
+  "workspace_panel.search_files": "Search files",
+  "workspace_panel.files_count": "{count} files",
+  "workspace_panel.files_count_filtered": "{filtered} of {total}",
+  "workspace_panel.loading_files": "Loading files…",
+  "workspace_panel.no_files": "No files",
+  "workspace_panel.file_unavailable": "File is unavailable",
+  "workspace_panel.failed_read_file": "Failed to read file",
+  "workspace_panel.select_file_preview": "Select a file to preview",
+  "workspace_panel.loading_preview": "Loading preview…",
+  "workspace_panel.no_preview": "No preview",
+  "workspace_panel.binary_change_unavailable": "Binary changes are not previewed.",
+  "workspace_panel.binary_preview_unavailable": "Binary file preview is not available.",
+  "workspace_panel.media_preview_alt": "Media preview",
+  "workspace_panel.media_preview_failed": "Could not load this media preview.",
+  "workspace_panel.media_preview_unsupported": "Your system cannot preview this media file.",
+  "workspace_panel.preview_truncated": "preview truncated",
+  "workspace_panel.copy_file_path": "Copy {path}",
+  "workspace_panel.sort_name": "Name",
+  "workspace_panel.sort_path": "Path",
+  "workspace_panel.sort_type": "Type",
+  "workspace_panel.resize_panel": "Resize workspace panel",
   "topbar.open_a_folder_to_begin": "Open a folder to begin",
   "topbar.local": "Local",
   "topbar.unavailable": "unavailable",
   "topbar.new_thread": "New thread",
   "topbar.toggle_terminal": "Toggle terminal",
   "topbar.toggle_changes": "Toggle changes",
+  "topbar.toggle_files": "Toggle files",
   "topbar.add_folder": "Add folder",
   "topbar.toggle_sidebar": "Toggle sidebar",
   "sidebar.new_thread": "New thread",
   "sidebar.threads": "Threads",
+  "sidebar.sessions": "Sessions",
   "sidebar.skills": "Skills",
   "sidebar.extensions": "Extensions",
   "sidebar.settings": "Settings",
@@ -413,7 +502,22 @@ const EN_US: TranslationTable = {
   "sidebar.archive": "Archive",
   "sidebar.restore": "Restore",
   "sidebar.delete": "Delete",
+  "sidebar.delete_confirm_title": "Delete session",
   "sidebar.delete_confirm": "Delete session “{title}”? This cannot be undone.",
+  "dialog.cancel": "Cancel",
+  "dialog.delete": "Delete",
+  "dialog.ok": "OK",
+  "workspace.remove_confirm_title": "Remove workspace",
+  "workspace.remove_confirm": "Remove “{name}” from pi-gui? This will not delete any files.",
+  "worktree.remove_confirm_title": "Remove worktree",
+  "worktree.remove_confirm": "Remove worktree “{name}”? This removes the git worktree from disk.",
+  "sessions.title": "Sessions",
+  "sessions.page_description": "Browse recent and archived sessions across every workspace.",
+  "sessions.search": "Search sessions",
+  "sessions.empty": "No sessions found",
+  "sessions.empty_state": "Start a new thread or adjust the search to see session history.",
+  "sessions.archived_badge": "Archived",
+  "sessions.running_badge": "Running",
   "new_thread.title": "New thread",
   "new_thread.open_folder_to_begin": "Open a folder to begin",
   "new_thread.empty_description": "Select a repository from the sidebar first, then start a local or worktree-backed thread.",
@@ -695,16 +799,53 @@ const ZH_CN: TranslationTable = {
   "tree.hint_no_summary": "当前分支将保持原样。",
   "tree.hint_summary": "总结将附加到你切换到的分支。",
   "timeline.new_activity_below": "下方有新活动",
+  "workspace_panel.title_changes": "变更",
+  "workspace_panel.title_files": "文件",
+  "workspace_panel.aria_label": "工作区面板",
+  "workspace_panel.loading_changes": "正在加载变更…",
+  "workspace_panel.no_changes": "没有变更",
+  "workspace_panel.uncommitted": "未提交",
+  "workspace_panel.reviewed_count": "已阅 {reviewed} / {total}",
+  "workspace_panel.mark_reviewed": "标记 {path} 为已阅",
+  "workspace_panel.new_badge": "新增",
+  "workspace_panel.deleted_badge": "删除",
+  "workspace_panel.expand_all": "全部展开",
+  "workspace_panel.collapse_all": "全部折叠",
+  "workspace_panel.staged": "已暂存",
+  "workspace_panel.stage": "暂存",
+  "workspace_panel.search_files": "搜索文件",
+  "workspace_panel.files_count": "{count} 个文件",
+  "workspace_panel.files_count_filtered": "{filtered} / {total}",
+  "workspace_panel.loading_files": "正在加载文件…",
+  "workspace_panel.no_files": "没有文件",
+  "workspace_panel.file_unavailable": "文件不可用",
+  "workspace_panel.failed_read_file": "读取文件失败",
+  "workspace_panel.select_file_preview": "选择文件以预览",
+  "workspace_panel.loading_preview": "正在加载预览…",
+  "workspace_panel.no_preview": "没有预览",
+  "workspace_panel.binary_change_unavailable": "二进制变更不加载预览。",
+  "workspace_panel.binary_preview_unavailable": "二进制文件无法预览。",
+  "workspace_panel.media_preview_alt": "媒体预览",
+  "workspace_panel.media_preview_failed": "无法加载这个媒体预览。",
+  "workspace_panel.media_preview_unsupported": "当前系统无法预览这个媒体文件。",
+  "workspace_panel.preview_truncated": "预览已截断",
+  "workspace_panel.copy_file_path": "复制 {path}",
+  "workspace_panel.sort_name": "名称",
+  "workspace_panel.sort_path": "路径",
+  "workspace_panel.sort_type": "类型",
+  "workspace_panel.resize_panel": "调整工作区面板宽度",
   "topbar.open_a_folder_to_begin": "先打开一个文件夹开始",
   "topbar.local": "本地",
   "topbar.unavailable": "不可用",
   "topbar.new_thread": "新线程",
   "topbar.toggle_terminal": "切换终端",
   "topbar.toggle_changes": "切换变更",
+  "topbar.toggle_files": "切换文件",
   "topbar.add_folder": "添加文件夹",
   "topbar.toggle_sidebar": "切换侧边栏",
   "sidebar.new_thread": "新线程",
   "sidebar.threads": "线程",
+  "sidebar.sessions": "会话",
   "sidebar.skills": "技能",
   "sidebar.extensions": "扩展",
   "sidebar.settings": "设置",
@@ -721,7 +862,22 @@ const ZH_CN: TranslationTable = {
   "sidebar.archive": "归档",
   "sidebar.restore": "恢复",
   "sidebar.delete": "删除",
+  "sidebar.delete_confirm_title": "删除会话",
   "sidebar.delete_confirm": "确定删除会话“{title}”吗？此操作无法撤销。",
+  "dialog.cancel": "取消",
+  "dialog.delete": "删除",
+  "dialog.ok": "确定",
+  "workspace.remove_confirm_title": "移除工作区",
+  "workspace.remove_confirm": "从 pi-gui 移除“{name}”吗？这不会删除任何文件。",
+  "worktree.remove_confirm_title": "移除工作树",
+  "worktree.remove_confirm": "移除工作树“{name}”吗？这会从磁盘删除 git worktree。",
+  "sessions.title": "会话",
+  "sessions.page_description": "查看所有工作区的最近会话和已归档会话。",
+  "sessions.search": "搜索会话",
+  "sessions.empty": "没有找到会话",
+  "sessions.empty_state": "新建线程或调整搜索条件后再查看历史会话。",
+  "sessions.archived_badge": "已归档",
+  "sessions.running_badge": "运行中",
   "new_thread.title": "新线程",
   "new_thread.open_folder_to_begin": "先打开一个文件夹开始",
   "new_thread.empty_description": "先在侧边栏选择一个仓库，然后开始本地线程或基于工作树的线程。",

@@ -1760,6 +1760,19 @@ export class DesktopAppStore implements AppStoreInternals {
     this.transcriptPersistTimers.set(key, timer);
   }
 
+  async deletePersistedSessionState(sessionRef: SessionRef): Promise<void> {
+    const key = sessionKey(sessionRef);
+    const existing = this.transcriptPersistTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+      this.transcriptPersistTimers.delete(key);
+    }
+    await Promise.all([
+      this.transcriptStore.delete(key),
+      this.attachmentStore.delete(key),
+    ]);
+  }
+
   private async readPersistedTranscript(
     key: string,
   ): Promise<

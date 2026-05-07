@@ -61,6 +61,7 @@ export interface AppStoreInternals {
   persistUiState(): Promise<void>;
   persistComposerAttachments(key: string, attachments: readonly ComposerAttachment[]): Promise<void>;
   persistTranscriptCacheForSession(sessionRef: SessionRef): void;
+  deletePersistedSessionState(sessionRef: SessionRef): Promise<void>;
   schedulePersistUiState(): void;
   updateSessionConfig(sessionRef: SessionRef, config: SessionConfig | undefined): void;
   setPendingAutoTitle(sessionRef: SessionRef, pending: PendingAutoTitle): void;

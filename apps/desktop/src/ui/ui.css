@@ -89,8 +89,8 @@
   padding: 6px;
   border-radius: 14px;
   border: 1px solid var(--line, #d9e0ec);
-  background: var(--surface, #fff);
-  box-shadow: 0 16px 48px rgba(20, 27, 45, 0.14);
+  background: color-mix(in srgb, var(--surface, #fff) 98%, transparent);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgba(0, 0, 0, 0.08));
   display: grid;
   gap: 2px;
   transition: opacity 0.15s ease-out, transform 0.15s ease-out;
@@ -102,18 +102,21 @@
 }
 
 .ui-select__option {
-  padding: 9px 11px;
-  border-radius: 10px;
+  min-height: 30px;
+  padding: 7px 10px;
+  border-radius: 8px;
   color: var(--text-strong, #1a2138);
   font-size: 13px;
   cursor: pointer;
 }
 
 .ui-select__option[data-focus] {
-  background: var(--surface-muted, #f3f5fa);
+  background: var(--selection-hover-bg, var(--surface-muted, #f3f5fa));
 }
 
 .ui-select__option[data-selected] {
+  background: var(--selection-bg, var(--surface-muted, #f3f5fa));
+  color: var(--text-strong, #1a2138);
   font-weight: 590;
 }
 
@@ -133,13 +136,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   cursor: pointer;
+  border-radius: 12px;
   transition: background 0.12s;
 }
 
 .ui-radio-option[data-focus] {
-  background: var(--surface-muted, #f3f5fa);
+  background: var(--selection-hover-bg, var(--surface-muted, #f3f5fa));
+}
+
+.ui-radio-option[data-checked] {
+  background: var(--selection-bg, var(--surface-muted, #f3f5fa));
 }
 
 .ui-radio-option__indicator {
@@ -194,8 +202,8 @@
 .ui-dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(24, 31, 44, 0.26);
-  backdrop-filter: blur(6px);
+  background: var(--overlay-backdrop, rgba(8, 11, 12, 0.46));
+  backdrop-filter: blur(5px);
   transition: opacity 0.2s ease-out;
 }
 
@@ -213,27 +221,30 @@
 }
 
 .ui-dialog:not(.tree-modal) {
-  width: min(560px, 100%);
+  width: min(520px, 100%);
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   display: grid;
-  gap: 14px;
-  padding: 22px;
-  border-radius: 22px;
+  gap: 0;
+  padding: 0;
+  border-radius: 20px;
   background: var(--surface, #fff);
   border: 1px solid var(--line, #d9e0ec);
-  box-shadow: 0 28px 80px rgba(22, 29, 41, 0.16);
+  box-shadow: var(--shadow-dialog, 0 28px 80px rgba(8, 11, 18, 0.26));
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
 .ui-dialog[data-closed] {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(0.96) translateY(6px);
 }
 
 .ui-dialog__header {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--line, #d9e0ec);
+  background: color-mix(in srgb, var(--surface-muted, #f3f5fa) 50%, transparent);
 }
 
 .ui-dialog__eyebrow {
@@ -246,9 +257,36 @@
 
 .ui-dialog__title {
   color: var(--text-strong, #1a2138);
-  font-size: 20px;
-  font-weight: 630;
-  letter-spacing: -0.02em;
+  font-size: 18px;
+  font-weight: 560;
+  letter-spacing: -0.025em;
+}
+
+.ui-dialog:not(.tree-modal) > :not(.ui-dialog__header) {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.ui-dialog:not(.tree-modal) > .extension-dialog__body,
+.ui-dialog:not(.tree-modal) > .extension-dialog__options,
+.ui-dialog:not(.tree-modal) > .extension-dialog__editor,
+.ui-dialog:not(.tree-modal) > .settings-search,
+.ui-dialog:not(.tree-modal) > .settings-form {
+  margin-top: 16px;
+}
+
+.ui-dialog:not(.tree-modal) > :last-child {
+  margin-bottom: 12px;
+}
+
+:root.dark .ui-dialog-backdrop {
+  background: var(--overlay-backdrop, rgba(0, 0, 0, 0.55));
+}
+
+:root.dark .ui-dialog:not(.tree-modal) {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog, 0 28px 80px rgba(0, 0, 0, 0.48));
 }
 
 /* ── UIMenu ────────────────────────────────────── */
@@ -259,8 +297,8 @@
   padding: 6px;
   border-radius: 14px;
   border: 1px solid var(--line, #d9e0ec);
-  background: var(--surface, #fff);
-  box-shadow: 0 22px 56px rgba(20, 27, 45, 0.18);
+  background: color-mix(in srgb, var(--surface, #fff) 98%, transparent);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgba(0, 0, 0, 0.08));
   display: grid;
   gap: 2px;
   transition: opacity 0.15s ease-out, transform 0.15s ease-out;
@@ -273,8 +311,9 @@
 
 .ui-menu__item {
   width: 100%;
-  padding: 9px 11px;
-  border-radius: 10px;
+  min-height: 30px;
+  padding: 7px 10px;
+  border-radius: 8px;
   text-align: left;
   font-size: 13px;
   color: var(--text-strong, #1a2138);
@@ -283,7 +322,7 @@
 }
 
 .ui-menu__item[data-focus] {
-  background: var(--surface-muted, #f3f5fa);
+  background: var(--selection-hover-bg, var(--surface-muted, #f3f5fa));
 }
 
 .ui-menu__item--danger {

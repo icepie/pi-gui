@@ -121,15 +121,18 @@ export function SkillsView({
                   }}
                 >
                   <span className="skill-card__title-row">
-                    <span className="skill-card__title">{titleCase(skill.name)}</span>
-                    <span className={`skill-card__badge ${skill.enabled ? "skill-card__badge--enabled" : ""}`}>
-                      {skill.enabled ? t("common.enabled") : t("common.disabled")}
+                    <span className="skill-card__leading" aria-hidden="true">
+                      {titleCase(skill.name).slice(0, 1)}
                     </span>
+                    <span className="skill-card__title-group">
+                      <span className="skill-card__title">{titleCase(skill.name)}</span>
+                      <span className="skill-card__command">{skill.slashCommand}</span>
+                    </span>
+                    <span className={`skill-card__status-dot ${skill.enabled ? "skill-card__status-dot--enabled" : ""}`} />
                   </span>
                   <span className="skill-card__description">{skill.description}</span>
                   <span className="skill-card__meta">
                     <span>{skill.source}</span>
-                    <span>{skill.slashCommand}</span>
                     {skill.disableModelInvocation ? <span>{t("skills.slash_only")}</span> : null}
                   </span>
                 </button>
@@ -142,6 +145,7 @@ export function SkillsView({
               <>
                 <div className="skill-detail__header">
                   <div>
+                    <div className="skill-detail__eyebrow">{selectedSkill.source}</div>
                     <h2>{titleCase(selectedSkill.name)}</h2>
                     <div className="skill-detail__slash">{selectedSkill.slashCommand}</div>
                   </div>

@@ -213,9 +213,12 @@ export async function deleteSession(
 
   return store.withErrorHandling(async () => {
     const sessionRef = toSessionRef(target);
+    const key = sessionKey(sessionRef);
     store.clearPendingAutoTitle(sessionRef);
     await store.cancelPendingDialogsForSession(sessionRef);
     await store.driver.deleteSession(sessionRef);
+    await store.deletePersistedSessionState(sessionRef);
+    store.sessionState.deleteSession(key);
     return store.refreshState(selectionAfterDeleting(store.state, target));
   });
 }

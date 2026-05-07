@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type Dispatch, type DragEvent, type KeyboardEvent, type SetStateAction } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ClipboardEvent, type Dispatch, type DragEvent, type KeyboardEvent, type SetStateAction } from "react";
 import type { SessionTreeSnapshot } from "@pi-gui/session-driver/types";
 import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import {
@@ -16,15 +16,17 @@ import {
 } from "./desktop-state";
 import { formatRelativeTime } from "./string-utils";
 import { ComposerPanel } from "./composer-panel";
-import { DiffPanel, type DiffPanelFileRequest } from "./diff-panel";
+import { DiffPanel, type DiffPanelFileRequest, type WorkspacePanelTab } from "./diff-panel";
 import { buildModelOptions } from "./composer-commands";
 import { parseTreeComposerCommand } from "./composer-commands";
 import {
   desktopCommands,
   getDesktopCommandFromShortcut,
   getDesktopShortcutLabel,
+  type AppNoticeRequest,
   type DesktopNotificationPermissionStatus,
   type PiDesktopCommand,
+  type TextPromptRequest,
 } from "./ipc";
 import { deriveModelOnboardingState } from "./model-onboarding";
 import { SkillsView } from "./skills-view";
@@ -32,6 +34,7 @@ import { ExtensionsView } from "./extensions-view";
 import { SettingsView, type SettingsSection } from "./settings-view";
 import { SecondarySurface } from "./secondary-surface";
 import { NewThreadView } from "./new-thread-view";
+import { SessionsView } from "./sessions-view";
 import { buildThreadGroups } from "./thread-groups";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -48,11 +51,18 @@ import { resolveRepoWorkspaceId } from "./workspace-roots";
 import { setLocale, t, type AppLocale } from "./i18n";
 import { UISelect } from "./ui";
 import { FolderIcon, WorktreeIcon } from "./icons";
+import { ConfirmDialog, NoticeDialog, type ConfirmDialogRequest } from "./confirm-dialog";
+import { TextPromptDialog } from "./text-prompt-dialog";
 import {
   extractImageFilesFromClipboardData,
   extractFilesFromDataTransfer,
   readComposerAttachmentsFromFiles,
 } from "./composer-attachments";
+
+const WORKSPACE_PANEL_WIDTH_STORAGE_KEY = "pi-gui:workspace-panel-width";
+const DEFAULT_WORKSPACE_PANEL_WIDTH = 400;
+const MIN_WORKSPACE_PANEL_WIDTH = 320;
+const MAX_WORKSPACE_PANEL_WIDTH = 720;
 
 function useDesktopAppState() {
   const [snapshot, setSnapshot] = useState<DesktopAppState | null>(null);
@@ -92,6 +102,20 @@ function useDesktopAppState() {
   }, []);
 
   return [snapshot, setSnapshot, selectedTranscript] as const;
+}
+
+function loadWorkspacePanelWidth(): number {
+  const raw = window.localStorage.getItem(WORKSPACE_PANEL_WIDTH_STORAGE_KEY);
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_WORKSPACE_PANEL_WIDTH;
+  }
+  return clampWorkspacePanelWidth(parsed);
+}
+
+function clampWorkspacePanelWidth(width: number): number {
+  const viewportMax = Math.max(MIN_WORKSPACE_PANEL_WIDTH, window.innerWidth - 520);
+  return Math.min(Math.max(width, MIN_WORKSPACE_PANEL_WIDTH), Math.min(MAX_WORKSPACE_PANEL_WIDTH, viewportMax));
 }
 
 function updateSnapshot(
@@ -199,7 +223,11 @@ export default function App() {
   const hydratedComposerSessionKeyRef = useRef("");
   const handledComposerSyncNonceRef = useRef(0);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  const [showDiffPanel, setShowDiffPanel] = useState(false);
+  const [workspacePanelTab, setWorkspacePanelTab] = useState<WorkspacePanelTab | null>(null);
+  const [workspacePanelWidth, setWorkspacePanelWidth] = useState(loadWorkspacePanelWidth);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogRequest | null>(null);
+  const [noticeDialog, setNoticeDialog] = useState<AppNoticeRequest | null>(null);
+  const [textPromptRequest, setTextPromptRequest] = useState<TextPromptRequest | null>(null);
   const [openTerminalSessionKeys, setOpenTerminalSessionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [takeoverTerminalSessionKeys, setTakeoverTerminalSessionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [terminalHeight, setTerminalHeight] = useState(340);
@@ -208,6 +236,36 @@ export default function App() {
   const [disableTimelineVirtualization, setDisableTimelineVirtualization] = useState(true);
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
+
+  useEffect(() => {
+    if (!api?.onAppNoticeRequest) {
+      return undefined;
+    }
+
+    return api.onAppNoticeRequest((request) => {
+      setNoticeDialog(request);
+    });
+  }, [api]);
+
+  const handleNoticeClose = useCallback((requestId: string) => {
+    setNoticeDialog((current) => (current?.requestId === requestId ? null : current));
+    void api?.respondToAppNotice(requestId);
+  }, [api]);
+
+  useEffect(() => {
+    if (!api?.onTextPromptRequest) {
+      return undefined;
+    }
+
+    return api.onTextPromptRequest((request) => {
+      setTextPromptRequest(request);
+    });
+  }, [api]);
+
+  const handleTextPromptResponse = useCallback((requestId: string, value: string | null) => {
+    setTextPromptRequest((current) => (current?.requestId === requestId ? null : current));
+    void api?.respondToTextPrompt(requestId, value);
+  }, [api]);
 
   useEffect(() => {
     if (api?.locale) {
@@ -644,18 +702,18 @@ export default function App() {
   }, [requestPinnedBottomAlignment]);
 
   const handleViewFileInDiff = useCallback((path: string) => {
-    setShowDiffPanel(true);
+    setWorkspacePanelTab("changes");
     setDiffFileRequest({ path, nonce: Date.now() });
   }, []);
 
-  const toggleDiffPanel = useCallback(() => {
+  const openWorkspacePanel = useCallback((tab: WorkspacePanelTab) => {
     const pane = timelinePaneRef.current;
     const shouldPreserveBottom = pane ? isNearBottom(pane) || pinnedToBottomRef.current : pinnedToBottomRef.current;
     if (shouldPreserveBottom) {
       preserveBottomOnNextPaneResizeRef.current = true;
     }
 
-    setShowDiffPanel((prev) => !prev);
+    setWorkspacePanelTab((current) => (current === tab ? null : tab));
 
     if (!shouldPreserveBottom) {
       return;
@@ -663,6 +721,34 @@ export default function App() {
 
     schedulePinnedBottomRealignment(3);
   }, [schedulePinnedBottomRealignment]);
+
+  const toggleChangesPanel = useCallback(() => {
+    openWorkspacePanel("changes");
+  }, [openWorkspacePanel]);
+
+  const toggleFilesPanel = useCallback(() => {
+    openWorkspacePanel("files");
+  }, [openWorkspacePanel]);
+
+  const handleWorkspacePanelWidthChange = useCallback((nextWidth: number) => {
+    const clamped = clampWorkspacePanelWidth(nextWidth);
+    setWorkspacePanelWidth(clamped);
+    window.localStorage.setItem(WORKSPACE_PANEL_WIDTH_STORAGE_KEY, String(clamped));
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWorkspacePanelWidth((current) => {
+        const clamped = clampWorkspacePanelWidth(current);
+        if (clamped !== current) {
+          window.localStorage.setItem(WORKSPACE_PANEL_WIDTH_STORAGE_KEY, String(clamped));
+        }
+        return clamped;
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const openSettings = (workspaceId?: string, section?: SettingsSection) => {
     if (!api) {
@@ -843,6 +929,7 @@ export default function App() {
 
   const wsMenu = useWorkspaceMenu({
     api,
+    confirm: setConfirmDialog,
     setSnapshot,
     updateSnapshot,
   });
@@ -1021,7 +1108,7 @@ export default function App() {
       // Cmd+D toggles diff panel
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d" && !event.shiftKey) {
         event.preventDefault();
-        toggleDiffPanel();
+        toggleChangesPanel();
         return;
       }
       const command = getDesktopCommandFromShortcut({
@@ -1046,7 +1133,7 @@ export default function App() {
     selectedWorkspace?.rootWorkspaceId,
     threadSearch,
     api,
-    toggleDiffPanel,
+    toggleChangesPanel,
     toggleTerminal,
     handleTogglePrimarySidebar,
   ]);
@@ -1234,7 +1321,7 @@ export default function App() {
       resizeObserver.disconnect();
       previousTimelinePaneSizeRef.current = null;
     };
-  }, [requestPinnedBottomAlignment, selectedSessionKey, showDiffPanel, snapshot?.activeView, timelinePaneMountVersion]);
+  }, [requestPinnedBottomAlignment, selectedSessionKey, workspacePanelTab, snapshot?.activeView, timelinePaneMountVersion]);
 
   useEffect(() => {
     const pane = timelinePaneRef.current;
@@ -1284,7 +1371,7 @@ export default function App() {
   const showTerminalTakeover = isTerminalVisibleForSelectedThread && isTerminalTakeoverForSelectedThread && Boolean(selectedWorkspace);
   const mainClassName = [
     "main",
-    showDiffPanel ? "main--with-diff" : "",
+    workspacePanelTab ? "main--with-diff" : "",
     isTerminalVisibleForSelectedThread ? "main--with-terminal" : "",
     showTerminalTakeover ? "main--terminal-takeover" : "",
   ].filter(Boolean).join(" ");
@@ -2022,6 +2109,19 @@ export default function App() {
     );
   }
 
+  if (snapshot.activeView === "sessions") {
+    return (
+      <SecondarySurface onBack={() => setActiveView("threads")} testId="sessions-surface" title={t("sessions.title")}>
+        <SessionsView
+          threadGroups={threadGroups}
+          selectedWorkspaceId={selectedWorkspace?.id}
+          selectedSessionId={selectedSession?.id}
+          onSelectSession={handleSelectSession}
+        />
+      </SecondarySurface>
+    );
+  }
+
   if (snapshot.activeView === "extensions") {
     return (
       <SecondarySurface onBack={() => setActiveView("threads")} testId="extensions-surface" title={t("extensions.title")}>
@@ -2078,10 +2178,14 @@ export default function App() {
           onSelectSession={handleSelectSession}
           onUnarchiveSession={handleUnarchiveSession}
           onDeleteSession={handleDeleteSession}
+          onConfirm={setConfirmDialog}
         />
       ) : null}
 
-      <main className={mainClassName}>
+      <main
+        className={mainClassName}
+        style={workspacePanelTab ? ({ "--workspace-panel-width": `${workspacePanelWidth}px` } as CSSProperties) : undefined}
+      >
         <Topbar
           activeView={snapshot.activeView}
           rootWorkspace={rootWorkspace}
@@ -2093,13 +2197,12 @@ export default function App() {
           workspaces={snapshot.workspaces}
           wsMenu={wsMenu}
           api={api}
-          setSnapshot={setSnapshot}
-          updateSnapshot={updateSnapshot}
           terminalAvailable={Boolean(selectedSessionKey)}
           terminalVisible={isTerminalVisibleForSelectedThread}
           onToggleTerminal={toggleTerminal}
-          showDiffPanel={showDiffPanel}
-          onToggleDiffPanel={toggleDiffPanel}
+          workspacePanelTab={workspacePanelTab}
+          onToggleChangesPanel={toggleChangesPanel}
+          onToggleFilesPanel={toggleFilesPanel}
           showSidebarToggle={primarySidebarToggleVisible}
           sidebarCollapsed={snapshot.sidebarCollapsed}
           sidebarToggleShortcutLabel={sidebarToggleShortcutLabel}
@@ -2307,15 +2410,22 @@ export default function App() {
         {terminalPanel}
           </>
         )}
-        {showDiffPanel && selectedWorkspace && selectedSession ? (
+        {workspacePanelTab && selectedWorkspace && selectedSession ? (
           <DiffPanel
             workspaceId={selectedWorkspace.id}
+            workspacePath={selectedWorkspace.path}
             sessionId={selectedSession.id}
             api={api}
             sessionStatus={selectedSession.status}
             fileRequest={diffFileRequest}
+            activeTab={workspacePanelTab}
+            onSelectTab={setWorkspacePanelTab}
+            onWidthChange={handleWorkspacePanelWidthChange}
           />
         ) : null}
+        <ConfirmDialog request={confirmDialog} onClose={() => setConfirmDialog(null)} />
+        <NoticeDialog request={noticeDialog} onClose={handleNoticeClose} />
+        <TextPromptDialog request={textPromptRequest} onRespond={handleTextPromptResponse} />
       </main>
     </div>
   );

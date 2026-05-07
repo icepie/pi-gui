@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,7 +14,7 @@ import {
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { AppView, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
-import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FolderIcon, PlusIcon, RestoreIcon, SettingsIcon, SkillIcon, TrashIcon, WorktreeIcon } from "./icons";
+import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FileIcon, FolderIcon, PlusIcon, RestoreIcon, SettingsIcon, SidebarToggleIcon, SkillIcon, TrashIcon, WorktreeIcon } from "./icons";
 import type { PiDesktopApi } from "./ipc";
 import { formatRelativeTime } from "./string-utils";
 import type { WorkspaceMenuState } from "./hooks/use-workspace-menu";
@@ -23,6 +23,10 @@ import type { ThreadGroup, ThreadListEntry } from "./thread-groups";
 import type { Dispatch, SetStateAction } from "react";
 import type { DesktopAppState } from "./desktop-state";
 import { t } from "./i18n";
+
+const DEFAULT_SIDEBAR_WIDTH = 260;
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 380;
 
 interface SidebarProps {
   readonly activeView: AppView;
@@ -48,6 +52,14 @@ interface SidebarProps {
   readonly onSelectSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onUnarchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onDeleteSession: (target: { workspaceId: string; sessionId: string }) => void;
+  readonly onConfirm: (request: {
+    readonly title: string;
+    readonly body: string;
+    readonly confirmLabel: string;
+    readonly cancelLabel: string;
+    readonly tone?: "default" | "danger";
+    readonly onConfirm: () => void;
+  }) => void;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -71,9 +83,11 @@ export function Sidebar(props: SidebarProps) {
     onSelectSession,
     onUnarchiveSession,
     onDeleteSession,
+    onConfirm,
   } = props;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Collision detection based on workspace row headers only (~30px top of each group),
@@ -121,46 +135,211 @@ export function Sidebar(props: SidebarProps) {
 
   const activeGroup = activeId ? rootGroups.find((g) => g.rootWorkspace.id === activeId) : undefined;
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar__top">
-        <button
-          className="sidebar__new"
-          type="button"
-          disabled={!selectedWorkspace}
-          onClick={onNewThread}
-        >
-          <PlusIcon />
-          <span>{t("sidebar.new_thread")}</span>
-        </button>
+  const handleCloseSidebar = () => {
+    void updateSnapshot(api, setSnapshot, () => api.setSidebarCollapsed(true));
+  };
 
-        <div className="sidebar__nav">
-          <button
-            className={`sidebar__nav-item ${activeView === "threads" ? "sidebar__nav-item--active" : ""}`}
-            type="button"
-            onClick={() => onSetActiveView("threads")}
-          >
-            <FolderIcon />
+  const handleResizePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (window.matchMedia("(max-width: 980px)").matches) {
+        return;
+      }
+
+      const startX = event.clientX;
+      const startWidth = sidebarWidth;
+      const previousCursor = document.body.style.cursor;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const nextWidth = Math.min(
+          MAX_SIDEBAR_WIDTH,
+          Math.max(MIN_SIDEBAR_WIDTH, startWidth + moveEvent.clientX - startX),
+        );
+        setSidebarWidth(nextWidth);
+      };
+
+      const cleanup = () => {
+        document.body.style.cursor = previousCursor;
+        document.body.style.userSelect = previousUserSelect;
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", cleanup);
+        window.removeEventListener("pointercancel", cleanup);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", cleanup);
+      window.addEventListener("pointercancel", cleanup);
+    },
+    [sidebarWidth],
+  );
+
+  return (
+    <>
+      <button
+        aria-label={t("topbar.toggle_sidebar")}
+        className="sidebar__scrim"
+        type="button"
+        onClick={handleCloseSidebar}
+      />
+      <aside className="sidebar" style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}>
+        <div className="sidebar__top">
+          <div className="sidebar__mobile-head">
             <span>{t("sidebar.threads")}</span>
-          </button>
+            <button
+              aria-label={t("topbar.toggle_sidebar")}
+              className="icon-button sidebar__mobile-close"
+              type="button"
+              onClick={handleCloseSidebar}
+            >
+              <SidebarToggleIcon />
+            </button>
+          </div>
           <button
-            className="sidebar__nav-item"
+            className="sidebar__new"
             type="button"
-            onClick={() => onOpenSkills(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
+            disabled={!selectedWorkspace}
+            onClick={onNewThread}
           >
-            <SkillIcon />
-            <span>{t("sidebar.skills")}</span>
+            <PlusIcon />
+            <span>{t("sidebar.new_thread")}</span>
           </button>
+
+          <div className="sidebar__nav">
+            <button
+              className={`sidebar__nav-item ${activeView === "threads" ? "sidebar__nav-item--active" : ""}`}
+              type="button"
+              onClick={() => onSetActiveView("threads")}
+            >
+              <FolderIcon />
+              <span>{t("sidebar.threads")}</span>
+            </button>
+            <button
+              className={`sidebar__nav-item ${activeView === "sessions" ? "sidebar__nav-item--active" : ""}`}
+              type="button"
+              onClick={() => onSetActiveView("sessions")}
+            >
+              <FileIcon />
+              <span>{t("sidebar.sessions")}</span>
+            </button>
+            <button
+              className={`sidebar__nav-item ${activeView === "skills" ? "sidebar__nav-item--active" : ""}`}
+              type="button"
+              onClick={() => onOpenSkills(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
+            >
+              <SkillIcon />
+              <span>{t("sidebar.skills")}</span>
+            </button>
+            <button
+              className={`sidebar__nav-item ${activeView === "extensions" ? "sidebar__nav-item--active" : ""}`}
+              type="button"
+              onClick={() => onOpenExtensions(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
+            >
+              <ExtensionIcon />
+              <span>{t("sidebar.extensions")}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="sidebar__section">
+          {visibleWorkspaces.length === 0 ? (
+            <div className="empty-state" data-testid="empty-state">
+              <h2>{t("sidebar.no_folders_yet")}</h2>
+              <p>{t("sidebar.no_folders_description")}</p>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => {
+                  void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
+                }}
+              >
+                {t("sidebar.open_first_folder")}
+              </button>
+            </div>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={headerCollision} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              <div className="section__head">
+                <span>{t("sidebar.threads")}</span>
+                <div className="section__tools">
+                  <button
+                    aria-label={t("common.open_folder")}
+                    className="icon-button"
+                    type="button"
+                    onClick={() => {
+                      void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
+                    }}
+                  >
+                    <FolderIcon />
+                  </button>
+                </div>
+              </div>
+              <SortableContext items={rootGroupIds} strategy={verticalListSortingStrategy}>
+                <div className="workspace-list" data-testid="workspace-list">
+                  {rootGroups.map((group) => (
+                    <SortableWorkspaceGroup
+                      key={group.rootWorkspace.id}
+                      group={group}
+                      canDrag={canDrag}
+                      selectedWorkspace={selectedWorkspace}
+                      selectedSession={selectedSession}
+                      linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
+                      wsMenu={wsMenu}
+                      api={api}
+                      onArchiveSession={onArchiveSession}
+                      onSelectSession={onSelectSession}
+                        onUnarchiveSession={onUnarchiveSession}
+                        onDeleteSession={onDeleteSession}
+                        onConfirm={onConfirm}
+                      />
+                  ))}
+                  {orphanGroups.map((group) => (
+                    <WorkspaceGroupContent
+                      key={group.rootWorkspace.id}
+                      group={group}
+                      canDrag={false}
+                      selectedWorkspace={selectedWorkspace}
+                      selectedSession={selectedSession}
+                      linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
+                      wsMenu={wsMenu}
+                      api={api}
+                      onArchiveSession={onArchiveSession}
+                      onSelectSession={onSelectSession}
+                        onUnarchiveSession={onUnarchiveSession}
+                        onDeleteSession={onDeleteSession}
+                        onConfirm={onConfirm}
+                      />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay>
+                {activeGroup ? (
+                  <div className="workspace-group workspace-group--overlay">
+                    <WorkspaceGroupContent
+                      group={activeGroup}
+                      canDrag={false}
+                      selectedWorkspace={selectedWorkspace}
+                      selectedSession={selectedSession}
+                      linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
+                      wsMenu={wsMenu}
+                      api={api}
+                      onArchiveSession={onArchiveSession}
+                      onSelectSession={onSelectSession}
+                        onUnarchiveSession={onUnarchiveSession}
+                        onDeleteSession={onDeleteSession}
+                        onConfirm={onConfirm}
+                      />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+        </div>
+        <div className="sidebar__footer">
           <button
-            className="sidebar__nav-item"
-            type="button"
-            onClick={() => onOpenExtensions(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
-          >
-            <ExtensionIcon />
-            <span>{t("sidebar.extensions")}</span>
-          </button>
-          <button
-            className="sidebar__nav-item"
+            className={`sidebar__settings ${activeView === "settings" ? "sidebar__settings--active" : ""}`}
             type="button"
             onClick={() => onOpenSettings(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
           >
@@ -168,99 +347,15 @@ export function Sidebar(props: SidebarProps) {
             <span>{t("sidebar.settings")}</span>
           </button>
         </div>
-      </div>
-
-      <div className="sidebar__section">
-        {visibleWorkspaces.length === 0 ? (
-          <div className="empty-state" data-testid="empty-state">
-            <h2>{t("sidebar.no_folders_yet")}</h2>
-            <p>{t("sidebar.no_folders_description")}</p>
-            <button
-              className="button button--primary"
-              type="button"
-              onClick={() => {
-                void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
-              }}
-            >
-              {t("sidebar.open_first_folder")}
-            </button>
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={headerCollision} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="section__head">
-              <span>{t("sidebar.threads")}</span>
-              <div className="section__tools">
-                <button
-                  aria-label={t("common.open_folder")}
-                  className="icon-button"
-                  type="button"
-                  onClick={() => {
-                    void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
-                  }}
-                >
-                  <FolderIcon />
-                </button>
-              </div>
-            </div>
-            <SortableContext items={rootGroupIds} strategy={verticalListSortingStrategy}>
-              <div className="workspace-list" data-testid="workspace-list">
-                {rootGroups.map((group) => (
-                  <SortableWorkspaceGroup
-                    key={group.rootWorkspace.id}
-                    group={group}
-                    canDrag={canDrag}
-                    selectedWorkspace={selectedWorkspace}
-                    selectedSession={selectedSession}
-                    linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
-                    wsMenu={wsMenu}
-                    api={api}
-                    onArchiveSession={onArchiveSession}
-                    onSelectSession={onSelectSession}
-                    onUnarchiveSession={onUnarchiveSession}
-                    onDeleteSession={onDeleteSession}
-                  />
-                ))}
-                {orphanGroups.map((group) => (
-                  <WorkspaceGroupContent
-                    key={group.rootWorkspace.id}
-                    group={group}
-                    canDrag={false}
-                    selectedWorkspace={selectedWorkspace}
-                    selectedSession={selectedSession}
-                    linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
-                    wsMenu={wsMenu}
-                    api={api}
-                    onArchiveSession={onArchiveSession}
-                    onSelectSession={onSelectSession}
-                    onUnarchiveSession={onUnarchiveSession}
-                    onDeleteSession={onDeleteSession}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-            <DragOverlay>
-              {activeGroup ? (
-                <div className="workspace-group workspace-group--overlay">
-                  <WorkspaceGroupContent
-                    group={activeGroup}
-                    canDrag={false}
-                    selectedWorkspace={selectedWorkspace}
-                    selectedSession={selectedSession}
-                    linkedWorktreeByWorkspaceId={linkedWorktreeByWorkspaceId}
-                    wsMenu={wsMenu}
-                    api={api}
-                    onArchiveSession={onArchiveSession}
-                    onSelectSession={onSelectSession}
-                    onUnarchiveSession={onUnarchiveSession}
-                    onDeleteSession={onDeleteSession}
-                  />
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        )}
-      </div>
-    </aside>
+        <div
+          aria-label="Resize sidebar"
+          aria-orientation="vertical"
+          className="sidebar__resize-handle"
+          role="separator"
+          onPointerDown={handleResizePointerDown}
+        />
+      </aside>
+    </>
   );
 }
 
@@ -278,6 +373,7 @@ interface WorkspaceGroupProps {
   readonly onSelectSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onUnarchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onDeleteSession: (target: { workspaceId: string; sessionId: string }) => void;
+  readonly onConfirm: SidebarProps["onConfirm"];
 }
 
 function SortableWorkspaceGroup(props: WorkspaceGroupProps) {
@@ -329,6 +425,7 @@ function WorkspaceGroupContent(
     onSelectSession,
     onUnarchiveSession,
     onDeleteSession,
+    onConfirm,
     dragHandleProps,
   } = props;
 
@@ -422,9 +519,18 @@ function WorkspaceGroupContent(
                     })
                   }
                   onDelete={() =>
-                    onDeleteSession({
-                      workspaceId: thread.workspaceId,
-                      sessionId: thread.session.id,
+                    onConfirm({
+                      title: t("sidebar.delete_confirm_title"),
+                      body: t("sidebar.delete_confirm", { title: thread.session.title }),
+                      confirmLabel: t("dialog.delete"),
+                      cancelLabel: t("dialog.cancel"),
+                      tone: "danger",
+                      onConfirm: () => {
+                        onDeleteSession({
+                          workspaceId: thread.workspaceId,
+                          sessionId: thread.session.id,
+                        });
+                      },
                     })
                   }
                   onSelect={() => onSelectSession({ workspaceId: thread.workspaceId, sessionId: thread.session.id })}
@@ -467,9 +573,18 @@ function WorkspaceGroupContent(
                           })
                         }
                         onDelete={() =>
-                          onDeleteSession({
-                            workspaceId: thread.workspaceId,
-                            sessionId: thread.session.id,
+                          onConfirm({
+                            title: t("sidebar.delete_confirm_title"),
+                            body: t("sidebar.delete_confirm", { title: thread.session.title }),
+                            confirmLabel: t("dialog.delete"),
+                            cancelLabel: t("dialog.cancel"),
+                            tone: "danger",
+                            onConfirm: () => {
+                              onDeleteSession({
+                                workspaceId: thread.workspaceId,
+                                sessionId: thread.session.id,
+                              });
+                            },
                           })
                         }
                         onSelect={() => onSelectSession({ workspaceId: thread.workspaceId, sessionId: thread.session.id })}
@@ -554,11 +669,7 @@ function ThreadSessionRow({
             aria-label={deleteLabel}
             className="icon-button session-row__action session-row__action--danger"
             type="button"
-            onClick={() => {
-              if (window.confirm(t("sidebar.delete_confirm", { title: thread.session.title }))) {
-                onDelete();
-              }
-            }}
+            onClick={onDelete}
           >
             <TrashIcon />
           </button>

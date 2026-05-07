@@ -25,8 +25,8 @@ test("deletes a hovered thread from the sidebar and removes it from persisted st
     const deleteButton = activeRow.getByRole("button", { name: "Delete Thread two" });
 
     await activeRow.hover();
-    window.once("dialog", (dialog) => dialog.accept());
     await deleteButton.click();
+    await window.getByTestId("confirm-dialog").getByRole("button", { name: "Delete" }).click();
 
     await expect(window.locator(".topbar__session")).toHaveText("Thread one");
     await expect(window.locator(".session-row", { hasText: "Thread two" })).toHaveCount(0);

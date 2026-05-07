@@ -13,6 +13,30 @@ import {
   seedAgentDir,
 } from "../helpers/electron-app";
 
+function parseRgb(color: string): [number, number, number] {
+  const channels = color.match(/\d+(?:\.\d+)?/g);
+  if (!channels || channels.length < 3) {
+    throw new Error(`Unsupported color value: ${color}`);
+  }
+  return [Number(channels[0]), Number(channels[1]), Number(channels[2])];
+}
+
+function relativeLuminance([red, green, blue]: [number, number, number]): number {
+  const linearized = [red, green, blue].map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * linearized[0] + 0.7152 * linearized[1] + 0.0722 * linearized[2];
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const foregroundLuminance = relativeLuminance(parseRgb(foreground));
+  const backgroundLuminance = relativeLuminance(parseRgb(background));
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 test("new thread reuses composer behaviors for slash commands, image previews, and branding", async () => {
   test.setTimeout(60_000);
   const userDataDir = await makeUserDataDir();
@@ -75,6 +99,86 @@ test("new thread reuses composer behaviors for slash commands, image previews, a
       .toBe("image");
     await expect(window.locator(".timeline-item__attachment")).toBeVisible({ timeout: 15_000 });
     await expect(window.locator(".composer-attachment")).toHaveCount(0);
+  } finally {
+    await harness.close();
+  }
+});
+
+test("new thread remains readable in dark mode", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const agentDir = join(userDataDir, "agent");
+  const workspacePath = await makeWorkspace("new-thread-dark-workspace");
+  await seedAgentDir(agentDir);
+  const harness = await launchDesktop(userDataDir, {
+    agentDir,
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+
+    await window.keyboard.press(desktopShortcut(","));
+    const settingsSurface = window.getByTestId("settings-surface");
+    await expect(settingsSurface).toBeVisible();
+    await settingsSurface.getByRole("button", { name: "Appearance", exact: true }).click();
+    await expect(window.locator(".view-header__title")).toHaveText("Appearance");
+    await settingsSurface.getByRole("radio", { name: "Dark" }).click();
+    await expect
+      .poll(() => window.evaluate(() => document.documentElement.classList.contains("dark")))
+      .toBe(true);
+
+    await openNewThread(window);
+
+    await expect(window.getByTestId("new-thread-logo")).toBeVisible();
+    await expect(window.getByRole("heading", { name: "Let's build" })).toBeVisible();
+    await expect(window.getByTestId("new-thread-composer")).toBeFocused();
+
+    const styles = await window.evaluate(() => {
+      function read(selector: string) {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) {
+          throw new Error(`Missing element: ${selector}`);
+        }
+        const computed = getComputedStyle(element);
+        return {
+          backgroundColor: computed.backgroundColor,
+          borderColor: computed.borderColor,
+          color: computed.color,
+        };
+      }
+
+      const main = read(".main");
+      const title = read(".new-thread__title");
+      const subtitle = read(".new-thread__subtitle");
+      const workspace = read(".new-thread__workspace .ui-select__button");
+      const composerSurface = read(".new-thread__composer .composer__surface");
+      const composerTextarea = read(".new-thread__textarea");
+      const localButton = read(".new-thread__environment--active");
+
+      return {
+        mainBackground: main.backgroundColor,
+        titleColor: title.color,
+        subtitleColor: subtitle.color,
+        workspaceBackground: workspace.backgroundColor,
+        workspaceBorder: workspace.borderColor,
+        workspaceColor: workspace.color,
+        composerBackground: composerSurface.backgroundColor,
+        composerBorder: composerSurface.borderColor,
+        composerColor: composerTextarea.color,
+        localButtonBackground: localButton.backgroundColor,
+        localButtonColor: localButton.color,
+      };
+    });
+
+    expect(contrastRatio(styles.titleColor, styles.mainBackground)).toBeGreaterThan(7);
+    expect(contrastRatio(styles.subtitleColor, styles.mainBackground)).toBeGreaterThan(4.5);
+    expect(contrastRatio(styles.workspaceColor, styles.workspaceBackground)).toBeGreaterThan(7);
+    expect(contrastRatio(styles.composerColor, styles.composerBackground)).toBeGreaterThan(7);
+    expect(contrastRatio(styles.localButtonColor, styles.localButtonBackground)).toBeGreaterThan(4.5);
+    expect(styles.workspaceBorder).not.toBe(styles.mainBackground);
+    expect(styles.composerBorder).not.toBe(styles.composerBackground);
   } finally {
     await harness.close();
   }

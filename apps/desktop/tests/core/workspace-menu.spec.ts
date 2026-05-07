@@ -44,11 +44,9 @@ test("supports workspace rename and remove from the sidebar menu", async () => {
       return latest.workspaces.find((entry) => entry.id === workspace.id)?.name;
     }).toBe("Renamed workspace");
 
-    window.once("dialog", (dialog) => {
-      void dialog.accept();
-    });
     await window.getByRole("button", { name: "Workspace actions for Renamed workspace" }).click();
     await window.getByRole("button", { name: "Remove" }).click();
+    await window.getByTestId("confirm-dialog").getByRole("button", { name: "Remove" }).click();
 
     await expect.poll(async () => {
       const latest = await getDesktopState(window);

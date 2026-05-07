@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 export class JsonFileStore<T> {
@@ -21,6 +21,10 @@ export class JsonFileStore<T> {
     const filePath = this.filePath(sessionKey);
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  }
+
+  async delete(sessionKey: string): Promise<void> {
+    await rm(this.filePath(sessionKey), { force: true });
   }
 
   private filePath(sessionKey: string): string {

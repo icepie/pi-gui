@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { PRELOAD_DEV_RELOAD_MARKER } from "./dev-reload-preload-probe";
 import {
   desktopIpc,
+  type AppNoticeRequest,
   type DesktopNotificationPermissionStatus,
   type PiDesktopCommand,
   type TerminalDataEvent,
@@ -9,6 +10,8 @@ import {
   type TerminalExitEvent,
   type TerminalPanelSnapshot,
   type TerminalSize,
+  type TextPromptRequest,
+  type WorkspaceFilePreview,
 } from "../src/ipc";
 import type { AppLocale } from "../src/i18n";
 import type {
@@ -99,6 +102,28 @@ contextBridge.exposeInMainWorld("piApp", {
       ipcRenderer.removeListener(desktopIpc.appCommand, handle);
     };
   },
+  onAppNoticeRequest: (listener: (request: AppNoticeRequest) => void) => {
+    const handle = (_event: Electron.IpcRendererEvent, request: AppNoticeRequest) => {
+      listener(request);
+    };
+    ipcRenderer.on(desktopIpc.appNoticeRequest, handle);
+    return () => {
+      ipcRenderer.removeListener(desktopIpc.appNoticeRequest, handle);
+    };
+  },
+  respondToAppNotice: (requestId: string) =>
+    ipcRenderer.invoke(desktopIpc.appNoticeResponse, requestId) as Promise<void>,
+  onTextPromptRequest: (listener: (request: TextPromptRequest) => void) => {
+    const handle = (_event: Electron.IpcRendererEvent, request: TextPromptRequest) => {
+      listener(request);
+    };
+    ipcRenderer.on(desktopIpc.textPromptRequest, handle);
+    return () => {
+      ipcRenderer.removeListener(desktopIpc.textPromptRequest, handle);
+    };
+  },
+  respondToTextPrompt: (requestId: string, value: string | null) =>
+    ipcRenderer.invoke(desktopIpc.textPromptResponse, requestId, value) as Promise<void>,
   onWorkspacePicked: (listener: (workspaceId: string) => void) => {
     const handle = (_event: Electron.IpcRendererEvent, workspaceId: string) => {
       listener(workspaceId);
@@ -260,8 +285,10 @@ contextBridge.exposeInMainWorld("piApp", {
     }>,
   listWorkspaceFiles: (workspaceId: string) =>
     ipcRenderer.invoke(desktopIpc.listWorkspaceFiles, workspaceId) as Promise<string[]>,
+  readWorkspaceFile: (workspaceId: string, filePath: string) =>
+    ipcRenderer.invoke(desktopIpc.readWorkspaceFile, workspaceId, filePath) as Promise<WorkspaceFilePreview | null>,
   getChangedFiles: (workspaceId: string) =>
-    ipcRenderer.invoke(desktopIpc.getChangedFiles, workspaceId) as Promise<{ path: string; status: "added" | "modified" | "deleted" | "untracked"; staged: boolean }[]>,
+    ipcRenderer.invoke(desktopIpc.getChangedFiles, workspaceId) as Promise<{ path: string; status: "added" | "modified" | "deleted" | "untracked"; staged: boolean; additions: number; deletions: number; binary: boolean }[]>,
   getFileDiff: (workspaceId: string, filePath: string) =>
     ipcRenderer.invoke(desktopIpc.getFileDiff, workspaceId, filePath) as Promise<string>,
   stageFile: (workspaceId: string, filePath: string) =>

@@ -132,10 +132,8 @@ test("keeps orphaned worktree workspaces visible after removing the root workspa
     assertExists(createdWorkspace, "Expected created worktree workspace");
 
     await window.getByRole("button", { name: `Workspace actions for ${rootWorkspace.name}` }).click();
-    window.once("dialog", (dialog) => {
-      void dialog.accept();
-    });
     await window.getByRole("button", { name: "Remove" }).click();
+    await window.getByTestId("confirm-dialog").getByRole("button", { name: "Remove" }).click();
 
     await expect(window.getByTestId("empty-state")).toHaveCount(0);
     await expect

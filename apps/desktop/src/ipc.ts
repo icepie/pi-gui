@@ -37,6 +37,10 @@ export const desktopIpc = {
   selectedTranscriptRequest: "pi-gui:selected-transcript-request",
   selectedTranscriptChanged: "pi-gui:selected-transcript-changed",
   appCommand: "pi-gui:app-command",
+  appNoticeRequest: "pi-gui:app-notice-request",
+  appNoticeResponse: "pi-gui:app-notice-response",
+  textPromptRequest: "pi-gui:text-prompt-request",
+  textPromptResponse: "pi-gui:text-prompt-response",
   workspacePicked: "pi-gui:workspace-picked",
   clipboardImagePasted: "pi-gui:clipboard-image-pasted",
   addWorkspacePath: "pi-gui:add-workspace-path",
@@ -108,6 +112,7 @@ export const desktopIpc = {
   navigateSessionTree: "pi-gui:navigate-session-tree",
   toggleWindowMaximize: "pi-gui:toggle-window-maximize",
   listWorkspaceFiles: "pi-gui:list-workspace-files",
+  readWorkspaceFile: "pi-gui:read-workspace-file",
   getChangedFiles: "pi-gui:get-changed-files",
   getFileDiff: "pi-gui:get-file-diff",
   stageFile: "pi-gui:stage-file",
@@ -134,6 +139,20 @@ export function getDesktopShortcutLabel(platform: NodeJS.Platform, key: string):
 export type PiDesktopStateListener = (state: DesktopAppState) => void;
 export type PiDesktopSelectedTranscriptListener = (payload: SelectedTranscriptRecord | null) => void;
 export type PiDesktopCommand = (typeof desktopCommands)[keyof typeof desktopCommands];
+
+export interface AppNoticeRequest {
+  readonly requestId: string;
+  readonly title: string;
+  readonly message: string;
+  readonly detail?: string;
+  readonly tone?: "default" | "warning";
+}
+
+export interface TextPromptRequest {
+  readonly requestId: string;
+  readonly message: string;
+  readonly placeholder: string;
+}
 
 export interface TerminalSize {
   readonly cols: number;
@@ -176,6 +195,19 @@ export interface TerminalExitEvent {
 export interface TerminalErrorEvent {
   readonly terminalId: string;
   readonly message: string;
+}
+
+export interface WorkspaceFilePreview {
+  readonly path: string;
+  readonly content: string;
+  readonly size: number;
+  readonly truncated: boolean;
+  readonly binary: boolean;
+  readonly media?: WorkspaceFilePreviewMedia;
+}
+
+export interface WorkspaceFilePreviewMedia {
+  readonly kind: "image" | "audio" | "video";
 }
 
 export interface DesktopShortcutInput {
@@ -225,6 +257,10 @@ export interface PiDesktopApi {
   getSelectedTranscript(): Promise<SelectedTranscriptRecord | null>;
   onSelectedTranscriptChanged(listener: PiDesktopSelectedTranscriptListener): () => void;
   onCommand(listener: (command: PiDesktopCommand) => void): () => void;
+  onAppNoticeRequest(listener: (request: AppNoticeRequest) => void): () => void;
+  respondToAppNotice(requestId: string): Promise<void>;
+  onTextPromptRequest(listener: (request: TextPromptRequest) => void): () => void;
+  respondToTextPrompt(requestId: string, value: string | null): Promise<void>;
   onWorkspacePicked(listener: (workspaceId: string) => void): () => void;
   onClipboardImagePasted(listener: (attachment: ComposerImageAttachment) => void): () => void;
   getPathForFile(file: File): string;
@@ -337,7 +373,8 @@ export interface PiDesktopApi {
     options?: NavigateSessionTreeOptions,
   ): Promise<{ readonly state: DesktopAppState; readonly result: NavigateSessionTreeResult }>;
   listWorkspaceFiles(workspaceId: string): Promise<string[]>;
-  getChangedFiles(workspaceId: string): Promise<{ path: string; status: "added" | "modified" | "deleted" | "untracked"; staged: boolean }[]>;
+  readWorkspaceFile(workspaceId: string, filePath: string): Promise<WorkspaceFilePreview | null>;
+  getChangedFiles(workspaceId: string): Promise<{ path: string; status: "added" | "modified" | "deleted" | "untracked"; staged: boolean; additions: number; deletions: number; binary: boolean }[]>;
   getFileDiff(workspaceId: string, filePath: string): Promise<string>;
   stageFile(workspaceId: string, filePath: string): Promise<void>;
   toggleWindowMaximize(): Promise<void>;

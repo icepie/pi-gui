@@ -1,5 +1,5 @@
-import type { MouseEvent as ReactMouseEvent, Dispatch, SetStateAction } from "react";
-import type { AppView, DesktopAppState, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import type { AppView, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
 import { DiffIcon, FolderIcon, TerminalIcon } from "./icons";
 import { getDesktopShortcutLabel, type PiDesktopApi } from "./ipc";
 import type { WorkspaceMenuState } from "./hooks/use-workspace-menu";
@@ -17,17 +17,12 @@ interface TopbarProps {
   readonly workspaces: readonly WorkspaceRecord[];
   readonly wsMenu: WorkspaceMenuState;
   readonly api: PiDesktopApi;
-  readonly setSnapshot: Dispatch<SetStateAction<DesktopAppState | null>>;
-  readonly updateSnapshot: (
-    api: PiDesktopApi,
-    setSnapshot: Dispatch<SetStateAction<DesktopAppState | null>>,
-    action: () => Promise<DesktopAppState>,
-  ) => Promise<DesktopAppState>;
   readonly terminalAvailable: boolean;
   readonly terminalVisible: boolean;
   readonly onToggleTerminal: () => void;
-  readonly showDiffPanel: boolean;
-  readonly onToggleDiffPanel: () => void;
+  readonly workspacePanelTab: "changes" | "files" | null;
+  readonly onToggleChangesPanel: () => void;
+  readonly onToggleFilesPanel: () => void;
   readonly showSidebarToggle: boolean;
   readonly sidebarCollapsed: boolean;
   readonly sidebarToggleShortcutLabel: string;
@@ -46,13 +41,12 @@ export function Topbar(props: TopbarProps) {
     workspaces,
     wsMenu,
     api,
-    setSnapshot,
-    updateSnapshot,
     terminalAvailable,
     terminalVisible,
     onToggleTerminal,
-    showDiffPanel,
-    onToggleDiffPanel,
+    workspacePanelTab,
+    onToggleChangesPanel,
+    onToggleFilesPanel,
     showSidebarToggle,
     sidebarCollapsed,
     sidebarToggleShortcutLabel,
@@ -170,9 +164,9 @@ export function Topbar(props: TopbarProps) {
         <div className="shortcut-tooltip-wrap topbar__tooltip-wrap">
           <button
             aria-label={t("topbar.toggle_changes")}
-            className={`icon-button topbar__icon ${showDiffPanel ? "icon-button--active" : ""}`}
+            className={`icon-button topbar__icon ${workspacePanelTab === "changes" ? "icon-button--active" : ""}`}
             type="button"
-            onClick={onToggleDiffPanel}
+            onClick={onToggleChangesPanel}
           >
             <DiffIcon />
           </button>
@@ -181,16 +175,20 @@ export function Topbar(props: TopbarProps) {
             <kbd>{diffShortcut}</kbd>
           </span>
         </div>
-        <button
-          aria-label={t("topbar.add_folder")}
-          className="icon-button topbar__icon"
-          type="button"
-          onClick={() => {
-            void updateSnapshot(api, setSnapshot, () => api.pickWorkspace());
-          }}
-        >
-          <FolderIcon />
-        </button>
+        <div className="shortcut-tooltip-wrap topbar__tooltip-wrap">
+          <button
+            aria-label={t("topbar.toggle_files")}
+            className={`icon-button topbar__icon ${workspacePanelTab === "files" ? "icon-button--active" : ""}`}
+            type="button"
+            onClick={onToggleFilesPanel}
+          >
+            <FolderIcon />
+          </button>
+          <span className="shortcut-tooltip topbar__tooltip" role="tooltip">
+            <span>{t("topbar.toggle_files")}</span>
+            <kbd>{diffShortcut}</kbd>
+          </span>
+        </div>
       </div>
     </header>
   );
