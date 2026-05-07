@@ -1,5 +1,5 @@
-appId: dev.icepie.icetea
-productName: ice tea
+appId: cn.fid.fit.pi-fit
+productName: pi-fit
 copyright: Copyright 2026 Matthew Lam
 electronVersion: 42.0.0
 generateUpdatesFilesForAllChannels: false
@@ -36,7 +36,7 @@ asarUnpack:
   - "**/node_modules/node-pty/**/*"
   - "**/node_modules/.pnpm/node-pty*/node_modules/node-pty/**/*"
 
-artifactName: pi-gui-${version}-${arch}.${ext}
+artifactName: pi-fit-${version}-${arch}.${ext}
 
 mac:
   category: public.app-category.developer-tools
@@ -55,7 +55,7 @@ mac:
 
 linux:
   category: Development
-  executableName: ice-tea
+  executableName: pi-fit
   maintainer: Matthew Lam <icepie.dev@gmail.com>
   target:
     - target: AppImage
@@ -63,21 +63,21 @@ linux:
     - target: rpm
 
 deb:
-  packageName: pi-gui
+  packageName: pi-fit
 
 rpm:
-  packageName: pi-gui
+  packageName: pi-fit
 
 win:
   target:
     - nsis
-  executableName: ice-tea
-  artifactName: pi-gui-${version}-${arch}-setup.${ext}
+  executableName: pi-fit
+  artifactName: pi-fit-${version}-${arch}-setup.${ext}
 
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: pi-gui-${version}-${arch}-setup.${ext}
+  artifactName: pi-fit-${version}-${arch}-setup.${ext}
 
 toolsets:
   appimage: "1.0.2"

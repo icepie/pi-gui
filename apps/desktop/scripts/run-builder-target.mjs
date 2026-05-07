@@ -251,7 +251,7 @@ function hasPackagedAppPayload(outputDir, options) {
 function candidatePayloadPaths(outputDir, options) {
   if (options.platform === "darwin") {
     return [
-      path.join(outputDir, `mac${options.arch === "arm64" ? "-arm64" : ""}`, "pi-gui.app", "Contents", "Resources", "app.asar"),
+      path.join(outputDir, `mac${options.arch === "arm64" ? "-arm64" : ""}`, "pi-fit.app", "Contents", "Resources", "app.asar"),
     ];
   }
   if (options.platform === "win32") {

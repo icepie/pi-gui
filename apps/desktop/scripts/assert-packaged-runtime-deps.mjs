@@ -39,7 +39,7 @@ const packageArch = (process.env.PI_APP_PACKAGE_ARCH ?? process.arch).trim().toL
 const asarPath = resolveAsarPath(desktopDir, packagePlatform);
 const notificationHelperPath =
   packagePlatform === "darwin"
-    ? path.join(desktopDir, "release", "mac-arm64", "pi-gui.app", "Contents", "MacOS", "pi-gui-notification-status-helper")
+    ? path.join(desktopDir, "release", "mac-arm64", "pi-fit.app", "Contents", "MacOS", "pi-gui-notification-status-helper")
     : undefined;
 const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@mariozechner/pi-coding-agent");
 
@@ -72,7 +72,7 @@ function resolveAsarPath(desktopDir, packagePlatform) {
       "release",
       `darwin-${packageArch}-dir`,
       `mac${packageArch === "arm64" ? "-arm64" : ""}`,
-      "pi-gui.app",
+      "pi-fit.app",
       "Contents",
       "Resources",
       "app.asar",
@@ -81,7 +81,7 @@ function resolveAsarPath(desktopDir, packagePlatform) {
       return targetScopedAsarPath;
     }
 
-    return path.join(desktopDir, "release", "mac-arm64", "pi-gui.app", "Contents", "Resources", "app.asar");
+    return path.join(desktopDir, "release", "mac-arm64", "pi-fit.app", "Contents", "Resources", "app.asar");
   }
 
   if (packagePlatform === "linux") {
