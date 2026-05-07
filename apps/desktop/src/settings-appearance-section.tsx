@@ -1,6 +1,6 @@
 import type { ThemeMode } from "./desktop-state";
-import { SettingsGroup, SettingsRow } from "./settings-utils";
-import { Radio, UIRadioGroup } from "./ui";
+import { SettingsGroup } from "./settings-utils";
+import { UIRadioGroup, UIRadioOption } from "./ui";
 import { t, type AppLocale } from "./i18n";
 
 interface SettingsAppearanceSectionProps {
@@ -27,18 +27,14 @@ export function SettingsAppearanceSection({ themeMode, onSetThemeMode, locale, o
       <SettingsGroup title={t("settings.theme")}>
         <UIRadioGroup value={themeMode} onChange={onSetThemeMode} aria-label={t("settings.theme")}>
           {themeOptions.map((option) => (
-            <SettingsRow key={option.mode} title={option.label} description={option.description}>
-              <Radio value={option.mode} className="ui-radio-dot" />
-            </SettingsRow>
+            <UIRadioOption key={option.mode} value={option.mode} label={option.label} description={option.description} />
           ))}
         </UIRadioGroup>
       </SettingsGroup>
       <SettingsGroup title={t("settings.language")}>
         <UIRadioGroup value={locale} onChange={onSetLocale} aria-label={t("settings.language")}>
           {languageOptions.map((option) => (
-            <SettingsRow key={option.locale} title={option.label} description={option.description}>
-              <Radio value={option.locale} className="ui-radio-dot" />
-            </SettingsRow>
+            <UIRadioOption key={option.locale} value={option.locale} label={option.label} description={option.description} />
           ))}
         </UIRadioGroup>
       </SettingsGroup>
