@@ -263,7 +263,7 @@ async function extractArchive(archivePath, outputDir) {
     if (extracted) {
       return;
     }
-    if (process.platform === "win32") {
+    if (canRunSelfExtractingArchive()) {
       await spawnChecked(archivePath, [`-o${outputDir}`, "-y"], desktopDir);
       return;
     }
@@ -276,7 +276,7 @@ async function extractArchive(archivePath, outputDir) {
 }
 
 async function tryExtractSevenZipSfx(archivePath, outputDir) {
-  const sevenZip = await findAvailableCommand(["7z", "7zz"]);
+  const sevenZip = await findAvailableCommand(["7z", "7zz", "7z.exe", "7zz.exe"]);
   if (sevenZip) {
     await spawnChecked(sevenZip, ["x", archivePath, `-o${outputDir}`, "-y"], desktopDir);
     return true;
@@ -289,6 +289,16 @@ async function tryExtractSevenZipSfx(archivePath, outputDir) {
   }
 
   return false;
+}
+
+function canRunSelfExtractingArchive() {
+  if (process.platform !== "win32") {
+    return false;
+  }
+  if (targetArch === "arm64") {
+    return process.arch === "arm64";
+  }
+  return true;
 }
 
 async function findGitBashRuntimeRoot(searchRoot) {
@@ -396,10 +406,14 @@ async function captureCommand(command, args) {
 }
 
 async function findAvailableCommand(candidates) {
+  if (process.platform === "win32") {
+    return findAvailableWindowsCommand(candidates);
+  }
+
   for (const candidate of candidates) {
     try {
       const resolved = (
-        await captureCommand(process.env.SHELL || "/bin/zsh", ["-lc", `command -v ${shellQuote(candidate)}`])
+        await captureCommand(process.env.SHELL || "/bin/sh", ["-lc", `command -v ${shellQuote(candidate)}`])
       ).trim();
       if (resolved) {
         return resolved;
@@ -409,6 +423,38 @@ async function findAvailableCommand(candidates) {
     }
   }
   return undefined;
+}
+
+async function findAvailableWindowsCommand(candidates) {
+  for (const candidate of candidates) {
+    try {
+      const resolved = (await captureCommand("where.exe", [candidate])).split(/\r?\n/)[0]?.trim();
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Try the next command.
+    }
+  }
+
+  for (const candidate of windowsCommandFallbackPaths(candidates)) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function windowsCommandFallbackPaths(candidates) {
+  const roots = [
+    process.env.ProgramFiles,
+    process.env["ProgramFiles(x86)"],
+    process.env.ProgramW6432,
+  ].filter(Boolean);
+  return roots.flatMap((root) =>
+    candidates.map((candidate) => path.join(root, "7-Zip", candidate)),
+  );
 }
 
 function escapePowerShell(value) {
