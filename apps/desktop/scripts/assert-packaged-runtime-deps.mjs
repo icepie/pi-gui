@@ -14,6 +14,7 @@ const requiredPackages = [
   "balanced-match",
   "brace-expansion",
   "chalk",
+  "clawhub",
   "glob",
   "hosted-git-info",
   "lru-cache",

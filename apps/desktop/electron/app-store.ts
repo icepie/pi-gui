@@ -173,6 +173,10 @@ export class DesktopAppStore implements AppStoreInternals {
     this.attachmentStore = new JsonFileStore<ComposerAttachment[]>(options.userDataDir, "attachments");
     this.initialWorkspacePaths = options.initialWorkspacePaths;
     this.getWindow = options.getWindow ?? (() => null);
+    this.state = {
+      ...this.state,
+      locale: process.env.PI_APP_LOCALE === "en-US" ? "en-US" : "zh-CN",
+    };
   }
 
   /* ── Lifecycle ──────────────────────────────────────────── */
@@ -255,6 +259,10 @@ export class DesktopAppStore implements AppStoreInternals {
 
   getWorkspacePath(workspaceId: string): string | undefined {
     return this.state.workspaces.find((w) => w.id === workspaceId)?.path;
+  }
+
+  getAgentDir(): string {
+    return this.driver.getAgentDir();
   }
 
   getSkillFilePath(workspaceId: string, filePath: string): string | undefined {

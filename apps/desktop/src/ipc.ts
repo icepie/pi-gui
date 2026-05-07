@@ -65,6 +65,9 @@ export const desktopIpc = {
   setActiveView: "pi-gui:set-active-view",
   setSidebarCollapsed: "pi-gui:set-sidebar-collapsed",
   refreshRuntime: "pi-gui:refresh-runtime",
+  listSkillCatalogSources: "pi-gui:list-skill-catalog-sources",
+  listSkillCatalog: "pi-gui:list-skill-catalog",
+  installSkillFromCatalog: "pi-gui:install-skill-from-catalog",
   setModelSettingsScopeMode: "pi-gui:set-model-settings-scope-mode",
   setDefaultModel: "pi-gui:set-default-model",
   setDefaultThinkingLevel: "pi-gui:set-default-thinking-level",
@@ -157,6 +160,43 @@ export interface TextPromptRequest {
 export interface TerminalSize {
   readonly cols: number;
   readonly rows: number;
+}
+
+export interface SkillCatalogSource {
+  readonly id: string;
+  readonly label: string;
+  readonly registryUrl: string;
+  readonly npmRegistryUrl: string;
+}
+
+export type SkillCatalogSort = "updated" | "newest" | "downloads" | "stars";
+
+export interface SkillCatalogQuery {
+  readonly sourceId: string;
+  readonly q?: string;
+  readonly sort?: SkillCatalogSort;
+  readonly limit?: number;
+}
+
+export interface SkillCatalogEntry {
+  readonly sourceId: string;
+  readonly slug: string;
+  readonly namespace?: string;
+  readonly displayName: string;
+  readonly summary: string;
+  readonly latestVersion?: string;
+  readonly downloads?: number;
+  readonly stars?: number;
+  readonly updatedAt?: number;
+  readonly installKey: string;
+}
+
+export interface SkillCatalogInstallInput {
+  readonly sourceId: string;
+  readonly slug: string;
+  readonly installKey?: string;
+  readonly version?: string;
+  readonly force?: boolean;
 }
 
 export type TerminalSessionStatus = "running" | "exited" | "error";
@@ -286,6 +326,9 @@ export interface PiDesktopApi {
   setActiveView(view: AppView): Promise<DesktopAppState>;
   setSidebarCollapsed(collapsed: boolean): Promise<DesktopAppState>;
   refreshRuntime(workspaceId?: string): Promise<DesktopAppState>;
+  listSkillCatalogSources(): Promise<readonly SkillCatalogSource[]>;
+  listSkillCatalog(input: SkillCatalogQuery): Promise<readonly SkillCatalogEntry[]>;
+  installSkillFromCatalog(workspaceId: string, input: SkillCatalogInstallInput): Promise<DesktopAppState>;
   setModelSettingsScopeMode(mode: ModelSettingsScopeMode): Promise<DesktopAppState>;
   setDefaultModel(workspaceId: string, provider: string, modelId: string): Promise<DesktopAppState>;
   setDefaultThinkingLevel(

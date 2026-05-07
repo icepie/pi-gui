@@ -176,6 +176,19 @@ type TranslationKey =
   | "skills.page_description"
   | "skills.new_skill"
   | "skills.search"
+  | "skills.catalog_title"
+  | "skills.catalog_description"
+  | "skills.catalog_search"
+  | "skills.catalog_empty"
+  | "skills.catalog_loading"
+  | "skills.catalog_error"
+  | "skills.catalog_refresh"
+  | "skills.catalog_source"
+  | "skills.install"
+  | "skills.installing"
+  | "skills.installed_version"
+  | "skills.downloads"
+  | "skills.stars"
   | "skills.empty"
   | "skills.empty_state_refresh"
   | "skills.empty_state_none_selected"
@@ -535,6 +548,19 @@ const EN_US: TranslationTable = {
   "skills.page_description": "Give pi workspace-specific capabilities and reusable workflows.",
   "skills.new_skill": "New skill",
   "skills.search": "Search skills",
+  "skills.catalog_title": "SkillHub",
+  "skills.catalog_description": "Browse installable skills from the built-in SkillHub source.",
+  "skills.catalog_search": "Search SkillHub",
+  "skills.catalog_empty": "No SkillHub skills found.",
+  "skills.catalog_loading": "Loading SkillHub skills...",
+  "skills.catalog_error": "Could not load SkillHub skills.",
+  "skills.catalog_refresh": "Refresh SkillHub",
+  "skills.catalog_source": "Source",
+  "skills.install": "Install",
+  "skills.installing": "Installing...",
+  "skills.installed_version": "Version {version}",
+  "skills.downloads": "{count} downloads",
+  "skills.stars": "{count} stars",
   "skills.empty": "No skills found",
   "skills.empty_state_refresh": "Refresh discovery or create a new skill for this workspace.",
   "skills.empty_state_none_selected": "Refresh runtime discovery to load workspace and user-level skills.",
@@ -895,6 +921,19 @@ const ZH_CN: TranslationTable = {
   "skills.page_description": "为 pi 提供工作区专属能力和可复用工作流。",
   "skills.new_skill": "新建技能",
   "skills.search": "搜索技能",
+  "skills.catalog_title": "SkillHub",
+  "skills.catalog_description": "从内置 SkillHub 源浏览并安装技能。",
+  "skills.catalog_search": "搜索 SkillHub",
+  "skills.catalog_empty": "未找到 SkillHub 技能。",
+  "skills.catalog_loading": "正在加载 SkillHub 技能...",
+  "skills.catalog_error": "无法加载 SkillHub 技能。",
+  "skills.catalog_refresh": "刷新 SkillHub",
+  "skills.catalog_source": "来源",
+  "skills.install": "安装",
+  "skills.installing": "安装中...",
+  "skills.installed_version": "版本 {version}",
+  "skills.downloads": "{count} 次下载",
+  "skills.stars": "{count} 星标",
   "skills.empty": "未找到技能",
   "skills.empty_state_refresh": "刷新发现结果，或为当前工作区创建一个新技能。",
   "skills.empty_state_none_selected": "刷新运行时发现结果以加载工作区和用户级技能。",

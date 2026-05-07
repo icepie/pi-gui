@@ -3170,6 +3170,97 @@
   margin-bottom: 12px;
 }
 
+.skills-catalog {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #dfe4ee;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--sidebar) 82%, white);
+}
+
+.skills-catalog__header,
+.skills-catalog__toolbar,
+.skills-catalog__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skills-catalog__header h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 660;
+}
+
+.skills-catalog__header p,
+.skills-catalog__item p,
+.skills-catalog__notice {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.skills-catalog__list {
+  display: grid;
+  gap: 8px;
+}
+
+.skills-catalog__item {
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #dfe4ee;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.skills-catalog__item-body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.skills-catalog__title-row {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skills-catalog__title-row h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.skills-catalog__title-row span {
+  color: var(--muted-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.skills-catalog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--muted-soft);
+  font-size: 11px;
+}
+
+.skills-catalog__meta span,
+.skills-catalog__notice {
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid #e2e7f0;
+  background: #f8fafc;
+}
+
 .skills-search {
   width: min(360px, 100%);
   min-height: 34px;
@@ -4058,6 +4149,9 @@
 
   .surface-toolbar,
   .skills-toolbar,
+  .skills-catalog__header,
+  .skills-catalog__toolbar,
+  .skills-catalog__item,
   .view-header__actions {
     flex-direction: column;
     align-items: stretch;
@@ -4462,7 +4556,9 @@ mark.thread-find-active {
   background: #181c1b;
 }
 
-:root.dark .skills-toolbar__stats span {
+:root.dark .skills-toolbar__stats span,
+:root.dark .skills-catalog__meta span,
+:root.dark .skills-catalog__notice {
   border-color: #252b2a;
   background: #1c1f1e;
 }
@@ -4591,6 +4687,8 @@ mark.thread-find-active {
 
 :root.dark .skill-card,
 :root.dark .skill-detail,
+:root.dark .skills-catalog,
+:root.dark .skills-catalog__item,
 :root.dark .sessions-list {
   border-color: var(--line);
   background: color-mix(in srgb, var(--surface) 88%, black 6%);

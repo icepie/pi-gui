@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { RuntimeSkillRecord, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { WorkspaceRecord } from "./desktop-state";
+import type { SkillCatalogEntry, SkillCatalogSource } from "./ipc";
 import { RefreshIcon } from "./icons";
 import { titleCase } from "./string-utils";
 import { t } from "./i18n";
@@ -12,6 +13,15 @@ interface SkillsViewProps {
   readonly onOpenSkillFolder: (filePath: string) => void;
   readonly onToggleSkill: (filePath: string, enabled: boolean) => void;
   readonly onTrySkill: (skill: RuntimeSkillRecord) => void;
+  readonly catalogSources: readonly SkillCatalogSource[];
+  readonly catalogSkills: readonly SkillCatalogEntry[];
+  readonly catalogLoading: boolean;
+  readonly catalogError?: string;
+  readonly catalogQuery: string;
+  readonly installingCatalogKey?: string;
+  readonly onCatalogQueryChange: (query: string) => void;
+  readonly onRefreshCatalog: () => void;
+  readonly onInstallCatalogSkill: (skill: SkillCatalogEntry) => void;
 }
 
 export function SkillsView({
@@ -21,6 +31,15 @@ export function SkillsView({
   onOpenSkillFolder,
   onToggleSkill,
   onTrySkill,
+  catalogSources,
+  catalogSkills,
+  catalogLoading,
+  catalogError,
+  catalogQuery,
+  installingCatalogKey,
+  onCatalogQueryChange,
+  onRefreshCatalog,
+  onInstallCatalogSkill,
 }: SkillsViewProps) {
   const [query, setQuery] = useState("");
   const [selectedSkillPath, setSelectedSkillPath] = useState<string | undefined>();
@@ -88,6 +107,76 @@ export function SkillsView({
             </button>
           </div>
         </header>
+
+        <section className="skills-catalog" aria-label={t("skills.catalog_title")}>
+          <div className="skills-catalog__header">
+            <div>
+              <div className="skill-detail__eyebrow">{t("skills.catalog_source")}</div>
+              <h2>{t("skills.catalog_title")}</h2>
+              <p>{t("skills.catalog_description")}</p>
+            </div>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={onRefreshCatalog}
+              disabled={catalogLoading}
+            >
+              <RefreshIcon />
+              <span>{t("skills.catalog_refresh")}</span>
+            </button>
+          </div>
+          <div className="skills-catalog__toolbar">
+            <input
+              aria-label={t("skills.catalog_search")}
+              className="skills-search"
+              placeholder={t("skills.catalog_search")}
+              value={catalogQuery}
+              onChange={(event) => onCatalogQueryChange(event.target.value)}
+            />
+            <div className="skills-toolbar__stats">
+              {catalogSources.map((source) => (
+                <span key={source.id}>{source.registryUrl}</span>
+              ))}
+            </div>
+          </div>
+          {catalogError ? (
+            <div className="skills-catalog__notice">{catalogError || t("skills.catalog_error")}</div>
+          ) : catalogLoading ? (
+            <div className="skills-catalog__notice">{t("skills.catalog_loading")}</div>
+          ) : catalogSkills.length === 0 ? (
+            <div className="skills-catalog__notice">{t("skills.catalog_empty")}</div>
+          ) : (
+            <div className="skills-catalog__list" data-testid="skillhub-list">
+              {catalogSkills.map((skill) => {
+                const installing = installingCatalogKey === skill.installKey;
+                return (
+                  <article className="skills-catalog__item" key={`${skill.sourceId}:${skill.installKey}`}>
+                    <div className="skills-catalog__item-body">
+                      <div className="skills-catalog__title-row">
+                        <h3>{skill.displayName}</h3>
+                        <span>{skill.installKey}</span>
+                      </div>
+                      <p>{skill.summary || skill.slug}</p>
+                      <div className="skills-catalog__meta">
+                        {skill.latestVersion ? <span>{t("skills.installed_version", { version: skill.latestVersion })}</span> : null}
+                        {typeof skill.downloads === "number" ? <span>{t("skills.downloads", { count: skill.downloads })}</span> : null}
+                        {typeof skill.stars === "number" ? <span>{t("skills.stars", { count: skill.stars })}</span> : null}
+                      </div>
+                    </div>
+                    <button
+                      className="button button--primary"
+                      type="button"
+                      onClick={() => onInstallCatalogSkill(skill)}
+                      disabled={installing || Boolean(installingCatalogKey)}
+                    >
+                      {installing ? t("skills.installing") : t("skills.install")}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <div className="skills-toolbar">
           <input

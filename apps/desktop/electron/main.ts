@@ -24,11 +24,22 @@ import { NotificationManager } from "./notification-manager";
 import {
   NotificationPermissionService,
 } from "./notification-permission";
+import {
+  configureChinaNpmRegistryDefaults,
+  installSkillFromCatalog,
+  listSkillCatalog,
+  listSkillCatalogSources,
+} from "./skill-catalog";
 import { checkForUpdate } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
 import type { DesktopAppState, ThemeMode, AppLocale } from "../src/desktop-state";
-import { desktopIpc, getDesktopCommandFromShortcut } from "../src/ipc";
+import {
+  desktopIpc,
+  getDesktopCommandFromShortcut,
+  type SkillCatalogInstallInput,
+  type SkillCatalogQuery,
+} from "../src/ipc";
 import { SUPPORTED_COMPOSER_IMAGE_TYPES } from "../src/composer-attachments";
 import type {
   ComposerAttachment,
@@ -445,6 +456,7 @@ function installApplicationMenu(): void {
 }
 
 app.setName("pi");
+configureChinaNpmRegistryDefaults();
 
 const configuredUserDataDir = process.env.PI_APP_USER_DATA_DIR?.trim() || app.getPath("userData");
 app.setPath("userData", configuredUserDataDir);
@@ -632,6 +644,12 @@ app.whenReady().then(async () => {
     store.setSidebarCollapsed(collapsed),
   );
   ipcMain.handle(desktopIpc.refreshRuntime, (_event, workspaceId?: string) => store.refreshRuntime(workspaceId));
+  ipcMain.handle(desktopIpc.listSkillCatalogSources, () => listSkillCatalogSources());
+  ipcMain.handle(desktopIpc.listSkillCatalog, (_event, input: SkillCatalogQuery) => listSkillCatalog(input));
+  ipcMain.handle(desktopIpc.installSkillFromCatalog, async (_event, workspaceId: string, input: SkillCatalogInstallInput) => {
+    await installSkillFromCatalog(store.getAgentDir(), input);
+    return store.refreshRuntime(workspaceId);
+  });
   ipcMain.handle(desktopIpc.setModelSettingsScopeMode, (_event, mode) => store.setModelSettingsScopeMode(mode));
   ipcMain.handle(desktopIpc.setSessionModel, (_event, workspaceId: string, sessionId: string, provider: string, modelId: string) =>
     store.setSessionModel({ workspaceId, sessionId }, provider, modelId),

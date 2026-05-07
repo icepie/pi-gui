@@ -67,6 +67,36 @@ Use this skill when the user wants a short demo workflow.
   }
 });
 
+test("installs a skill from the built-in SkillHub source", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("skillhub-install-workspace");
+
+  const harness = await launchDesktop(userDataDir, {
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+    envOverrides: {
+      PI_APP_TEST_SKILLHUB_FIXTURE: "1",
+    },
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await createNamedThread(window, "SkillHub install session");
+
+    await window.getByRole("button", { name: "Skills", exact: true }).click();
+    await expect(window.locator(".skills-view")).toBeVisible();
+    await expect(window.getByTestId("skillhub-list")).toContainText("Hub Demo");
+
+    await window.getByRole("button", { name: "Install", exact: true }).click();
+    await expect(window.getByTestId("skills-list")).toContainText("Hub Demo");
+    await window.getByRole("button", { name: /Hub Demo/i }).click();
+    await expect(window.locator(".skill-detail")).toContainText("/skill:hub-demo");
+  } finally {
+    await harness.close();
+  }
+});
+
 test("matches skill slash commands by skill name aliases", async () => {
   test.setTimeout(60_000);
   const userDataDir = await makeUserDataDir();

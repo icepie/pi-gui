@@ -5,6 +5,10 @@ import {
   type AppNoticeRequest,
   type DesktopNotificationPermissionStatus,
   type PiDesktopCommand,
+  type SkillCatalogEntry,
+  type SkillCatalogInstallInput,
+  type SkillCatalogQuery,
+  type SkillCatalogSource,
   type TerminalDataEvent,
   type TerminalErrorEvent,
   type TerminalExitEvent,
@@ -185,6 +189,12 @@ contextBridge.exposeInMainWorld("piApp", {
     ipcRenderer.invoke(desktopIpc.setSidebarCollapsed, collapsed) as Promise<DesktopAppState>,
   refreshRuntime: (workspaceId?: string) =>
     ipcRenderer.invoke(desktopIpc.refreshRuntime, workspaceId) as Promise<DesktopAppState>,
+  listSkillCatalogSources: () =>
+    ipcRenderer.invoke(desktopIpc.listSkillCatalogSources) as Promise<readonly SkillCatalogSource[]>,
+  listSkillCatalog: (input: SkillCatalogQuery) =>
+    ipcRenderer.invoke(desktopIpc.listSkillCatalog, input) as Promise<readonly SkillCatalogEntry[]>,
+  installSkillFromCatalog: (workspaceId: string, input: SkillCatalogInstallInput) =>
+    ipcRenderer.invoke(desktopIpc.installSkillFromCatalog, workspaceId, input) as Promise<DesktopAppState>,
   setModelSettingsScopeMode: (mode: "app-global" | "per-repo") =>
     ipcRenderer.invoke(desktopIpc.setModelSettingsScopeMode, mode) as Promise<DesktopAppState>,
   setDefaultModel: (workspaceId: string, provider: string, modelId: string) =>

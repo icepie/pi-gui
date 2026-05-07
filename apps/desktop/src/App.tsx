@@ -26,6 +26,8 @@ import {
   type AppNoticeRequest,
   type DesktopNotificationPermissionStatus,
   type PiDesktopCommand,
+  type SkillCatalogEntry,
+  type SkillCatalogSource,
   type TextPromptRequest,
 } from "./ipc";
 import { deriveModelOnboardingState } from "./model-onboarding";
@@ -63,6 +65,7 @@ const WORKSPACE_PANEL_WIDTH_STORAGE_KEY = "pi-gui:workspace-panel-width";
 const DEFAULT_WORKSPACE_PANEL_WIDTH = 400;
 const MIN_WORKSPACE_PANEL_WIDTH = 320;
 const MAX_WORKSPACE_PANEL_WIDTH = 720;
+const DEFAULT_SKILL_CATALOG_SOURCE_ID = "skillhub-singzer";
 
 function useDesktopAppState() {
   const [snapshot, setSnapshot] = useState<DesktopAppState | null>(null);
@@ -181,6 +184,12 @@ export default function App() {
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [settingsWorkspaceId, setSettingsWorkspaceId] = useState("");
   const [skillsWorkspaceId, setSkillsWorkspaceId] = useState("");
+  const [skillCatalogSources, setSkillCatalogSources] = useState<readonly SkillCatalogSource[]>([]);
+  const [skillCatalogEntries, setSkillCatalogEntries] = useState<readonly SkillCatalogEntry[]>([]);
+  const [skillCatalogQuery, setSkillCatalogQuery] = useState("");
+  const [skillCatalogLoading, setSkillCatalogLoading] = useState(false);
+  const [skillCatalogError, setSkillCatalogError] = useState<string | undefined>();
+  const [installingSkillCatalogKey, setInstallingSkillCatalogKey] = useState<string | undefined>();
   const [extensionsWorkspaceId, setExtensionsWorkspaceId] = useState("");
   const [pendingNewThreadWorkspaceId, setPendingNewThreadWorkspaceId] = useState("");
   const [newThreadRootWorkspaceId, setNewThreadRootWorkspaceId] = useState("");
@@ -236,6 +245,46 @@ export default function App() {
   const [disableTimelineVirtualization, setDisableTimelineVirtualization] = useState(true);
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
+
+  const refreshSkillCatalog = useCallback((query = skillCatalogQuery) => {
+    const piApi = window.piApp;
+    if (!piApi) {
+      return;
+    }
+    setSkillCatalogLoading(true);
+    setSkillCatalogError(undefined);
+    void Promise.all([
+      piApi.listSkillCatalogSources(),
+      piApi.listSkillCatalog({
+        sourceId: DEFAULT_SKILL_CATALOG_SOURCE_ID,
+        q: query,
+        limit: 50,
+      }),
+    ])
+      .then(([sources, entries]) => {
+        setSkillCatalogSources(sources);
+        setSkillCatalogEntries(entries);
+      })
+      .catch((error: unknown) => {
+        setSkillCatalogError(error instanceof Error ? error.message : t("skills.catalog_error"));
+        setSkillCatalogEntries([]);
+      })
+      .finally(() => {
+        setSkillCatalogLoading(false);
+      });
+  }, [skillCatalogQuery]);
+
+  useEffect(() => {
+    if (snapshot?.activeView !== "skills") {
+      return undefined;
+    }
+    const timeout = window.setTimeout(() => {
+      refreshSkillCatalog(skillCatalogQuery);
+    }, 150);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [refreshSkillCatalog, skillCatalogQuery, snapshot?.activeView]);
 
   useEffect(() => {
     if (!api?.onAppNoticeRequest) {
@@ -1785,6 +1834,29 @@ export default function App() {
     slashMenu.fillComposerFromSlash(command);
   };
 
+  const handleInstallCatalogSkill = (skill: SkillCatalogEntry) => {
+    if (!api || !skillsWorkspace) {
+      return;
+    }
+    setInstallingSkillCatalogKey(skill.installKey);
+    setSkillCatalogError(undefined);
+    void updateSnapshot(api, setSnapshot, () =>
+      api.installSkillFromCatalog(skillsWorkspace.id, {
+        sourceId: skill.sourceId,
+        slug: skill.slug,
+        installKey: skill.installKey,
+        version: skill.latestVersion,
+        force: true,
+      }),
+    )
+      .catch((error: unknown) => {
+        setSkillCatalogError(error instanceof Error ? error.message : t("skills.catalog_error"));
+      })
+      .finally(() => {
+        setInstallingSkillCatalogKey(undefined);
+      });
+  };
+
   const handleSetThemeMode = (mode: "system" | "light" | "dark") => {
     if (!api) return;
     setThemeMode(mode);
@@ -2089,6 +2161,15 @@ export default function App() {
         <SkillsView
           workspace={skillsWorkspace}
           runtime={skillsRuntime}
+          catalogSources={skillCatalogSources}
+          catalogSkills={skillCatalogEntries}
+          catalogLoading={skillCatalogLoading}
+          catalogError={skillCatalogError}
+          catalogQuery={skillCatalogQuery}
+          installingCatalogKey={installingSkillCatalogKey}
+          onCatalogQueryChange={setSkillCatalogQuery}
+          onRefreshCatalog={() => refreshSkillCatalog(skillCatalogQuery)}
+          onInstallCatalogSkill={handleInstallCatalogSkill}
           onOpenSkillFolder={handleOpenSkillFolder}
           onRefresh={() => {
             if (!skillsWorkspace) {
