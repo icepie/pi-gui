@@ -22,6 +22,11 @@ type TranslationKey =
   | "common.open_folder_to_start_description"
   | "common.open_folder_to_start_description_multi"
   | "common.create_thread_description"
+  | "account.login_title"
+  | "account.login_description"
+  | "account.login_button"
+  | "account.login_pending"
+  | "account.required_note"
   | "composer.placeholder"
   | "composer.hint_running"
   | "composer.hint_idle"
@@ -237,6 +242,17 @@ type TranslationKey =
   | "settings.title"
   | "settings.select_workspace"
   | "settings.select_workspace_description"
+  | "settings.profile"
+  | "settings.profile_description"
+  | "settings.profile.account"
+  | "settings.profile.account_description"
+  | "settings.profile.unknown_user"
+  | "settings.profile.user_id"
+  | "settings.profile.username"
+  | "settings.profile.email"
+  | "settings.profile.phone"
+  | "settings.profile.logout"
+  | "settings.profile.logout_description"
   | "settings.appearance"
   | "settings.appearance_description"
   | "settings.language"
@@ -406,6 +422,11 @@ const EN_US: TranslationTable = {
   "common.open_folder_to_start_description": "Add a project folder before creating a new thread.",
   "common.open_folder_to_start_description_multi": "Add project folders, group sessions under them, and jump between threads from the sidebar.",
   "common.create_thread_description": "Create a thread for this folder, then jump between sessions from the sidebar.",
+  "account.login_title": "Sign in with DingTalk",
+  "account.login_description": "pi-fit uses your Feidu account to load available models and route requests through the internal AI service.",
+  "account.login_button": "Sign in with DingTalk",
+  "account.login_pending": "Waiting for DingTalk login...",
+  "account.required_note": "Sign-in is required before using the desktop agent.",
   "composer.placeholder": "Ask pi to inspect the repo, run a fix, or continue the current thread...",
   "composer.hint_running": "{runningLabel} · Enter to queue · Cmd+Enter to steer",
   "composer.hint_idle": "Enter to send · Shift+Enter for newline",
@@ -621,6 +642,17 @@ const EN_US: TranslationTable = {
   "settings.title": "Settings",
   "settings.select_workspace": "Select a workspace",
   "settings.select_workspace_description": "Provider and skill settings need a selected workspace.",
+  "settings.profile": "Profile",
+  "settings.profile_description": "View your Feidu account and synced internal AI configuration.",
+  "settings.profile.account": "Account",
+  "settings.profile.account_description": "This account is used for model access and internal AI requests.",
+  "settings.profile.unknown_user": "Feidu user",
+  "settings.profile.user_id": "User ID",
+  "settings.profile.username": "Username",
+  "settings.profile.email": "Email",
+  "settings.profile.phone": "Phone",
+  "settings.profile.logout": "Log out",
+  "settings.profile.logout_description": "Sign out of this Feidu account on this device.",
   "settings.appearance": "Appearance",
   "settings.appearance_description": "Choose between light, dark, or automatic system theme.",
   "settings.language": "Language",
@@ -789,6 +821,11 @@ const ZH_CN: TranslationTable = {
   "common.open_folder_to_start_description": "创建新线程前，请先添加一个项目文件夹。",
   "common.open_folder_to_start_description_multi": "添加项目文件夹，将会话分组管理，并从侧边栏切换线程。",
   "common.create_thread_description": "为此文件夹创建一个线程，然后从侧边栏切换会话。",
+  "account.login_title": "使用钉钉登录",
+  "account.login_description": "pi-fit 会使用你的飞度账号加载可用模型，并通过内部 AI 服务发送请求。",
+  "account.login_button": "钉钉登录",
+  "account.login_pending": "等待钉钉登录中...",
+  "account.required_note": "登录后才能继续使用桌面 Agent。",
   "composer.placeholder": "让 pi 检查仓库、修复问题，或继续当前线程...",
   "composer.hint_running": "{runningLabel} · Enter 排队 · Cmd+Enter 引导",
   "composer.hint_idle": "Enter 发送 · Shift+Enter 换行",
@@ -1004,6 +1041,17 @@ const ZH_CN: TranslationTable = {
   "settings.title": "设置",
   "settings.select_workspace": "选择工作区",
   "settings.select_workspace_description": "Provider 和技能设置需要先选中一个工作区。",
+  "settings.profile": "个人中心",
+  "settings.profile_description": "查看你的飞度账号和已同步的内部 AI 配置。",
+  "settings.profile.account": "账号",
+  "settings.profile.account_description": "此账号用于模型访问和内部 AI 请求。",
+  "settings.profile.unknown_user": "飞度用户",
+  "settings.profile.user_id": "用户 ID",
+  "settings.profile.username": "用户名",
+  "settings.profile.email": "邮箱",
+  "settings.profile.phone": "手机号",
+  "settings.profile.logout": "登出",
+  "settings.profile.logout_description": "在此设备上退出当前飞度账号。",
   "settings.appearance": "外观",
   "settings.appearance_description": "选择浅色、深色或跟随系统主题。",
   "settings.language": "语言",

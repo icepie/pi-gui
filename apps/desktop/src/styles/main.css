@@ -3033,6 +3033,50 @@
   font-size: 13px;
 }
 
+.account-gate {
+  width: min(440px, calc(100vw - 40px));
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+}
+
+.account-gate__mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--text-strong);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.account-gate h1 {
+  margin: 0 0 8px;
+  color: var(--text-strong);
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.account-gate p {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.account-gate__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .settings-toggle--inline {
   display: inline-flex;
   align-items: center;

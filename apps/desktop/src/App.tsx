@@ -134,6 +134,14 @@ function updateSnapshot(
   });
 }
 
+function isSelectableModel(
+  provider: string | undefined,
+  modelId: string | undefined,
+  selectableSet: ReadonlySet<string>,
+): boolean {
+  return Boolean(provider && modelId && selectableSet.has(`${provider}:${modelId}`));
+}
+
 function isEventInsideTerminal(event: globalThis.KeyboardEvent): boolean {
   const target = event.target;
   return target instanceof Element && Boolean(target.closest("[data-pi-terminal]"));
@@ -208,6 +216,7 @@ export default function App() {
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<DesktopNotificationPermissionStatus>("unknown");
   const [notificationPermissionPending, setNotificationPermissionPending] = useState(false);
+  const [platformLoginPending, setPlatformLoginPending] = useState(false);
   const [dockExpandedBySession, setDockExpandedBySession] = useState<Record<string, boolean>>({});
   const [treeModalState, setTreeModalState] = useState<{
     readonly open: boolean;
@@ -249,6 +258,17 @@ export default function App() {
   const [disableTimelineVirtualization, setDisableTimelineVirtualization] = useState(true);
   const threadSearch = useThreadSearch(timelinePaneRef);
   const api = window.piApp;
+
+  const handlePlatformLogin = useCallback(() => {
+    if (!api?.loginPlatformAccount) {
+      return;
+    }
+    setPlatformLoginPending(true);
+    void updateSnapshot(api, setSnapshot, () => api.loginPlatformAccount())
+      .finally(() => {
+        setPlatformLoginPending(false);
+      });
+  }, [api]);
 
   const refreshSkillCatalog = useCallback((
     query = skillCatalogQuery,
@@ -472,22 +492,38 @@ export default function App() {
   const newThreadWorkspace =
     rootWorkspaceOptions.find((entry) => entry.id === newThreadRootWorkspaceId) ?? rootWorkspaceOptions[0];
   const newThreadRuntime = snapshot ? getEffectiveModelRuntime(snapshot, newThreadWorkspace) : undefined;
-  const newThreadDefaultEnabled = buildModelOptions(newThreadRuntime).some(
-    (m) => m.providerId === newThreadRuntime?.settings.defaultProvider && m.modelId === newThreadRuntime?.settings.defaultModelId,
+  const newThreadSelectableSet = new Set(buildModelOptions(newThreadRuntime).map((model) => `${model.providerId}:${model.modelId}`));
+  const selectedSelectableSet = new Set(buildModelOptions(selectedModelRuntime).map((model) => `${model.providerId}:${model.modelId}`));
+  const newThreadDefaultEnabled = isSelectableModel(
+    newThreadRuntime?.settings.defaultProvider,
+    newThreadRuntime?.settings.defaultModelId,
+    newThreadSelectableSet,
   );
-  const selectedDefaultEnabled = buildModelOptions(selectedModelRuntime).some(
-    (m) => m.providerId === selectedModelRuntime?.settings.defaultProvider && m.modelId === selectedModelRuntime?.settings.defaultModelId,
+  const selectedDefaultEnabled = isSelectableModel(
+    selectedModelRuntime?.settings.defaultProvider,
+    selectedModelRuntime?.settings.defaultModelId,
+    selectedSelectableSet,
   );
-  const resolvedSessionProvider =
-    selectedSession?.config?.provider ??
-    (selectedDefaultEnabled ? selectedModelRuntime?.settings.defaultProvider : undefined);
-  const resolvedSessionModelId =
-    selectedSession?.config?.modelId ??
-    (selectedDefaultEnabled ? selectedModelRuntime?.settings.defaultModelId : undefined);
+  const sessionConfiguredModelEnabled = isSelectableModel(
+    selectedSession?.config?.provider,
+    selectedSession?.config?.modelId,
+    selectedSelectableSet,
+  );
+  const newThreadConfiguredModelEnabled = isSelectableModel(newThreadProvider, newThreadModelId, newThreadSelectableSet);
+  const resolvedSessionProvider = sessionConfiguredModelEnabled
+    ? selectedSession?.config?.provider
+    : (selectedDefaultEnabled ? selectedModelRuntime?.settings.defaultProvider : undefined);
+  const resolvedSessionModelId = sessionConfiguredModelEnabled
+    ? selectedSession?.config?.modelId
+    : (selectedDefaultEnabled ? selectedModelRuntime?.settings.defaultModelId : undefined);
   const resolvedSessionThinkingLevel =
     selectedSession?.config?.thinkingLevel ?? selectedModelRuntime?.settings.defaultThinkingLevel;
-  const resolvedNewThreadProvider = newThreadProvider ?? (newThreadDefaultEnabled ? newThreadRuntime?.settings.defaultProvider : undefined);
-  const resolvedNewThreadModelId = newThreadModelId ?? (newThreadDefaultEnabled ? newThreadRuntime?.settings.defaultModelId : undefined);
+  const resolvedNewThreadProvider = newThreadConfiguredModelEnabled
+    ? newThreadProvider
+    : (newThreadDefaultEnabled ? newThreadRuntime?.settings.defaultProvider : undefined);
+  const resolvedNewThreadModelId = newThreadConfiguredModelEnabled
+    ? newThreadModelId
+    : (newThreadDefaultEnabled ? newThreadRuntime?.settings.defaultModelId : undefined);
   const resolvedNewThreadThinkingLevel = newThreadThinkingLevel ?? newThreadRuntime?.settings.defaultThinkingLevel;
   const selectedSessionModelOnboarding = deriveModelOnboardingState(selectedModelRuntime, {
     provider: resolvedSessionProvider,
@@ -1427,6 +1463,35 @@ export default function App() {
     );
   }
 
+  if (!snapshot.platformAccount.authenticated) {
+    return (
+      <div className="shell shell--loading">
+        <main className="account-gate" data-testid="platform-login-gate">
+          <div className="account-gate__mark">pi</div>
+          <div>
+            <h1>{t("account.login_title")}</h1>
+            <p>{t("account.login_description")}</p>
+          </div>
+          {snapshot.platformAccount.lastError || snapshot.lastError ? (
+            <p className="settings-warning">{snapshot.platformAccount.lastError ?? snapshot.lastError}</p>
+          ) : (
+            <p>{t("account.required_note")}</p>
+          )}
+          <div className="account-gate__actions">
+            <button
+              className="button button--primary"
+              disabled={platformLoginPending}
+              type="button"
+              onClick={handlePlatformLogin}
+            >
+              {platformLoginPending ? t("account.login_pending") : t("account.login_button")}
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const showTerminalTakeover = isTerminalVisibleForSelectedThread && isTerminalTakeoverForSelectedThread && Boolean(selectedWorkspace);
   const mainClassName = [
     "main",
@@ -1745,6 +1810,13 @@ export default function App() {
       return;
     }
     void updateSnapshot(api, setSnapshot, () => api.setModelSettingsScopeMode(mode));
+  };
+
+  const handleLogoutPlatformAccount = () => {
+    if (!api) {
+      return;
+    }
+    void updateSnapshot(api, setSnapshot, () => api.logoutPlatformAccount());
   };
 
   const handleLoginProvider = (providerId: string) => {
@@ -2091,6 +2163,7 @@ export default function App() {
   };
 
   const settingsNav = [
+    { id: "profile", label: t("settings.profile") },
     { id: "appearance", label: t("settings.appearance") },
     { id: "general", label: t("settings.general") },
     { id: "providers", label: t("settings.providers") },
@@ -2125,6 +2198,7 @@ export default function App() {
           workspace={settingsWorkspace}
           runtime={settingsSection === "models" ? settingsModelRuntime : settingsRuntime}
           section={settingsSection}
+          platformAccount={snapshot.platformAccount}
           notificationPreferences={snapshot.notificationPreferences}
           notificationPermissionStatus={notificationPermissionStatus}
           notificationPermissionPending={notificationPermissionPending}
@@ -2132,6 +2206,7 @@ export default function App() {
           integratedTerminalShell={snapshot.integratedTerminalShell}
           themeMode={themeMode}
           locale={snapshot.locale}
+          onLogoutPlatformAccount={handleLogoutPlatformAccount}
           onLoginProvider={handleLoginProvider}
           onLogoutProvider={handleLogoutProvider}
           onSetProviderApiKey={handleSetProviderApiKey}
@@ -2276,6 +2351,8 @@ export default function App() {
           onOpenSkills={openSkills}
           onOpenExtensions={openExtensions}
           onOpenSettings={openSettings}
+          onOpenProfile={(workspaceId) => openSettings(workspaceId, "profile")}
+          platformAccount={snapshot.platformAccount}
           onArchiveSession={handleArchiveSession}
           onSelectSession={handleSelectSession}
           onUnarchiveSession={handleUnarchiveSession}

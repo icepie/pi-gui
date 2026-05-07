@@ -18,6 +18,7 @@ import type {
   DesktopAppState,
   ModelSettingsScopeMode,
   NotificationPreferences,
+  PlatformAccountState,
   RemoveWorktreeInput,
   SelectedTranscriptRecord,
   StartThreadInput,
@@ -65,6 +66,9 @@ export const desktopIpc = {
   setActiveView: "pi-gui:set-active-view",
   setSidebarCollapsed: "pi-gui:set-sidebar-collapsed",
   refreshRuntime: "pi-gui:refresh-runtime",
+  getPlatformAccount: "pi-gui:get-platform-account",
+  loginPlatformAccount: "pi-gui:login-platform-account",
+  logoutPlatformAccount: "pi-gui:logout-platform-account",
   listSkillCatalogSources: "pi-gui:list-skill-catalog-sources",
   listSkillCatalog: "pi-gui:list-skill-catalog",
   installSkillFromCatalog: "pi-gui:install-skill-from-catalog",
@@ -327,6 +331,9 @@ export interface PiDesktopApi {
   setActiveView(view: AppView): Promise<DesktopAppState>;
   setSidebarCollapsed(collapsed: boolean): Promise<DesktopAppState>;
   refreshRuntime(workspaceId?: string): Promise<DesktopAppState>;
+  getPlatformAccount(): Promise<PlatformAccountState>;
+  loginPlatformAccount(): Promise<DesktopAppState>;
+  logoutPlatformAccount(): Promise<DesktopAppState>;
   listSkillCatalogSources(): Promise<readonly SkillCatalogSource[]>;
   listSkillCatalog(input: SkillCatalogQuery): Promise<readonly SkillCatalogEntry[]>;
   installSkillFromCatalog(workspaceId: string, input: SkillCatalogInstallInput): Promise<DesktopAppState>;

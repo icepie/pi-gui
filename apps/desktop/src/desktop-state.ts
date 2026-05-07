@@ -131,6 +131,26 @@ export interface WorkspaceRecord {
   readonly sessions: readonly SessionRecord[];
 }
 
+export interface PlatformAccountUser {
+  readonly id: string;
+  readonly name: string;
+  readonly username?: string;
+  readonly avatar?: string;
+  readonly email?: string;
+  readonly phone?: string;
+}
+
+export interface PlatformAccountState {
+  readonly authenticated: boolean;
+  readonly providerId: "feidu";
+  readonly baseUrl: string;
+  readonly user?: PlatformAccountUser;
+  readonly modelIds: readonly string[];
+  readonly defaultModelId?: string;
+  readonly lastSyncedAt?: string;
+  readonly lastError?: string;
+}
+
 export interface CreateWorktreeInput {
   readonly workspaceId: string;
   readonly fromSessionWorkspaceId?: string;
@@ -176,6 +196,7 @@ export interface DesktopAppState {
   readonly globalModelSettings: ModelSettingsSnapshot;
   readonly sidebarCollapsed: boolean;
   readonly locale: AppLocale;
+  readonly platformAccount: PlatformAccountState;
   readonly revision: number;
   readonly lastError?: string;
 }
@@ -220,6 +241,12 @@ export function createEmptyDesktopAppState(): DesktopAppState {
     },
     sidebarCollapsed: false,
     locale: "zh-CN",
+    platformAccount: {
+      authenticated: false,
+      providerId: "feidu",
+      baseUrl: "https://ai-api.singzer.cn/v1",
+      modelIds: [],
+    },
     revision: 0,
   };
 }

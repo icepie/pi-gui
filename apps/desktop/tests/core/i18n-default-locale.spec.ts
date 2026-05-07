@@ -17,7 +17,7 @@ test("defaults the desktop UI to Chinese when no English override is provided", 
     const window = await harness.firstWindow();
     await waitForWorkspaceByPath(window, workspacePath);
 
-    await expect(window.getByRole("button", { name: "新线程", exact: true })).toBeVisible();
+    await expect(window.getByRole("complementary").getByRole("button", { name: "新线程", exact: true })).toBeVisible();
     await expect(window.getByRole("button", { name: "技能", exact: true })).toBeVisible();
     await expect(window.getByRole("button", { name: "设置", exact: true })).toBeVisible();
   } finally {

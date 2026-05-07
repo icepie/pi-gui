@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { RuntimeSettingsSnapshot, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import { t } from "./i18n";
 
-export type SettingsSection = "appearance" | "general" | "providers" | "models" | "notifications";
+export type SettingsSection = "profile" | "appearance" | "general" | "providers" | "models" | "notifications";
 
 export const THINKING_LEVELS: NonNullable<RuntimeSettingsSnapshot["defaultThinkingLevel"]>[] = [
   "low",
@@ -24,6 +24,8 @@ export function labelForThinking(level: NonNullable<RuntimeSettingsSnapshot["def
 
 export function sectionTitle(section: SettingsSection): string {
   switch (section) {
+    case "profile":
+      return t("settings.profile");
     case "appearance":
       return t("settings.appearance");
     case "providers":
@@ -39,6 +41,8 @@ export function sectionTitle(section: SettingsSection): string {
 
 export function sectionDescription(section: SettingsSection, workspaceName: string): string {
   switch (section) {
+    case "profile":
+      return t("settings.profile_description");
     case "appearance":
       return t("settings.appearance_description");
     case "providers":

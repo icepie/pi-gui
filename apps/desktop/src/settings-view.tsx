@@ -1,10 +1,11 @@
 import type { RuntimeSettingsSnapshot, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
-import type { ModelSettingsScopeMode, NotificationPreferences, WorkspaceRecord, AppLocale } from "./desktop-state";
+import type { ModelSettingsScopeMode, NotificationPreferences, PlatformAccountState, WorkspaceRecord, AppLocale } from "./desktop-state";
 import type { DesktopNotificationPermissionStatus } from "./ipc";
 import { SettingsAppearanceSection } from "./settings-appearance-section";
 import { SettingsGeneralSection } from "./settings-general-section";
 import { SettingsModelsSection } from "./settings-models-section";
 import { SettingsNotificationsSection } from "./settings-notifications-section";
+import { SettingsProfileSection } from "./settings-profile-section";
 import { SettingsProvidersSection } from "./settings-providers-section";
 import { type SettingsSection, sectionTitle, sectionDescription } from "./settings-utils";
 import { t } from "./i18n";
@@ -15,6 +16,7 @@ interface SettingsViewProps {
   readonly workspace?: WorkspaceRecord;
   readonly runtime?: RuntimeSnapshot;
   readonly section: SettingsSection;
+  readonly platformAccount: PlatformAccountState;
   readonly notificationPreferences: NotificationPreferences;
   readonly notificationPermissionStatus: DesktopNotificationPermissionStatus;
   readonly notificationPermissionPending: boolean;
@@ -22,6 +24,7 @@ interface SettingsViewProps {
   readonly integratedTerminalShell: string;
   readonly themeMode: "system" | "light" | "dark";
   readonly locale: AppLocale;
+  readonly onLogoutPlatformAccount: () => void;
   readonly onSetModelSettingsScopeMode: (mode: ModelSettingsScopeMode) => void;
   readonly onSetDefaultModel: (provider: string, modelId: string) => void;
   readonly onSetThinkingLevel: (thinkingLevel: RuntimeSettingsSnapshot["defaultThinkingLevel"]) => void;
@@ -58,6 +61,7 @@ export function SettingsView({
   workspace,
   runtime,
   section,
+  platformAccount,
   notificationPreferences,
   notificationPermissionStatus,
   notificationPermissionPending,
@@ -65,6 +69,7 @@ export function SettingsView({
   integratedTerminalShell,
   themeMode,
   locale,
+  onLogoutPlatformAccount,
   onSetModelSettingsScopeMode,
   onSetDefaultModel,
   onSetThinkingLevel,
@@ -83,7 +88,7 @@ export function SettingsView({
   onSetThemeMode,
   onSetLocale,
 }: SettingsViewProps) {
-  if (!workspace && section !== "general" && section !== "notifications" && section !== "appearance") {
+  if (!workspace && section !== "profile" && section !== "general" && section !== "notifications" && section !== "appearance") {
     return (
       <section className="canvas canvas--empty">
         <div className="empty-panel">
@@ -116,6 +121,10 @@ export function SettingsView({
               locale={locale}
               onSetLocale={onSetLocale}
             />
+          ) : null}
+
+          {section === "profile" ? (
+            <SettingsProfileSection platformAccount={platformAccount} onLogout={onLogoutPlatformAccount} />
           ) : null}
 
           {section === "general" ? (

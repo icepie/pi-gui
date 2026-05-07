@@ -13,7 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { AppView, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
+import type { AppView, PlatformAccountState, SessionRecord, WorkspaceRecord, WorktreeRecord } from "./desktop-state";
 import { ArchiveIcon, ChevronDownIcon, ExtensionIcon, FileIcon, FolderIcon, PlusIcon, RestoreIcon, SettingsIcon, SidebarToggleIcon, SkillIcon, TrashIcon, WorktreeIcon } from "./icons";
 import type { PiDesktopApi } from "./ipc";
 import { formatRelativeTime } from "./string-utils";
@@ -48,6 +48,8 @@ interface SidebarProps {
   readonly onOpenSkills: (workspaceId?: string) => void;
   readonly onOpenExtensions: (workspaceId?: string) => void;
   readonly onOpenSettings: (workspaceId?: string) => void;
+  readonly onOpenProfile: (workspaceId?: string) => void;
+  readonly platformAccount: PlatformAccountState;
   readonly onArchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onSelectSession: (target: { workspaceId: string; sessionId: string }) => void;
   readonly onUnarchiveSession: (target: { workspaceId: string; sessionId: string }) => void;
@@ -79,6 +81,8 @@ export function Sidebar(props: SidebarProps) {
     onOpenSkills,
     onOpenExtensions,
     onOpenSettings,
+    onOpenProfile,
+    platformAccount,
     onArchiveSession,
     onSelectSession,
     onUnarchiveSession,
@@ -338,14 +342,24 @@ export function Sidebar(props: SidebarProps) {
           )}
         </div>
         <div className="sidebar__footer">
-          <button
-            className={`sidebar__settings ${activeView === "settings" ? "sidebar__settings--active" : ""}`}
-            type="button"
-            onClick={() => onOpenSettings(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
-          >
-            <SettingsIcon />
-            <span>{t("sidebar.settings")}</span>
-          </button>
+          <div className={`sidebar__settings ${activeView === "settings" ? "sidebar__settings--active" : ""}`}>
+            <button
+              aria-label={t("settings.profile")}
+              className="sidebar__account-button"
+              type="button"
+              onClick={() => onOpenProfile(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
+            >
+              <SidebarAccountAvatar account={platformAccount} />
+            </button>
+            <button
+              className="sidebar__settings-button"
+              type="button"
+              onClick={() => onOpenSettings(selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id)}
+            >
+              <span>{accountDisplayName(platformAccount)}</span>
+              <SettingsIcon />
+            </button>
+          </div>
         </div>
         <div
           aria-label="Resize sidebar"
@@ -357,6 +371,31 @@ export function Sidebar(props: SidebarProps) {
       </aside>
     </>
   );
+}
+
+function SidebarAccountAvatar({ account }: { readonly account: PlatformAccountState }) {
+  const label = accountDisplayName(account);
+  const avatar = account.user?.avatar;
+  if (avatar) {
+    return (
+      <img
+        alt={label}
+        className="sidebar__account-avatar"
+        data-testid="platform-account-avatar"
+        referrerPolicy="no-referrer"
+        src={avatar}
+      />
+    );
+  }
+  return (
+    <span className="sidebar__account-avatar sidebar__account-avatar--initial" data-testid="platform-account-avatar">
+      {label.trim().slice(0, 1).toUpperCase() || "F"}
+    </span>
+  );
+}
+
+function accountDisplayName(account: PlatformAccountState): string {
+  return account.user?.username || account.user?.name || "feidu";
 }
 
 /* ── Sortable workspace group wrapper ──────────────────── */

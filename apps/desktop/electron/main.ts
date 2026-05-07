@@ -33,6 +33,7 @@ import {
 import { checkForUpdate } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
+import { PlatformAccountService } from "./platform-account-service";
 import type { DesktopAppState, ThemeMode, AppLocale } from "../src/desktop-state";
 import {
   desktopIpc,
@@ -64,6 +65,7 @@ let mainWindow: BrowserWindow | null = null;
 let notificationManager: NotificationManager | undefined;
 let notificationPermissionService: NotificationPermissionService | undefined;
 let terminalService: TerminalService | undefined;
+let platformAccountService: PlatformAccountService | undefined;
 let integratedTerminalShell = "";
 let bundledWindowsBashPath: string | undefined;
 let stopPublishingState: (() => void) | undefined;
@@ -504,10 +506,15 @@ app.whenReady().then(async () => {
         reject: (error: Error) => void;
       }
     | undefined;
+  platformAccountService = new PlatformAccountService({
+    userDataDir: configuredUserDataDir,
+    getParentWindow: () => mainWindow,
+  });
   store = new DesktopAppStore({
     userDataDir: configuredUserDataDir,
     initialWorkspacePaths: resolveInitialWorkspacePaths(),
     ...(bundledWindowsBashPath ? { agentShellPath: bundledWindowsBashPath } : {}),
+    platformAccountService,
     getWindow: () => mainWindow,
     generateThreadTitleOverride: async (workspace, options) => generateThreadTitleOverride?.(workspace, options),
   });
@@ -644,6 +651,9 @@ app.whenReady().then(async () => {
     store.setSidebarCollapsed(collapsed),
   );
   ipcMain.handle(desktopIpc.refreshRuntime, (_event, workspaceId?: string) => store.refreshRuntime(workspaceId));
+  ipcMain.handle(desktopIpc.getPlatformAccount, () => store.getPlatformAccount());
+  ipcMain.handle(desktopIpc.loginPlatformAccount, () => store.loginPlatformAccount());
+  ipcMain.handle(desktopIpc.logoutPlatformAccount, () => store.logoutPlatformAccount());
   ipcMain.handle(desktopIpc.listSkillCatalogSources, () => listSkillCatalogSources());
   ipcMain.handle(desktopIpc.listSkillCatalog, (_event, input: SkillCatalogQuery) => listSkillCatalog(input));
   ipcMain.handle(desktopIpc.installSkillFromCatalog, async (_event, workspaceId: string, input: SkillCatalogInstallInput) => {

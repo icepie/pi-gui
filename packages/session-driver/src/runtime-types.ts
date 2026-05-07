@@ -153,6 +153,10 @@ export interface RuntimeCustomProviderInput {
   readonly modelIds: readonly string[];
 }
 
+export interface RuntimeGeneratedProviderInput extends RuntimeCustomProviderInput {
+  readonly defaultModelId?: string;
+}
+
 export interface RuntimeResourceDriver {
   getRuntimeSnapshot(workspace: WorkspaceRef): Promise<RuntimeSnapshot>;
   refreshRuntime(workspace: WorkspaceRef): Promise<RuntimeSnapshot>;
@@ -164,6 +168,7 @@ export interface RuntimeResourceDriver {
     config: RuntimeProviderApiKeyConfig,
   ): Promise<RuntimeSnapshot>;
   upsertCustomProvider(workspace: WorkspaceRef, input: RuntimeCustomProviderInput): Promise<RuntimeSnapshot>;
+  upsertGeneratedProvider(workspace: WorkspaceRef, input: RuntimeGeneratedProviderInput): Promise<RuntimeSnapshot>;
   removeCustomProvider(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot>;
   setDefaultModel(
     workspace: WorkspaceRef,

@@ -163,7 +163,9 @@
 }
 
 .icon-button,
-.sidebar__settings {
+.sidebar__settings,
+.sidebar__account-button,
+.sidebar__settings-button {
   border: 1px solid transparent;
   transition:
     background 140ms ease,
@@ -183,7 +185,9 @@
 .workspace-row:hover,
 .session-row:hover,
 .icon-button:hover:not(:disabled),
-.sidebar__settings:hover {
+.sidebar__settings:hover,
+.sidebar__account-button:hover,
+.sidebar__settings-button:hover {
   background: var(--selection-hover-bg);
   border-color: var(--selection-border);
 }
@@ -736,17 +740,62 @@
   align-items: center;
   width: 100%;
   min-height: 32px;
-  gap: 10px;
+  gap: 6px;
   color: var(--muted-strong);
   font-size: 13px;
   font-weight: 520;
-  padding: 6px 10px;
+  padding: 4px;
   border-radius: 9px;
 }
 
-.sidebar__settings svg {
+.sidebar__account-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 8px;
+}
+
+.sidebar__settings-button {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  height: 30px;
+  gap: 10px;
+  padding: 0 6px;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+}
+
+.sidebar__settings-button svg {
   width: 16px;
   height: 16px;
+}
+
+.sidebar__settings-button svg:last-child {
+  margin-left: auto;
+  color: var(--muted-icon);
+}
+
+.sidebar__account-avatar {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--selection-bg-strong);
+  border: 1px solid var(--line-strong);
+}
+
+.sidebar__account-avatar--initial {
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .sidebar__settings--active {
@@ -837,7 +886,9 @@
 :root.dark .worktree-row:hover,
 :root.dark .session-row:hover,
 :root.dark .icon-button:hover:not(:disabled),
-:root.dark .sidebar__settings:hover {
+:root.dark .sidebar__settings:hover,
+:root.dark .sidebar__account-button:hover,
+:root.dark .sidebar__settings-button:hover {
   background: var(--selection-hover-bg);
   border-color: var(--selection-border);
 }

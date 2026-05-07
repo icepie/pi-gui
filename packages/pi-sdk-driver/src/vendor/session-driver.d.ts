@@ -449,6 +449,9 @@ declare module "@pi-gui/session-driver/runtime-types" {
     readonly apiKey?: string;
     readonly modelIds: readonly string[];
   }
+  export interface RuntimeGeneratedProviderInput extends RuntimeCustomProviderInput {
+    readonly defaultModelId?: string;
+  }
 
   export interface RuntimeResourceDriver {
     getRuntimeSnapshot(workspace: WorkspaceRef): Promise<RuntimeSnapshot>;
@@ -457,6 +460,7 @@ declare module "@pi-gui/session-driver/runtime-types" {
     logout(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot>;
     setProviderApiKey(workspace: WorkspaceRef, providerId: string, config: RuntimeProviderApiKeyConfig): Promise<RuntimeSnapshot>;
     upsertCustomProvider(workspace: WorkspaceRef, input: RuntimeCustomProviderInput): Promise<RuntimeSnapshot>;
+    upsertGeneratedProvider(workspace: WorkspaceRef, input: RuntimeGeneratedProviderInput): Promise<RuntimeSnapshot>;
     removeCustomProvider(workspace: WorkspaceRef, providerId: string): Promise<RuntimeSnapshot>;
     setDefaultModel(
       workspace: WorkspaceRef,

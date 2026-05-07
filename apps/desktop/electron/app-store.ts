@@ -42,6 +42,7 @@ import {
   type ExtensionCommandCompatibilityRecord,
   type ModelSettingsScopeMode,
   type AppLocale,
+  type PlatformAccountState,
   createEmptyDesktopAppState,
   type CreateSessionInput,
   type CreateWorktreeInput,
@@ -97,6 +98,7 @@ import * as workspace from "./app-store-workspace";
 import * as worktree from "./app-store-worktree";
 import * as composer from "./app-store-composer";
 import { isSessionActivelyViewed } from "./session-visibility";
+import type { PlatformAccountService } from "./platform-account-service";
 
 type StateListener = (state: DesktopAppState) => void;
 type SelectedTranscriptListener = (payload: SelectedTranscriptRecord | null) => void;
@@ -124,6 +126,7 @@ export interface DesktopAppStoreOptions {
   readonly userDataDir: string;
   readonly initialWorkspacePaths: readonly string[];
   readonly agentShellPath?: string;
+  readonly platformAccountService?: PlatformAccountService;
   readonly getWindow?: () => BrowserWindow | null;
   readonly generateThreadTitleOverride?: (
     workspace: WorkspaceRef,
@@ -149,6 +152,7 @@ export class DesktopAppStore implements AppStoreInternals {
   private readonly reportedCompatibilityIssuesBySession = new Map<string, Set<string>>();
   private readonly initialWorkspacePaths: readonly string[];
   private readonly getWindow: () => BrowserWindow | null;
+  private readonly platformAccountService: PlatformAccountService | undefined;
   private persistUiStateTimer: NodeJS.Timeout | undefined;
   private readonly transcriptPersistTimers = new Map<string, NodeJS.Timeout>();
   private initPromise: Promise<void> | undefined;
@@ -173,6 +177,7 @@ export class DesktopAppStore implements AppStoreInternals {
     this.attachmentStore = new JsonFileStore<ComposerAttachment[]>(options.userDataDir, "attachments");
     this.initialWorkspacePaths = options.initialWorkspacePaths;
     this.getWindow = options.getWindow ?? (() => null);
+    this.platformAccountService = options.platformAccountService;
     this.state = {
       ...this.state,
       locale: process.env.PI_APP_LOCALE === "en-US" ? "en-US" : "zh-CN",
@@ -445,6 +450,12 @@ export class DesktopAppStore implements AppStoreInternals {
 
   async setActiveView(activeView: AppView): Promise<DesktopAppState> {
     await this.initialize();
+    if (!this.state.platformAccount.authenticated) {
+      return this.emit();
+    }
+    if (activeView === "settings") {
+      await this.syncPlatformAccountLinkedData();
+    }
     if (this.state.activeView === "threads" && activeView !== "threads") {
       const sessionRef = this.selectedSessionRef();
       if (sessionRef) {
@@ -559,6 +570,50 @@ export class DesktopAppStore implements AppStoreInternals {
       this.clearExtensionUiForWorkspace(ws.workspaceId);
       await this.reloadSessionsForWorkspace(ws.workspaceId);
       await this.refreshSessionCommandsForWorkspace(ws.workspaceId);
+      return this.refreshState({ clearLastError: true });
+    });
+  }
+
+  async getPlatformAccount(): Promise<PlatformAccountState> {
+    await this.initialize();
+    return structuredClone(this.state.platformAccount);
+  }
+
+  async loginPlatformAccount(): Promise<DesktopAppState> {
+    await this.initialize();
+    if (!this.platformAccountService) {
+      return this.withError("Platform account service is unavailable.");
+    }
+    const platformAccountService = this.platformAccountService;
+
+    return this.withErrorHandling(async () => {
+      const platformAccount = await platformAccountService.login();
+      this.state = {
+        ...this.state,
+        platformAccount,
+        lastError: undefined,
+        revision: this.state.revision + 1,
+      };
+      await this.syncPlatformAccountLinkedData();
+      return this.refreshState({ clearLastError: true });
+    });
+  }
+
+  async logoutPlatformAccount(): Promise<DesktopAppState> {
+    await this.initialize();
+    if (!this.platformAccountService) {
+      return this.withError("Platform account service is unavailable.");
+    }
+    const platformAccountService = this.platformAccountService;
+
+    return this.withErrorHandling(async () => {
+      const platformAccount = await platformAccountService.logout();
+      this.state = {
+        ...this.state,
+        platformAccount,
+        lastError: undefined,
+        revision: this.state.revision + 1,
+      };
       return this.refreshState({ clearLastError: true });
     });
   }
@@ -841,6 +896,11 @@ export class DesktopAppStore implements AppStoreInternals {
         refreshWorktrees: true,
         hydrateSelectedSession: false,
       });
+      await this.refreshPlatformAccountState();
+      await this.applyPlatformProviderConfigToRuntime();
+      if (this.state.platformAccount.authenticated) {
+        await this.refreshState({ clearLastError: true, hydrateSelectedSession: false });
+      }
       this.startSelectedSessionHydration(this.selectedSessionRef());
     } catch (error) {
       this.state = {
@@ -851,6 +911,63 @@ export class DesktopAppStore implements AppStoreInternals {
       await this.persistUiState();
       this.emit();
     }
+  }
+
+  private async refreshPlatformAccountState(): Promise<void> {
+    if (!this.platformAccountService) {
+      return;
+    }
+    const platformAccount = await this.platformAccountService.getState();
+    this.state = {
+      ...this.state,
+      platformAccount,
+      revision: this.state.revision + 1,
+    };
+  }
+
+  private async syncPlatformAccountLinkedData(): Promise<void> {
+    if (!this.platformAccountService || !this.state.platformAccount.authenticated) {
+      return;
+    }
+    const platformAccount = await this.platformAccountService.refreshLinkedData({ preserveExistingOnError: true });
+    this.state = {
+      ...this.state,
+      platformAccount,
+      revision: this.state.revision + 1,
+    };
+    if (!platformAccount.lastError) {
+      await this.applyPlatformProviderConfigToRuntime();
+    }
+  }
+
+  private async applyPlatformProviderConfigToRuntime(): Promise<void> {
+    if (!this.platformAccountService) {
+      return;
+    }
+    const provider = await this.platformAccountService.getProviderConfig();
+    if (!provider) {
+      return;
+    }
+    const workspaceRefs = this.state.workspaces.map((workspace) => ({
+      workspaceId: workspace.id,
+      path: workspace.path,
+      displayName: workspace.name,
+    }));
+    const targetWorkspace =
+      workspaceRefs.find((workspace) => workspace.workspaceId === this.state.selectedWorkspaceId) ?? workspaceRefs[0];
+    if (!targetWorkspace) {
+      return;
+    }
+    const snapshot = await this.driver.runtimeSupervisor.upsertGeneratedProvider(targetWorkspace, {
+      id: provider.id,
+      displayName: provider.displayName,
+      api: provider.api,
+      baseUrl: provider.baseUrl,
+      apiKey: provider.apiKey,
+      modelIds: provider.modelIds,
+      defaultModelId: provider.defaultModelId,
+    });
+    this.runtimeByWorkspace.set(targetWorkspace.workspaceId, snapshot);
   }
 
   private async migrateLegacyPersistence(persisted: LegacyPersistedUiState): Promise<void> {

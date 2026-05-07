@@ -14,6 +14,7 @@ import {
 import type {
   RuntimeCustomProviderConfig,
   RuntimeCustomProviderInput,
+  RuntimeGeneratedProviderInput,
   RuntimeLoginCallbacks,
   RuntimeExtensionDiagnostic,
   RuntimeExtensionRecord,
@@ -164,6 +165,53 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
     this.modelRegistry.refresh();
     await context.resourceLoader.reload();
     await this.autoEnableModelsForAuthenticatedProviders(context, [providerId]);
+    return this.buildSnapshot(context);
+  }
+
+  async upsertGeneratedProvider(workspace: WorkspaceRef, input: RuntimeGeneratedProviderInput): Promise<RuntimeSnapshot> {
+    const context = await this.ensureContext(workspace);
+    const providerId = input.id.trim();
+    const baseUrl = input.baseUrl.trim();
+    const modelIds = input.modelIds.map((value) => value.trim()).filter(Boolean);
+    const displayName = input.displayName?.trim();
+    const apiKey = input.apiKey?.trim();
+    const defaultModelId = input.defaultModelId?.trim();
+    if (!providerId) {
+      throw new Error("Provider ID is required.");
+    }
+    if (!isValidCustomProviderId(providerId)) {
+      throw new Error("Provider ID must use lowercase letters, numbers, and dashes only.");
+    }
+    if (!baseUrl) {
+      throw new Error("Base URL is required.");
+    }
+    if (!isSupportedCustomProviderApi(input.api)) {
+      throw new Error(`Unsupported provider API: ${input.api}`);
+    }
+    if (modelIds.length === 0) {
+      throw new Error("At least one model ID is required.");
+    }
+    if (!apiKey) {
+      throw new Error("API key is required.");
+    }
+
+    await upsertCustomProviderDefinition(join(this.agentDir, "models.json"), {
+      id: providerId,
+      api: input.api,
+      baseUrl,
+      apiKey,
+      ...(displayName ? { displayName } : {}),
+      modelIds,
+    });
+    context.settingsManager.setEnabledModels(modelIds.map((modelId) => `${providerId}/${modelId}`));
+    if (defaultModelId && modelIds.includes(defaultModelId)) {
+      context.settingsManager.setDefaultModelAndProvider(providerId, defaultModelId);
+    } else {
+      context.settingsManager.setDefaultModelAndProvider(providerId, modelIds[0] as string);
+    }
+    await context.settingsManager.flush();
+    this.modelRegistry.refresh();
+    await context.resourceLoader.reload();
     return this.buildSnapshot(context);
   }
 

@@ -189,6 +189,12 @@ contextBridge.exposeInMainWorld("piApp", {
     ipcRenderer.invoke(desktopIpc.setSidebarCollapsed, collapsed) as Promise<DesktopAppState>,
   refreshRuntime: (workspaceId?: string) =>
     ipcRenderer.invoke(desktopIpc.refreshRuntime, workspaceId) as Promise<DesktopAppState>,
+  getPlatformAccount: () =>
+    ipcRenderer.invoke(desktopIpc.getPlatformAccount) as Promise<DesktopAppState["platformAccount"]>,
+  loginPlatformAccount: () =>
+    ipcRenderer.invoke(desktopIpc.loginPlatformAccount) as Promise<DesktopAppState>,
+  logoutPlatformAccount: () =>
+    ipcRenderer.invoke(desktopIpc.logoutPlatformAccount) as Promise<DesktopAppState>,
   listSkillCatalogSources: () =>
     ipcRenderer.invoke(desktopIpc.listSkillCatalogSources) as Promise<readonly SkillCatalogSource[]>,
   listSkillCatalog: (input: SkillCatalogQuery) =>
