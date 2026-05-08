@@ -77,15 +77,15 @@ export type ParsedComposerCommand =
   | { type: "compact"; customInstructions?: string }
   | { type: "name"; title: string };
 
-const INCOMPLETE_COMMAND_MESSAGES: Readonly<Record<string, string>> = {
-  "/compact": "Add optional instructions after /compact or send it directly from the slash menu.",
-  "/login": "Choose a provider from the slash menu before sending /login.",
-  "/logout": "Choose a connected provider from the slash menu before sending /logout.",
-  "/model": "Choose a provider and model from the slash menu before sending /model.",
-  "/name": "Add a thread title after /name.",
-  "/scoped-models": "Open Enabled models from the slash menu or Settings.",
-  "/settings": "Open Settings from the slash menu or Cmd+,.",
-  "/thinking": "Choose a reasoning level from the slash menu before sending /thinking.",
+const INCOMPLETE_COMMAND_MESSAGES: Readonly<Record<string, () => string>> = {
+  "/compact": () => "Add optional instructions after /compact or send it directly from the slash menu.",
+  "/login": () => "Choose a provider from the slash menu before sending /login.",
+  "/logout": () => "Choose a connected provider from the slash menu before sending /logout.",
+  "/model": () => "Choose a provider and model from the slash menu before sending /model.",
+  "/name": () => t("host_actions.name_incomplete"),
+  "/scoped-models": () => "Open Enabled models from the slash menu or Settings.",
+  "/settings": () => "Open Settings from the slash menu or Cmd+,.",
+  "/thinking": () => "Choose a reasoning level from the slash menu before sending /thinking.",
 } as const;
 
 const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
@@ -183,9 +183,9 @@ const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
     id: "host:name",
     kind: "name",
     command: "/name",
-    template: "/name New thread title",
-    title: "Rename",
-    description: "Rename the current session",
+    get template() { return `/name ${t("host_actions.name_template_placeholder")}`; },
+    get title() { return t("host_actions.name"); },
+    get description() { return t("host_actions.name_description"); },
     submitMode: "prefill",
     section: "host",
   },
@@ -194,8 +194,8 @@ const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
     kind: "compact",
     command: "/compact",
     template: "/compact",
-    title: "Compact",
-    description: "Compact session context now",
+    get title() { return t("host_actions.compact"); },
+    get description() { return t("host_actions.compact_description"); },
     submitMode: "immediate",
     section: "host",
   },
@@ -204,8 +204,8 @@ const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
     kind: "reload",
     command: "/reload",
     template: "/reload",
-    title: "Reload",
-    description: "Reload prompts, skills, and session resources",
+    get title() { return t("host_actions.reload"); },
+    get description() { return t("host_actions.reload_description"); },
     submitMode: "immediate",
     section: "host",
   },
@@ -656,7 +656,7 @@ export function incompleteComposerCommandMessage(value: string): string | undefi
   }
 
   const [command] = trimmed.split(/\s+/);
-  return INCOMPLETE_COMMAND_MESSAGES[command as keyof typeof INCOMPLETE_COMMAND_MESSAGES];
+  return INCOMPLETE_COMMAND_MESSAGES[command as keyof typeof INCOMPLETE_COMMAND_MESSAGES]?.();
 }
 
 export function isExactSlashCommand(query: string, command: ComposerSlashCommand): boolean {
