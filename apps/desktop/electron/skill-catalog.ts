@@ -1,12 +1,13 @@
 import { execFile } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type {
   SkillCatalogEntry,
   SkillCatalogInstallInput,
+  SkillCatalogInstalledState,
   SkillCatalogQuery,
   SkillCatalogSource,
 } from "../src/ipc";
@@ -39,12 +40,34 @@ export function listSkillCatalogSources(): readonly SkillCatalogSource[] {
   return skillCatalogSources;
 }
 
-export async function listSkillCatalog(input: SkillCatalogQuery): Promise<readonly SkillCatalogEntry[]> {
+export async function listSkillCatalog(
+  input: SkillCatalogQuery,
+  agentDir?: string,
+): Promise<readonly SkillCatalogEntry[]> {
   const source = resolveSkillCatalogSource(input.sourceId);
-  if (TEST_FIXTURE_ENABLED) {
-    return filterFixtureEntries(input);
-  }
+  const entries = TEST_FIXTURE_ENABLED
+    ? filterFixtureEntries(input)
+    : await fetchSkillCatalogEntries(source, input);
+  const entriesWithState = agentDir
+    ? await attachInstalledSkillCatalogState(agentDir, source, entries)
+    : entries;
 
+  const query = input.q?.trim();
+  if (!query) {
+    return entriesWithState;
+  }
+  const normalizedQuery = query.toLowerCase();
+  return entriesWithState.filter((entry) =>
+    [entry.displayName, entry.slug, entry.summary, entry.namespace, entry.installKey].some((value) =>
+      (value ?? "").toLowerCase().includes(normalizedQuery),
+    ),
+  );
+}
+
+async function fetchSkillCatalogEntries(
+  source: SkillCatalogSource,
+  input: SkillCatalogQuery,
+): Promise<readonly SkillCatalogEntry[]> {
   const url = new URL("/api/v1/skills", source.registryUrl);
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
   const offset = Math.max(input.offset ?? 0, 0);
@@ -61,19 +84,9 @@ export async function listSkillCatalog(input: SkillCatalogQuery): Promise<readon
     throw new Error(`SkillHub returned ${response.status} while listing skills.`);
   }
   const data = await response.json() as unknown;
-  const entries = extractSkillCatalogItems(data)
+  return extractSkillCatalogItems(data)
     .map((item) => normalizeSkillCatalogEntry(source.id, item))
     .filter((entry): entry is SkillCatalogEntry => Boolean(entry));
-
-  if (!query) {
-    return entries;
-  }
-  const normalizedQuery = query.toLowerCase();
-  return entries.filter((entry) =>
-    [entry.displayName, entry.slug, entry.summary, entry.namespace, entry.installKey].some((value) =>
-      (value ?? "").toLowerCase().includes(normalizedQuery),
-    ),
-  );
 }
 
 export async function installSkillFromCatalog(
@@ -133,6 +146,22 @@ export async function installSkillFromCatalog(
   }
 }
 
+export async function deleteLocalSkill(agentDir: string, workspacePath: string, filePath: string): Promise<void> {
+  const skillDir = resolveSkillDirectory(filePath);
+  const allowedRoots = [
+    join(agentDir, "skills"),
+    join(workspacePath, ".agents", "skills"),
+    join(workspacePath, ".codex", "skills"),
+  ];
+  if (!allowedRoots.some((root) => isPathInside(skillDir, root))) {
+    throw new Error(`Refusing to delete a skill outside known skill directories: ${skillDir}`);
+  }
+
+  const origin = await readSkillOriginFromDir(skillDir);
+  await rm(skillDir, { recursive: true, force: true });
+  await removeSkillFromLockfile(agentDir, skillDir, origin);
+}
+
 async function installSkillHubDownload(
   agentDir: string,
   source: SkillCatalogSource,
@@ -183,6 +212,15 @@ async function downloadSkillHubZip(
 
 interface ClawhubSkillsModule {
   extractZipToDir(zipBytes: Uint8Array, targetDir: string): Promise<void>;
+  readSkillOrigin(
+    skillFolder: string,
+  ): Promise<{
+    version: 1;
+    registry: string;
+    slug: string;
+    installedVersion: string;
+    installedAt: number;
+  } | null>;
   readLockfile(workdir: string): Promise<{ version: 1; skills: Record<string, { version: string; installedAt: number }> }>;
   writeLockfile(workdir: string, lock: { version: 1; skills: Record<string, { version: string; installedAt: number }> }): Promise<void>;
   writeSkillOrigin(
@@ -200,6 +238,147 @@ interface ClawhubSkillsModule {
 async function loadClawhubSkillsModule(): Promise<ClawhubSkillsModule> {
   const modulePath = requireFromHere.resolve("clawhub/dist/skills.js");
   return await import(pathToFileURL(modulePath).toString()) as ClawhubSkillsModule;
+}
+
+async function attachInstalledSkillCatalogState(
+  agentDir: string,
+  source: SkillCatalogSource,
+  entries: readonly SkillCatalogEntry[],
+): Promise<readonly SkillCatalogEntry[]> {
+  const installedBySlug = await readInstalledSkillStates(agentDir, source.registryUrl);
+  return entries.map((entry) => {
+    const installed = installedBySlug.get(entry.installKey) ?? installedBySlug.get(entry.slug);
+    if (!installed) {
+      return entry;
+    }
+    return {
+      ...entry,
+      installed: {
+        ...installed,
+        updatable: Boolean(entry.latestVersion && compareVersions(entry.latestVersion, installed.version) > 0),
+      },
+    };
+  });
+}
+
+async function readInstalledSkillStates(
+  agentDir: string,
+  registryUrl: string,
+): Promise<Map<string, SkillCatalogInstalledState>> {
+  const lock = await readSkillLockfile(agentDir);
+  const installed = new Map<string, SkillCatalogInstalledState>();
+  const registry = normalizeRegistryUrl(registryUrl);
+  for (const [slug, entry] of Object.entries(lock.skills)) {
+    installed.set(slug, {
+      version: entry.version,
+      installedAt: entry.installedAt,
+      filePath: join(agentDir, "skills", slug, "SKILL.md"),
+      updatable: false,
+    });
+  }
+
+  for (const slug of Object.keys(lock.skills)) {
+    const skillDir = join(agentDir, "skills", slug);
+    const origin = await readSkillOriginFile(skillDir);
+    if (!origin || normalizeRegistryUrl(origin.registry) !== registry) {
+      continue;
+    }
+    installed.set(origin.slug, {
+      version: origin.installedVersion,
+      installedAt: origin.installedAt,
+      filePath: join(skillDir, "SKILL.md"),
+      updatable: false,
+    });
+  }
+
+  return installed;
+}
+
+async function readSkillLockfile(agentDir: string): Promise<{
+  version: 1;
+  skills: Record<string, { version: string; installedAt: number }>;
+}> {
+  const clawhubSkills = await loadClawhubSkillsModule();
+  return clawhubSkills.readLockfile(agentDir);
+}
+
+async function readSkillOriginFile(skillDir: string): Promise<{
+  version: 1;
+  registry: string;
+  slug: string;
+  installedVersion: string;
+  installedAt: number;
+} | null> {
+  const clawhubSkills = await loadClawhubSkillsModule();
+  return clawhubSkills.readSkillOrigin(skillDir);
+}
+
+async function removeSkillFromLockfile(
+  agentDir: string,
+  skillDir: string,
+  origin: { slug?: string } | null,
+): Promise<void> {
+  const lock = await readSkillLockfile(agentDir);
+  const skillSlug = relative(join(agentDir, "skills"), skillDir).split(sep).join("/");
+  if (!skillSlug.startsWith("..") && !skillSlug.startsWith(sep)) {
+    delete lock.skills[skillSlug];
+  }
+  if (origin?.slug) {
+    delete lock.skills[origin.slug];
+  }
+  const clawhubSkills = await loadClawhubSkillsModule();
+  await clawhubSkills.writeLockfile(agentDir, lock);
+}
+
+async function readSkillOriginFromDir(skillDir: string): Promise<{ slug?: string } | null> {
+  for (const originPath of [
+    join(skillDir, ".clawhub", "origin.json"),
+    join(skillDir, ".clawdhub", "origin.json"),
+  ]) {
+    try {
+      const raw = await readFile(originPath, "utf8");
+      const parsed = JSON.parse(raw) as { slug?: unknown };
+      return typeof parsed.slug === "string" ? { slug: parsed.slug } : null;
+    } catch {
+      // Try the next origin file location.
+    }
+  }
+  return null;
+}
+
+function resolveSkillDirectory(filePath: string): string {
+  const absolute = resolve(filePath);
+  return absolute.toLowerCase().endsWith("skill.md") ? dirname(absolute) : absolute;
+}
+
+function isPathInside(candidatePath: string, rootPath: string): boolean {
+  const relativePath = relative(resolve(rootPath), resolve(candidatePath));
+  return Boolean(relativePath) && !relativePath.startsWith("..") && !relativePath.startsWith(sep);
+}
+
+function normalizeRegistryUrl(value: string): string {
+  return value.replace(/\/+$/, "").toLowerCase();
+}
+
+function compareVersions(left: string, right: string): number {
+  const leftParts = parseVersionParts(left);
+  const rightParts = parseVersionParts(right);
+  const length = Math.max(leftParts.length, rightParts.length);
+  for (let index = 0; index < length; index += 1) {
+    const diff = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+  return left.localeCompare(right);
+}
+
+function parseVersionParts(value: string): number[] {
+  return value
+    .replace(/^[^\d]*/, "")
+    .split(/[.+-]/)
+    .map((part) => Number.parseInt(part, 10))
+    .filter((part) => Number.isFinite(part));
 }
 
 function resolveSkillCatalogSource(sourceId: string): SkillCatalogSource {
@@ -302,7 +481,7 @@ function filterFixtureEntries(input: SkillCatalogQuery): readonly SkillCatalogEn
       namespace: "global",
       displayName: "Hub Demo",
       summary: "A deterministic SkillHub fixture used by the desktop Skills surface.",
-      latestVersion: "1.0.0",
+      latestVersion: "2.0.0",
       downloads: 12,
       stars: 3,
       updatedAt: Date.UTC(2026, 0, 1),
@@ -339,4 +518,18 @@ Use this skill when validating SkillHub installs from the desktop Skills surface
 `,
     "utf8",
   );
+  const clawhubSkills = await loadClawhubSkillsModule();
+  await clawhubSkills.writeSkillOrigin(skillDir, {
+    version: 1,
+    registry: SKILLHUB_FEIDU_REGISTRY,
+    slug: "hub-demo",
+    installedVersion: input.version || "2.0.0",
+    installedAt: Date.now(),
+  });
+  const lock = await clawhubSkills.readLockfile(agentDir);
+  lock.skills["hub-demo"] = {
+    version: input.version || "2.0.0",
+    installedAt: Date.now(),
+  };
+  await clawhubSkills.writeLockfile(agentDir, lock);
 }

@@ -20,8 +20,6 @@ export type ComposerSlashCommandKind =
   | "compact"
   | "name"
   | "skill"
-  | "login"
-  | "logout"
   | "settings"
   | "scoped-models";
 
@@ -81,8 +79,6 @@ export type ParsedComposerCommand =
 
 const INCOMPLETE_COMMAND_MESSAGES: Readonly<Record<string, () => string>> = {
   "/compact": () => "Add optional instructions after /compact or send it directly from the slash menu.",
-  "/login": () => "Choose a provider from the slash menu before sending /login.",
-  "/logout": () => "Choose a connected provider from the slash menu before sending /logout.",
   "/model": () => "Choose a provider and model from the slash menu before sending /model.",
   "/name": () => t("host_actions.name_incomplete"),
   "/scoped-models": () => "Open Enabled models from the slash menu or Settings.",
@@ -139,26 +135,6 @@ const HOST_ACTION_SLASH_COMMANDS: readonly ComposerSlashCommand[] = [
     get title() { return t("host_actions.status"); },
     get description() { return t("host_actions.status_description"); },
     submitMode: "immediate",
-    section: "host",
-  },
-  {
-    id: "host:login",
-    kind: "login",
-    command: "/login",
-    template: "/login",
-    get title() { return t("host_actions.login"); },
-    get description() { return t("host_actions.login_description"); },
-    submitMode: "pick-option",
-    section: "host",
-  },
-  {
-    id: "host:logout",
-    kind: "logout",
-    command: "/logout",
-    template: "/logout",
-    get title() { return t("host_actions.logout"); },
-    get description() { return t("host_actions.logout_description"); },
-    submitMode: "pick-option",
     section: "host",
   },
   {
@@ -439,15 +415,6 @@ export function slashOptionsForCommand(
   }
   if (command.kind === "skill") {
     return buildSkillOptions(runtime);
-  }
-  if (command.kind === "login") {
-    return buildProviderOptions(runtime?.providers ?? [], (provider) => provider.oauthSupported);
-  }
-  if (command.kind === "logout") {
-    return buildProviderOptions(
-      runtime?.providers ?? [],
-      (provider) => provider.authSource === "oauth" || provider.authSource === "auth_file",
-    );
   }
 
   return [];

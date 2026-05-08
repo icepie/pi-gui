@@ -209,8 +209,12 @@ type TranslationKey =
   | "skills.catalog_next"
   | "skills.catalog_page"
   | "skills.install"
+  | "skills.update"
+  | "skills.installed"
   | "skills.installing"
-  | "skills.installed_version"
+  | "skills.latest_version"
+  | "skills.local_version"
+  | "skills.update_available"
   | "skills.downloads"
   | "skills.stars"
   | "skills.empty"
@@ -221,6 +225,11 @@ type TranslationKey =
   | "skills.disable"
   | "skills.enable"
   | "skills.try"
+  | "skills.delete"
+  | "skills.delete_confirm_title"
+  | "skills.delete_confirm"
+  | "skills.create_new_skill_prompt"
+  | "skills.create_new_skill_description"
   | "extensions.title"
   | "extensions.select_workspace"
   | "extensions.empty_workspace_description"
@@ -616,8 +625,12 @@ const EN_US: TranslationTable = {
   "skills.catalog_next": "Next",
   "skills.catalog_page": "Page {page}",
   "skills.install": "Install",
+  "skills.update": "Update",
+  "skills.installed": "Installed",
   "skills.installing": "Installing...",
-  "skills.installed_version": "Version {version}",
+  "skills.latest_version": "Latest {version}",
+  "skills.local_version": "Installed {version}",
+  "skills.update_available": "Update available",
   "skills.downloads": "{count} downloads",
   "skills.stars": "{count} stars",
   "skills.empty": "No skills found",
@@ -628,6 +641,9 @@ const EN_US: TranslationTable = {
   "skills.disable": "Disable",
   "skills.enable": "Enable",
   "skills.try": "Try",
+  "skills.delete": "Delete",
+  "skills.delete_confirm_title": "Delete skill",
+  "skills.delete_confirm": "Delete local skill “{name}”? This removes the skill files from disk.",
   "skills.create_new_skill_prompt": "Create a new skill for this workspace and explain which files you will add.",
   "skills.create_new_skill_description": "Create a new skill for this workspace",
   "extensions.title": "Extensions",
@@ -1024,8 +1040,12 @@ const ZH_CN: TranslationTable = {
   "skills.catalog_next": "下一页",
   "skills.catalog_page": "第 {page} 页",
   "skills.install": "安装",
+  "skills.update": "更新",
+  "skills.installed": "已安装",
   "skills.installing": "安装中...",
-  "skills.installed_version": "版本 {version}",
+  "skills.latest_version": "最新 {version}",
+  "skills.local_version": "已安装 {version}",
+  "skills.update_available": "可更新",
   "skills.downloads": "{count} 次下载",
   "skills.stars": "{count} 星标",
   "skills.empty": "未找到技能",
@@ -1036,6 +1056,9 @@ const ZH_CN: TranslationTable = {
   "skills.disable": "禁用",
   "skills.enable": "启用",
   "skills.try": "试用",
+  "skills.delete": "删除",
+  "skills.delete_confirm_title": "删除技能",
+  "skills.delete_confirm": "删除本地技能“{name}”吗？这会从磁盘移除该技能文件。",
   "skills.create_new_skill_prompt": "为当前工作区创建一个新技能，并说明你将添加哪些文件。",
   "skills.create_new_skill_description": "为当前工作区创建一个新技能",
   "extensions.title": "扩展",

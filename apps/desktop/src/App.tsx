@@ -1000,18 +1000,6 @@ export default function App() {
       setNewThreadModelId(modelId);
     },
     onSelectThinkingOption: setNewThreadThinkingLevel,
-    onSelectLoginProvider: (providerId) => {
-      if (!api || !newThreadWorkspace) {
-        return;
-      }
-      void updateSnapshot(api, setSnapshot, () => api.loginProvider(newThreadWorkspace.id, providerId));
-    },
-    onSelectLogoutProvider: (providerId) => {
-      if (!api || !newThreadWorkspace) {
-        return;
-      }
-      void updateSnapshot(api, setSnapshot, () => api.logoutProvider(newThreadWorkspace.id, providerId));
-    },
   });
 
   const newThreadMentionMenu = useMentionMenu({
@@ -1936,7 +1924,39 @@ export default function App() {
       })
       .finally(() => {
         setInstallingSkillCatalogKey(undefined);
+        refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage);
       });
+  };
+
+  const handleDeleteSkill = (skill: RuntimeSnapshot["skills"][number]) => {
+    if (!api || !skillsWorkspace || !skill.filePath) {
+      return;
+    }
+    setConfirmDialog({
+      title: t("skills.delete_confirm_title"),
+      body: t("skills.delete_confirm", { name: skill.name }),
+      confirmLabel: t("dialog.delete"),
+      cancelLabel: t("dialog.cancel"),
+      tone: "danger",
+      onConfirm: () => {
+        void updateSnapshot(api, setSnapshot, () => api.deleteLocalSkill(skillsWorkspace.id, skill.filePath))
+          .then(() => {
+            setSkillCatalogEntries((entries) =>
+              entries.map((entry) => {
+                if (entry.installed?.filePath !== skill.filePath) {
+                  return entry;
+                }
+                const { installed: _installed, ...rest } = entry;
+                return rest;
+              }),
+            );
+            refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage);
+          })
+          .catch((error: unknown) => {
+            setSkillCatalogError(error instanceof Error ? error.message : t("skills.catalog_error"));
+          });
+      },
+    });
   };
 
   const handleSetThemeMode = (mode: "system" | "light" | "dark") => {
@@ -1950,6 +1970,14 @@ export default function App() {
     setLocale(locale);
     void api.setLocale(locale);
   };
+
+  const dialogs = (
+    <>
+      <ConfirmDialog request={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <NoticeDialog request={noticeDialog} onClose={handleNoticeClose} />
+      <TextPromptDialog request={textPromptRequest} onRespond={handleTextPromptResponse} />
+    </>
+  );
 
   const handleSetNotificationPreferences = (preferences: Partial<DesktopAppState["notificationPreferences"]>) => {
     void updateSnapshot(api, setSnapshot, () => api.setNotificationPreferences(preferences));
@@ -2231,58 +2259,62 @@ export default function App() {
 
   if (snapshot.activeView === "skills") {
     return (
-      <SecondarySurface onBack={() => setActiveView("threads")} testId="skills-surface" title={t("skills.title")}>
-        <div className="surface-toolbar">
-          <label className="surface-toolbar__field">
-            <span>{t("common.workspace")}</span>
-            <UISelect
-              value={skillsWorkspace?.id ?? ""}
-              options={rootWorkspaceOptions.map((ws) => ({ value: ws.id, label: ws.name }))}
-              onChange={(value) => setSkillsWorkspaceId(value)}
-              aria-label={t("common.workspace")}
-            />
-          </label>
-        </div>
-        <SkillsView
-          workspace={skillsWorkspace}
-          runtime={skillsRuntime}
-          catalogSources={skillCatalogSources}
-          catalogSkills={skillCatalogEntries}
-          catalogLoading={skillCatalogLoading}
-          catalogError={skillCatalogError}
-          catalogQuery={skillCatalogQuery}
-          catalogSort={skillCatalogSort}
-          catalogPage={skillCatalogPage}
-          catalogPageSize={SKILL_CATALOG_PAGE_SIZE}
-          installingCatalogKey={installingSkillCatalogKey}
-          onCatalogQueryChange={(query) => {
-            setSkillCatalogQuery(query);
-            setSkillCatalogPage(0);
-          }}
-          onCatalogSortChange={(sort) => {
-            setSkillCatalogSort(sort);
-            setSkillCatalogPage(0);
-          }}
-          onCatalogPageChange={setSkillCatalogPage}
-          onRefreshCatalog={() => refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage)}
-          onInstallCatalogSkill={handleInstallCatalogSkill}
-          onOpenSkillFolder={handleOpenSkillFolder}
-          onRefresh={() => {
-            if (!skillsWorkspace) {
-              return;
+      <>
+        <SecondarySurface onBack={() => setActiveView("threads")} testId="skills-surface" title={t("skills.title")}>
+          <div className="surface-toolbar">
+            <label className="surface-toolbar__field">
+              <span>{t("common.workspace")}</span>
+              <UISelect
+                value={skillsWorkspace?.id ?? ""}
+                options={rootWorkspaceOptions.map((ws) => ({ value: ws.id, label: ws.name }))}
+                onChange={(value) => setSkillsWorkspaceId(value)}
+                aria-label={t("common.workspace")}
+              />
+            </label>
+          </div>
+          <SkillsView
+            workspace={skillsWorkspace}
+            runtime={skillsRuntime}
+            catalogSources={skillCatalogSources}
+            catalogSkills={skillCatalogEntries}
+            catalogLoading={skillCatalogLoading}
+            catalogError={skillCatalogError}
+            catalogQuery={skillCatalogQuery}
+            catalogSort={skillCatalogSort}
+            catalogPage={skillCatalogPage}
+            catalogPageSize={SKILL_CATALOG_PAGE_SIZE}
+            installingCatalogKey={installingSkillCatalogKey}
+            onCatalogQueryChange={(query) => {
+              setSkillCatalogQuery(query);
+              setSkillCatalogPage(0);
+            }}
+            onCatalogSortChange={(sort) => {
+              setSkillCatalogSort(sort);
+              setSkillCatalogPage(0);
+            }}
+            onCatalogPageChange={setSkillCatalogPage}
+            onRefreshCatalog={() => refreshSkillCatalog(skillCatalogQuery, skillCatalogSort, skillCatalogPage)}
+            onInstallCatalogSkill={handleInstallCatalogSkill}
+            onDeleteSkill={handleDeleteSkill}
+            onOpenSkillFolder={handleOpenSkillFolder}
+            onRefresh={() => {
+              if (!skillsWorkspace) {
+                return;
+              }
+              void updateSnapshot(api, setSnapshot, () => api.refreshRuntime(skillsWorkspace.id));
+            }}
+            onToggleSkill={handleToggleSkill}
+            onTrySkill={(skill) =>
+              handleTrySkill(
+                skill.filePath
+                  ? `${skill.slashCommand} `
+                  : t("skills.create_new_skill_prompt"),
+              )
             }
-            void updateSnapshot(api, setSnapshot, () => api.refreshRuntime(skillsWorkspace.id));
-          }}
-          onToggleSkill={handleToggleSkill}
-          onTrySkill={(skill) =>
-            handleTrySkill(
-              skill.filePath
-                ? `${skill.slashCommand} `
-                : t("skills.create_new_skill_prompt"),
-            )
-          }
-        />
-      </SecondarySurface>
+          />
+        </SecondarySurface>
+        {dialogs}
+      </>
     );
   }
 

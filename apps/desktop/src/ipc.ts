@@ -72,6 +72,7 @@ export const desktopIpc = {
   listSkillCatalogSources: "pi-gui:list-skill-catalog-sources",
   listSkillCatalog: "pi-gui:list-skill-catalog",
   installSkillFromCatalog: "pi-gui:install-skill-from-catalog",
+  deleteLocalSkill: "pi-gui:delete-local-skill",
   setModelSettingsScopeMode: "pi-gui:set-model-settings-scope-mode",
   setDefaultModel: "pi-gui:set-default-model",
   setDefaultThinkingLevel: "pi-gui:set-default-thinking-level",
@@ -194,6 +195,14 @@ export interface SkillCatalogEntry {
   readonly stars?: number;
   readonly updatedAt?: number;
   readonly installKey: string;
+  readonly installed?: SkillCatalogInstalledState;
+}
+
+export interface SkillCatalogInstalledState {
+  readonly version: string;
+  readonly installedAt: number;
+  readonly filePath: string;
+  readonly updatable: boolean;
 }
 
 export interface SkillCatalogInstallInput {
@@ -337,6 +346,7 @@ export interface PiDesktopApi {
   listSkillCatalogSources(): Promise<readonly SkillCatalogSource[]>;
   listSkillCatalog(input: SkillCatalogQuery): Promise<readonly SkillCatalogEntry[]>;
   installSkillFromCatalog(workspaceId: string, input: SkillCatalogInstallInput): Promise<DesktopAppState>;
+  deleteLocalSkill(workspaceId: string, filePath: string): Promise<DesktopAppState>;
   setModelSettingsScopeMode(mode: ModelSettingsScopeMode): Promise<DesktopAppState>;
   setDefaultModel(workspaceId: string, provider: string, modelId: string): Promise<DesktopAppState>;
   setDefaultThinkingLevel(

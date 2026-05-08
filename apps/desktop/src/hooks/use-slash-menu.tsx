@@ -77,8 +77,6 @@ interface UseSlashMenuParams {
   readonly onRunTreeCommand?: () => void;
   readonly onSelectModelOption?: (provider: string, modelId: string) => void;
   readonly onSelectThinkingOption?: (level: string) => void;
-  readonly onSelectLoginProvider?: (providerId: string) => void;
-  readonly onSelectLogoutProvider?: (providerId: string) => void;
 }
 
 export interface SlashMenuState {
@@ -121,8 +119,6 @@ export function useSlashMenu(params: UseSlashMenuParams): SlashMenuState {
     onRunTreeCommand,
     onSelectModelOption,
     onSelectThinkingOption,
-    onSelectLoginProvider,
-    onSelectLogoutProvider,
   } = params;
 
   const [slashIndex, setSlashIndex] = useState(0);
@@ -353,38 +349,6 @@ export function useSlashMenu(params: UseSlashMenuParams): SlashMenuState {
     if (activeSlashOptionCommand.kind === "skill") {
       closeSlashOptionMenu();
       fillComposerFromSlash(option.command ?? `${option.value} `, { suppressMenu: true });
-      return;
-    }
-
-    if (activeSlashOptionCommand.kind === "login") {
-      resetSlashUi();
-      setComposerDraft("");
-      if (onSelectLoginProvider) {
-        onSelectLoginProvider(option.value);
-        return;
-      }
-      if (!selectedWorkspace || !api) {
-        return;
-      }
-      void updateSnapshot(api, setSnapshot, () => api.loginProvider(selectedWorkspace.id, option.value)).then((state) => {
-        setComposerDraft(state.composerDraft);
-      });
-      return;
-    }
-
-    if (activeSlashOptionCommand.kind === "logout") {
-      resetSlashUi();
-      setComposerDraft("");
-      if (onSelectLogoutProvider) {
-        onSelectLogoutProvider(option.value);
-        return;
-      }
-      if (!selectedWorkspace || !api) {
-        return;
-      }
-      void updateSnapshot(api, setSnapshot, () => api.logoutProvider(selectedWorkspace.id, option.value)).then((state) => {
-        setComposerDraft(state.composerDraft);
-      });
       return;
     }
 

@@ -28,6 +28,7 @@ interface SkillsViewProps {
   readonly onCatalogPageChange: (page: number) => void;
   readonly onRefreshCatalog: () => void;
   readonly onInstallCatalogSkill: (skill: SkillCatalogEntry) => void;
+  readonly onDeleteSkill: (skill: RuntimeSkillRecord) => void;
 }
 
 export function SkillsView({
@@ -51,6 +52,7 @@ export function SkillsView({
   onCatalogPageChange,
   onRefreshCatalog,
   onInstallCatalogSkill,
+  onDeleteSkill,
 }: SkillsViewProps) {
   const [query, setQuery] = useState("");
   const [selectedSkillPath, setSelectedSkillPath] = useState<string | undefined>();
@@ -173,6 +175,12 @@ export function SkillsView({
             <div className="skills-catalog__list" data-testid="skillhub-list">
               {catalogSkills.map((skill) => {
                 const installing = installingCatalogKey === skill.installKey;
+                const installed = skill.installed;
+                const catalogActionLabel = installed?.updatable
+                  ? t("skills.update")
+                  : installed
+                    ? t("skills.installed")
+                    : t("skills.install");
                 return (
                   <article className="skills-catalog__item" key={`${skill.sourceId}:${skill.installKey}`}>
                     <div className="skills-catalog__item-body">
@@ -182,7 +190,9 @@ export function SkillsView({
                       </div>
                       <p>{skill.summary || skill.slug}</p>
                       <div className="skills-catalog__meta">
-                        {skill.latestVersion ? <span>{t("skills.installed_version", { version: skill.latestVersion })}</span> : null}
+                        {skill.latestVersion ? <span>{t("skills.latest_version", { version: skill.latestVersion })}</span> : null}
+                        {installed ? <span>{t("skills.local_version", { version: installed.version })}</span> : null}
+                        {installed?.updatable ? <span className="skills-catalog__meta-update">{t("skills.update_available")}</span> : null}
                         {typeof skill.downloads === "number" ? <span>{t("skills.downloads", { count: skill.downloads })}</span> : null}
                         {typeof skill.stars === "number" ? <span>{t("skills.stars", { count: skill.stars })}</span> : null}
                       </div>
@@ -191,9 +201,9 @@ export function SkillsView({
                       className="button button--primary"
                       type="button"
                       onClick={() => onInstallCatalogSkill(skill)}
-                      disabled={installing || Boolean(installingCatalogKey)}
+                      disabled={installing || Boolean(installingCatalogKey) || Boolean(installed && !installed.updatable)}
                     >
-                      {installing ? t("skills.installing") : t("skills.install")}
+                      {installing ? t("skills.installing") : catalogActionLabel}
                     </button>
                   </article>
                 );
@@ -309,6 +319,13 @@ export function SkillsView({
                   </button>
                   <button className="button button--primary" type="button" onClick={() => onTrySkill(selectedSkill)}>
                     {t("skills.try")}
+                  </button>
+                  <button
+                    className="button button--danger"
+                    type="button"
+                    onClick={() => onDeleteSkill(selectedSkill)}
+                  >
+                    {t("skills.delete")}
                   </button>
                 </div>
               </>

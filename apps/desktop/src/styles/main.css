@@ -3338,6 +3338,12 @@
   background: #f8fafc;
 }
 
+.skills-catalog__meta-update {
+  border-color: #a7d8b2 !important;
+  background: #e8f3ea !important;
+  color: #2e6a3a;
+}
+
 .skills-catalog__pager {
   display: flex;
   align-items: center;

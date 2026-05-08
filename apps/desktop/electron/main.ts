@@ -26,6 +26,7 @@ import {
 } from "./notification-permission";
 import {
   configureChinaNpmRegistryDefaults,
+  deleteLocalSkill,
   installSkillFromCatalog,
   listSkillCatalog,
   listSkillCatalogSources,
@@ -651,9 +652,19 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.loginPlatformAccount, () => store.loginPlatformAccount());
   ipcMain.handle(desktopIpc.logoutPlatformAccount, () => store.logoutPlatformAccount());
   ipcMain.handle(desktopIpc.listSkillCatalogSources, () => listSkillCatalogSources());
-  ipcMain.handle(desktopIpc.listSkillCatalog, (_event, input: SkillCatalogQuery) => listSkillCatalog(input));
+  ipcMain.handle(desktopIpc.listSkillCatalog, async (_event, input: SkillCatalogQuery) =>
+    listSkillCatalog(input, store.getAgentDir()),
+  );
   ipcMain.handle(desktopIpc.installSkillFromCatalog, async (_event, workspaceId: string, input: SkillCatalogInstallInput) => {
     await installSkillFromCatalog(store.getAgentDir(), input);
+    return store.refreshRuntime(workspaceId);
+  });
+  ipcMain.handle(desktopIpc.deleteLocalSkill, async (_event, workspaceId: string, filePath: string) => {
+    const workspacePath = store.getWorkspacePath(workspaceId);
+    if (!workspacePath) {
+      throw new Error(`Unknown workspace: ${workspaceId}`);
+    }
+    await deleteLocalSkill(store.getAgentDir(), workspacePath, filePath);
     return store.refreshRuntime(workspaceId);
   });
   ipcMain.handle(desktopIpc.setModelSettingsScopeMode, (_event, mode) => store.setModelSettingsScopeMode(mode));
