@@ -202,6 +202,7 @@ function buildDesktopLaunchEnv(
     PI_CODING_AGENT_DIR: agentDir,
     ...(options.notificationLogPath ? { PI_APP_NOTIFICATION_LOG_PATH: options.notificationLogPath } : {}),
     PI_APP_OPEN_DEVTOOLS: "0",
+    PI_APP_DISABLE_BUILTIN_MCP_ADAPTER: "1",
     ...(options.envOverrides ?? {}),
   };
 

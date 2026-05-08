@@ -106,6 +106,7 @@ type SessionEventListener = (event: SessionDriverEvent, state: DesktopAppState) 
 type TranscriptMessageRow = Extract<TranscriptMessage, { kind: "message" }>;
 
 const LEGACY_TRANSCRIPT_HISTORY_LIMIT = 180;
+const DEFAULT_MCP_ADAPTER_PACKAGE = "npm:pi-mcp-adapter";
 
 interface PersistedTranscriptRecord {
   readonly version: 1;
@@ -869,6 +870,9 @@ export class DesktopAppStore implements AppStoreInternals {
         persisted.extensionCommandCompatibilityByWorkspace,
       )) {
         this.extensionCommandCompatibilityByWorkspace.set(workspaceId, records);
+      }
+      if (process.env.PI_APP_DISABLE_BUILTIN_MCP_ADAPTER !== "1") {
+        await ensureDefaultAgentPackages(this.driver.getAgentDir());
       }
       const initialWorkspacePaths = this.initialWorkspacePaths.map((path) => path.trim()).filter(Boolean);
       const knownWorkspaces = await this.driver.listWorkspaces();
@@ -2487,6 +2491,41 @@ async function readProjectModelSettingsFile(workspacePath: string): Promise<Reco
   } catch {
     return {};
   }
+}
+
+async function ensureDefaultAgentPackages(agentDir: string): Promise<void> {
+  const settingsPath = join(agentDir, "settings.json");
+  const settings = await readJsonFileRecord(settingsPath);
+  const packages = Array.isArray(settings.packages) ? [...settings.packages] : [];
+  if (packages.some(isDefaultMcpAdapterPackageEntry)) {
+    return;
+  }
+
+  settings.packages = [...packages, DEFAULT_MCP_ADAPTER_PACKAGE];
+  await mkdir(agentDir, { recursive: true });
+  await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+}
+
+async function readJsonFileRecord(filePath: string): Promise<Record<string, unknown>> {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function isDefaultMcpAdapterPackageEntry(entry: unknown): boolean {
+  if (typeof entry === "string") {
+    return entry.trim() === DEFAULT_MCP_ADAPTER_PACKAGE;
+  }
+  if (typeof entry !== "object" || entry === null || !("source" in entry)) {
+    return false;
+  }
+  return typeof entry.source === "string" && entry.source.trim() === DEFAULT_MCP_ADAPTER_PACKAGE;
 }
 
 async function updateProjectModelSettingsFile(
