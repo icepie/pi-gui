@@ -4,6 +4,7 @@ dist-electron
 .vite
 *.log
 .tmp-userdata-debug
+.tmp-userdata-dev
 test-results
 tmp-chat-selftest.mjs
 tmp-parallel-selftest.mjs

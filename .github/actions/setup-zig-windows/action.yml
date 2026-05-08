@@ -1,0 +1,128 @@
+name: Setup Zig on Windows
+description: Install Zig on Windows runners from community mirrors.
+
+inputs:
+  version:
+    description: Zig version to install.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Zig
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $Version = "${{ inputs.version }}"
+        $Arch = "x86_64"
+        if ($env:RUNNER_ARCH -eq "ARM64") {
+          $Arch = "aarch64"
+        }
+        $CacheArch = if ($env:RUNNER_ARCH -eq "ARM64") { "arm64" } else { "x64" }
+        $InstallDir = Join-Path $env:RUNNER_TOOL_CACHE "zig\$Version\$CacheArch"
+        $ZigExe = Join-Path $InstallDir "zig.exe"
+
+        function Add-ZigToPath([string] $Directory, [string] $ExePath) {
+          $actualVersion = (& $ExePath version).Trim()
+          if ($actualVersion -ne $Version) {
+            throw "Installed Zig version mismatch: expected $Version, got $actualVersion at $ExePath"
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $Directory
+          "ZIG=$ExePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using Zig $actualVersion from $ExePath"
+        }
+
+        if (Test-Path $ZigExe) {
+          Add-ZigToPath $InstallDir $ZigExe
+          exit 0
+        }
+
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+        $ArchiveName = "zig-$Arch-windows-$Version.zip"
+        $ArchivePath = Join-Path $env:RUNNER_TEMP $ArchiveName
+        $ExtractRoot = Join-Path $env:RUNNER_TEMP "zig-$Version-extract"
+        $Source = "github-pi-gui-ci"
+        $Mirrors = @(
+          "https://pkg.hexops.org/zig",
+          "https://zigmirror.hryx.net/zig",
+          "https://zig.linus.dev/zig",
+          "https://zig.squirl.dev",
+          "https://zig.mirror.mschae23.de/zig",
+          "https://ziglang.freetls.fastly.net",
+          "https://zig.tilok.dev",
+          "https://zig-mirror.tsimnet.eu/zig",
+          "https://zig.karearl.com/zig",
+          "https://pkg.earth/zig",
+          "https://zigmirror.com",
+          "https://zig.chainsafe.dev",
+          "https://zig.savalione.com"
+        )
+        $Urls = @(
+          $Mirrors | ForEach-Object { "$_/$ArchiveName`?source=$Source" }
+        ) + @(
+          "https://ziglang.org/download/$Version/$ArchiveName`?source=$Source"
+        )
+
+        $downloaded = $false
+        foreach ($Url in $Urls) {
+          try {
+            Write-Host "Downloading Zig from $Url"
+            Remove-Item -Force $ArchivePath -ErrorAction SilentlyContinue
+            $CurlArgs = @(
+              "--fail",
+              "--location",
+              "--show-error",
+              "--silent",
+              "--connect-timeout", "10",
+              "--max-time", "45",
+              "--speed-time", "20",
+              "--speed-limit", "10240",
+              "--output", $ArchivePath,
+              $Url
+            )
+            & curl.exe @CurlArgs
+            if ($LASTEXITCODE -ne 0) {
+              throw "curl.exe exited with code $LASTEXITCODE"
+            }
+            $downloaded = $true
+            break
+          } catch {
+            Write-Warning "Zig download failed from $Url`: $($_.Exception.Message)"
+          }
+        }
+
+        if ($downloaded) {
+          Remove-Item -Recurse -Force $ExtractRoot -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $ExtractRoot | Out-Null
+          Expand-Archive -LiteralPath $ArchivePath -DestinationPath $ExtractRoot -Force
+          $ExtractedZig = Get-ChildItem -Path $ExtractRoot -Filter zig.exe -Recurse | Select-Object -First 1
+          if (-not $ExtractedZig) {
+            throw "Downloaded Zig archive did not contain zig.exe"
+          }
+          Copy-Item -Path (Join-Path $ExtractedZig.DirectoryName "*") -Destination $InstallDir -Recurse -Force
+          Add-ZigToPath $InstallDir $ZigExe
+          exit 0
+        }
+
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+          try {
+            Write-Host "Falling back to Winget Zig install"
+            winget install --id zig.zig --version $Version --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            $WingetZig = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter zig.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $WingetZig) {
+              $WingetZigCommand = Get-Command zig -ErrorAction SilentlyContinue
+              if ($WingetZigCommand) {
+                $WingetZig = Get-Item $WingetZigCommand.Source
+              }
+            }
+            if ($WingetZig) {
+              Add-ZigToPath $WingetZig.DirectoryName $WingetZig.FullName
+              exit 0
+            }
+          } catch {
+            Write-Warning "Winget Zig install failed: $($_.Exception.Message)"
+          }
+        }
+
+        throw "Unable to install Zig $Version"

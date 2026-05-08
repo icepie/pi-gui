@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const desktopDir = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(desktopDir, "..", "..");
+const defaultDevUserDataDir = path.join(desktopDir, ".tmp-userdata-dev");
 const rawArgs = process.argv.slice(2);
 const extraArgs = rawArgs[0] === "--" ? rawArgs.slice(1) : rawArgs;
 const packageFilters = ["@pi-gui/session-driver", "@pi-gui/pi-sdk-driver", "@pi-gui/catalogs"];
@@ -24,6 +25,7 @@ function nodeExecutable() {
 function childEnv(overrides = {}) {
   const env = { ...process.env, ...overrides };
   delete env.ELECTRON_RUN_AS_NODE;
+  env.PI_APP_USER_DATA_DIR = env.PI_APP_USER_DATA_DIR?.trim() || defaultDevUserDataDir;
   return env;
 }
 

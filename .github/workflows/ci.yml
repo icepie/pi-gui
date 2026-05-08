@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - pi-fit
   pull_request:
 
 jobs:
@@ -45,8 +46,31 @@ jobs:
       - name: Desktop Core
         run: pnpm --filter @pi-gui/desktop run test:e2e:ci:mac
 
-  desktop-package-linux:
-    runs-on: ubuntu-latest
+  desktop-package:
+    name: Desktop Package (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-latest
+            package-platform: linux
+            package-arch: x64
+            package-command: pnpm --filter @pi-gui/desktop run package:linux:x64
+            verify-command: pnpm --dir apps/desktop run verify:packaged-runtime-deps
+          - name: macos-arm64
+            os: macos-latest
+            package-platform: darwin
+            package-arch: arm64
+            package-command: pnpm --filter @pi-gui/desktop run package:mac:dir:arm64
+            verify-command: pnpm --dir apps/desktop run verify:packaged-runtime-deps
+          - name: windows-x64
+            os: windows-latest
+            package-platform: win32
+            package-arch: x64
+            package-command: pnpm --filter @pi-gui/desktop run package:win:dir:x64
+            verify-command: pnpm --dir apps/desktop run verify:packaged-runtime-deps
 
     steps:
       - uses: actions/checkout@v4
@@ -58,11 +82,20 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Zig for Windows packaging
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/setup-zig-windows
+        with:
+          version: 0.15.2
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Package Linux AppImage
-        run: pnpm --filter @pi-gui/desktop run package:linux
+      - name: Package desktop app
+        run: ${{ matrix.package-command }}
 
       - name: Verify packaged runtime dependencies
-        run: pnpm --dir apps/desktop run verify:packaged-runtime-deps:linux
+        run: ${{ matrix.verify-command }}
+        env:
+          PI_APP_PACKAGE_PLATFORM: ${{ matrix.package-platform }}
+          PI_APP_PACKAGE_ARCH: ${{ matrix.package-arch }}

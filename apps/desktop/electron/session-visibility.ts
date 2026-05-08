@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import type { DesktopAppState } from "../src/desktop-state";
 import type { SessionRef } from "@pi-gui/session-driver";
+import { canUseWindow } from "./electron-window-utils";
 
 type SessionVisibilityOverride = "active" | "inactive" | undefined;
 
@@ -25,7 +26,7 @@ export function isSessionActivelyViewed(
   if (override === "inactive") {
     return false;
   }
-  if (!window || window.isDestroyed() || window.isMinimized() || !window.isVisible()) {
+  if (!canUseWindow(window) || window.isMinimized() || !window.isVisible()) {
     return false;
   }
   return window.isFocused();

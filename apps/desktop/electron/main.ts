@@ -34,6 +34,7 @@ import { checkForUpdate } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
 import { PlatformAccountService } from "./platform-account-service";
+import { canUseWebContents, canUseWindow, showAndFocusWindow } from "./electron-window-utils";
 import type { DesktopAppState, ThemeMode, AppLocale } from "../src/desktop-state";
 import {
   desktopIpc,
@@ -306,7 +307,7 @@ function attachViewedSessionTracking(window: BrowserWindow): void {
 }
 
 function canPublishToWindow(window: BrowserWindow): boolean {
-  return !window.isDestroyed() && !window.webContents.isDestroyed() && !window.webContents.isCrashed();
+  return canUseWebContents(window);
 }
 
 function rejectPendingTextPrompts(error: Error): void {
@@ -336,8 +337,7 @@ async function showAppNotice(input: {
     return;
   }
 
-  window.show();
-  window.focus();
+  showAndFocusWindow(window);
   const requestId = randomUUID();
   window.webContents.send(desktopIpc.appNoticeRequest, {
     requestId,
@@ -469,14 +469,10 @@ if (!hasSingleInstanceLock) {
 }
 
 app.on("second-instance", () => {
-  if (!mainWindow || mainWindow.isDestroyed()) {
+  if (!canUseWindow(mainWindow)) {
     return;
   }
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
-  }
-  mainWindow.show();
-  mainWindow.focus();
+  showAndFocusWindow(mainWindow);
 });
 
 app.whenReady().then(async () => {
@@ -945,10 +941,13 @@ function resolveBundledWindowsBashPath(): string | undefined {
     return undefined;
   }
 
-  const candidates = app.isPackaged
+  const exeDir = path.dirname(app.getPath("exe"));
+  const bundledCandidates = app.isPackaged
     ? [
         path.join(process.resourcesPath, "git-bash", "bin", "bash.exe"),
         path.join(process.resourcesPath, "git-bash", "usr", "bin", "bash.exe"),
+        path.join(exeDir, "resources", "git-bash", "bin", "bash.exe"),
+        path.join(exeDir, "resources", "git-bash", "usr", "bin", "bash.exe"),
       ]
     : [
         path.join(__dirname, "..", "..", "resources", "git-bash", "runtime", "current", "bin", "bash.exe"),
@@ -961,7 +960,7 @@ function resolveBundledWindowsBashPath(): string | undefined {
         path.join(process.cwd(), "apps", "desktop", "resources", "git-bash", "usr", "bin", "bash.exe"),
       ];
 
-  for (const candidate of candidates) {
+  for (const candidate of bundledCandidates) {
     try {
       if (existsSync(candidate)) {
         return candidate;
@@ -971,7 +970,74 @@ function resolveBundledWindowsBashPath(): string | undefined {
     }
   }
 
+  // Fallback: search system-installed Git Bash locations.
+  const systemCandidates = resolveSystemGitBashCandidates();
+  for (const candidate of systemCandidates) {
+    try {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // Ignore access errors.
+    }
+  }
+
   return undefined;
+}
+
+function resolveSystemGitBashCandidates(): string[] {
+  const candidates: string[] = [];
+
+  // 1. Check registry for Git install path.
+  for (const regKey of [
+    "HKLM\\SOFTWARE\\GitForWindows",
+    "HKLM\\SOFTWARE\\WOW6432Node\\GitForWindows",
+    "HKCU\\SOFTWARE\\GitForWindows",
+  ]) {
+    try {
+      const result = require("child_process").execSync(
+        `reg query "${regKey}" /v InstallPath`,
+        { encoding: "utf8", timeout: 3000, windowsHide: true },
+      );
+      const match = /InstallPath\s+REG_SZ\s+(.+)/i.exec(result);
+      const installPath = match?.[1]?.trim();
+      if (installPath) {
+        const gitRoot = installPath;
+        candidates.push(path.join(gitRoot, "bin", "bash.exe"));
+        candidates.push(path.join(gitRoot, "usr", "bin", "bash.exe"));
+      }
+    } catch {
+      // Registry key not present or access denied.
+    }
+  }
+
+  // 2. Derive from git.exe on PATH.
+  try {
+    const gitExe = require("child_process")
+      .execSync("where git.exe", { encoding: "utf8", timeout: 3000, windowsHide: true })
+      .split(/\r?\n/)[0]
+      ?.trim();
+    if (gitExe) {
+      const gitRoot = path.resolve(gitExe, "..", "..");
+      candidates.push(path.join(gitRoot, "bin", "bash.exe"));
+      candidates.push(path.join(gitRoot, "usr", "bin", "bash.exe"));
+    }
+  } catch {
+    // git not on PATH.
+  }
+
+  // 3. Standard install locations as last resort.
+  const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  candidates.push(
+    path.join(programFiles, "Git", "bin", "bash.exe"),
+    path.join(programFiles, "Git", "usr", "bin", "bash.exe"),
+    path.join(programFilesX86, "Git", "bin", "bash.exe"),
+    path.join(programFilesX86, "Git", "usr", "bin", "bash.exe"),
+  );
+
+  // Deduplicate while preserving order.
+  return [...new Set(candidates)];
 }
 
 function registerBundledWindowsBashEnv(shellPath: string): void {
@@ -1098,8 +1164,7 @@ async function promptForText(message: string, placeholder = ""): Promise<string>
   if (!window || !canPublishToWindow(window)) {
     throw new Error("Main window is not available for login.");
   }
-  window.show();
-  window.focus();
+  showAndFocusWindow(window);
   const requestId = randomUUID();
   window.webContents.send(desktopIpc.textPromptRequest, {
     requestId,

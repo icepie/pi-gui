@@ -27,6 +27,11 @@ pnpm --filter @pi-gui/desktop dev
 
 `dev` now runs through `electron-vite`, so renderer edits hot-update in place and Electron `main` / `preload` changes trigger the appropriate reload or restart behavior automatically. The desktop dev launcher also rebuilds the shared workspace packages up front and keeps them in watch mode so Node-side package changes can be picked up without manual rebuilds.
 
+The dev launcher uses `apps/desktop/.tmp-userdata-dev` as its default Electron
+user-data directory so it can run alongside an already-open packaged or preview
+window. Set `PI_APP_USER_DATA_DIR=/absolute/path` if you intentionally want dev
+mode to reuse a specific profile.
+
 Run the built app locally without packaging:
 
 ```bash
