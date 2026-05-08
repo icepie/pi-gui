@@ -1,5 +1,5 @@
 import { access, rm } from "node:fs/promises";
-import { constants, existsSync } from "node:fs";
+import { constants, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -251,7 +251,7 @@ function hasPackagedAppPayload(outputDir, options) {
 function candidatePayloadPaths(outputDir, options) {
   if (options.platform === "darwin") {
     return [
-      path.join(outputDir, `mac${options.arch === "arm64" ? "-arm64" : ""}`, "pi-gui.app", "Contents", "Resources", "app.asar"),
+      ...listMacAppAsarPaths(outputDir, options.arch),
     ];
   }
   if (options.platform === "win32") {
@@ -264,6 +264,17 @@ function candidatePayloadPaths(outputDir, options) {
     path.join(outputDir, "linux-unpacked", "resources", "app.asar"),
     path.join(outputDir, `linux-${options.arch}-unpacked`, "resources", "app.asar"),
   ];
+}
+
+function listMacAppAsarPaths(outputDir, arch) {
+  const macDir = path.join(outputDir, `mac${arch === "arm64" ? "-arm64" : ""}`);
+  if (!existsSync(macDir)) {
+    return [];
+  }
+
+  return readdirSync(macDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith(".app"))
+    .map((entry) => path.join(macDir, entry.name, "Contents", "Resources", "app.asar"));
 }
 
 function resolveElectronBuilderCli() {

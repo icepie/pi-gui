@@ -1,6 +1,7 @@
 import { nativeTheme, type BrowserWindow } from "electron";
 import { desktopIpc } from "../src/ipc";
 import type { ThemeMode } from "../src/desktop-state";
+import { canUseWebContents, canUseWindow } from "./electron-window-utils";
 
 export class ThemeManager {
   private mode: ThemeMode = "system";
@@ -13,7 +14,7 @@ export class ThemeManager {
   }
 
   setWindow(win: BrowserWindow) {
-    this.window = win;
+    this.window = canUseWindow(win) ? win : null;
   }
 
   getMode(): ThemeMode {
@@ -38,6 +39,8 @@ export class ThemeManager {
   }
 
   private broadcast() {
-    this.window?.webContents.send(desktopIpc.themeChanged, this.getResolvedTheme());
+    if (canUseWebContents(this.window)) {
+      this.window.webContents.send(desktopIpc.themeChanged, this.getResolvedTheme());
+    }
   }
 }

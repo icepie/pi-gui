@@ -38,7 +38,7 @@ const packageArch = (process.env.PI_APP_PACKAGE_ARCH ?? process.arch).trim().toL
 const asarPath = resolveAsarPath(desktopDir, packagePlatform);
 const notificationHelperPath =
   packagePlatform === "darwin"
-    ? path.join(desktopDir, "release", "mac-arm64", "pi-gui.app", "Contents", "MacOS", "pi-gui-notification-status-helper")
+    ? resolveMacAppFilePath(desktopDir, ["Contents", "MacOS", "pi-gui-notification-status-helper"])
     : undefined;
 const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@mariozechner/pi-coding-agent");
 
@@ -66,21 +66,12 @@ console.log(`Verified packaged runtime dependencies in ${asarPath}`);
 
 function resolveAsarPath(desktopDir, packagePlatform) {
   if (packagePlatform === "darwin") {
-    const targetScopedAsarPath = path.join(
-      desktopDir,
-      "release",
-      `darwin-${packageArch}-dir`,
-      `mac${packageArch === "arm64" ? "-arm64" : ""}`,
-      "pi-gui.app",
-      "Contents",
-      "Resources",
-      "app.asar",
-    );
+    const targetScopedAsarPath = resolveMacAppFilePath(desktopDir, ["Contents", "Resources", "app.asar"]);
     if (existsSync(targetScopedAsarPath)) {
       return targetScopedAsarPath;
     }
 
-    return path.join(desktopDir, "release", "mac-arm64", "pi-gui.app", "Contents", "Resources", "app.asar");
+    return targetScopedAsarPath;
   }
 
   if (packagePlatform === "linux") {
@@ -143,6 +134,40 @@ function resolveAsarPath(desktopDir, packagePlatform) {
   }
 
   throw new Error(`Unsupported packaged runtime dependency target: ${packagePlatform}`);
+}
+
+function resolveMacAppFilePath(desktopDir, relativeParts) {
+  const releaseDir = path.join(desktopDir, "release");
+  const scopedReleaseDirs = [
+    path.join(releaseDir, `darwin-${packageArch}-dir`),
+    path.join(releaseDir, `darwin-${packageArch}`),
+    path.join(releaseDir, "mac-arm64"),
+  ].filter((candidatePath) => existsSync(candidatePath));
+  const candidatePaths = [];
+
+  for (const releasePath of scopedReleaseDirs) {
+    const macDir = path.join(releasePath, `mac${packageArch === "arm64" ? "-arm64" : ""}`);
+    candidatePaths.push(...listMacAppFilePaths(macDir, relativeParts));
+    candidatePaths.push(...listMacAppFilePaths(releasePath, relativeParts));
+  }
+
+  return findFirstExistingPath(candidatePaths) ?? path.join(
+    releaseDir,
+    `darwin-${packageArch}-dir`,
+    `mac${packageArch === "arm64" ? "-arm64" : ""}`,
+    "ice tea.app",
+    ...relativeParts,
+  );
+}
+
+function listMacAppFilePaths(parentDir, relativeParts) {
+  if (!existsSync(parentDir)) {
+    return [];
+  }
+
+  return readdirSync(parentDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith(".app"))
+    .map((entry) => path.join(parentDir, entry.name, ...relativeParts));
 }
 
 function findFirstExistingPath(candidatePaths) {
