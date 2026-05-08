@@ -58,6 +58,15 @@ type TranslationKey =
   | "host_actions.enabled_models_description"
   | "host_actions.session"
   | "host_actions.session_description"
+  | "host_actions.name"
+  | "host_actions.name_description"
+  | "host_actions.name_template_placeholder"
+  | "host_actions.name_incomplete"
+  | "host_actions.name_success"
+  | "host_actions.compact"
+  | "host_actions.compact_description"
+  | "host_actions.reload"
+  | "host_actions.reload_description"
   | "tree.eyebrow"
   | "tree.browse_branches"
   | "tree.switch_branch"
@@ -458,6 +467,15 @@ const EN_US: TranslationTable = {
   "host_actions.enabled_models_description": "Choose which models appear in pickers",
   "host_actions.session": "Session",
   "host_actions.session_description": "Show current session details in the timeline",
+  "host_actions.name": "Rename",
+  "host_actions.name_description": "Rename the current session",
+  "host_actions.name_template_placeholder": "New thread title",
+  "host_actions.name_incomplete": "Add a thread title after /name.",
+  "host_actions.name_success": "Session renamed to",
+  "host_actions.compact": "Compact",
+  "host_actions.compact_description": "Compact session context now",
+  "host_actions.reload": "Reload",
+  "host_actions.reload_description": "Reload prompts, skills, and session resources",
   "tree.eyebrow": "Session tree",
   "tree.browse_branches": "Browse branches",
   "tree.switch_branch": "Switch branch",
@@ -857,6 +875,15 @@ const ZH_CN: TranslationTable = {
   "host_actions.enabled_models_description": "选择在选择器中显示哪些模型",
   "host_actions.session": "会话",
   "host_actions.session_description": "在时间线中显示当前会话详情",
+  "host_actions.name": "重命名",
+  "host_actions.name_description": "重命名当前会话",
+  "host_actions.name_template_placeholder": "新的会话标题",
+  "host_actions.name_incomplete": "请在 /name 后输入会话标题。",
+  "host_actions.name_success": "会话已重命名为",
+  "host_actions.compact": "压缩",
+  "host_actions.compact_description": "立即压缩会话上下文",
+  "host_actions.reload": "重新加载",
+  "host_actions.reload_description": "重新加载提示词、技能和会话资源",
   "tree.eyebrow": "会话树",
   "tree.browse_branches": "浏览分支",
   "tree.switch_branch": "切换分支",

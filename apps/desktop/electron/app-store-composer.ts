@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sessionKey } from "@pi-gui/pi-sdk-driver";
 import type { SessionConfig, SessionQueuedMessage, SessionRef } from "@pi-gui/session-driver";
 import type { ComposerAttachment, DesktopAppState, QueuedComposerMessage, WorkspaceSessionTarget } from "../src/desktop-state";
+import { t } from "../src/i18n";
 import { toSessionRef } from "./app-store-utils";
 import {
   formatSessionConfigStatus,
@@ -593,7 +594,7 @@ async function runComposerCommand(
   if (parsed.type === "name") {
     store.clearPendingAutoTitle(sessionRef);
     await store.driver.renameSession(sessionRef, parsed.title);
-    return finishComposerCommand(store, sessionRef, key, `Session renamed to ${parsed.title}`);
+    return finishComposerCommand(store, sessionRef, key, `${t("host_actions.name_success")} ${parsed.title}`);
   }
 
   if (parsed.type === "compact") {
