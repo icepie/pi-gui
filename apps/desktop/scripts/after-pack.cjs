@@ -62,6 +62,7 @@ exports.default = async function afterPack(context) {
 
   injectWindowsGitBashRuntime(platform, arch, resourcesDir);
   injectElectronNodeProxyRuntime(context, platform, arch, resourcesDir);
+  injectWindowsManagedRuntime(platform, arch, resourcesDir);
   pruneElectronLocales(context.appOutDir);
   prunePackagedNodeModules(resourcesDir);
   pruneNodePtyUnpackedArtifacts(resourcesDir, platform, arch);
@@ -135,6 +136,25 @@ function injectElectronNodeProxyRuntime(context, platform, arch, resourcesDir) {
   }
 
   console.log(`[afterPack] injected Electron Node proxy -> ${path.relative(process.cwd(), runtimeDir)}`);
+}
+
+function injectWindowsManagedRuntime(platform, arch, resourcesDir) {
+  if (platform !== "win32") {
+    return;
+  }
+
+  const sourceDir = path.join(__dirname, "..", "resources", "runtime", arch);
+  if (!hasWindowsManagedRuntime(sourceDir)) {
+    throw new Error(
+      `[afterPack] Missing prepared runtime payload for ${arch}: ${sourceDir}. ` +
+        `Run pnpm --dir apps/desktop run prepare:runtime:win with PI_APP_WINDOWS_ARCH=${arch}.`,
+    );
+  }
+
+  const targetDir = path.join(resourcesDir, "runtime");
+  fs.mkdirSync(targetDir, { recursive: true });
+  copyWindowsManagedRuntimeDirectory(sourceDir, targetDir);
+  console.log(`[afterPack] injected managed Python/uv runtime ${arch} -> ${path.relative(process.cwd(), targetDir)}`);
 }
 
 function resolveExecutableName(context) {
@@ -413,6 +433,13 @@ function hasWindowsBash(rootDir) {
   return (
     fs.existsSync(path.join(rootDir, "usr", "bin", "bash.exe")) ||
     fs.existsSync(path.join(rootDir, "bin", "bash.exe"))
+  );
+}
+
+function hasWindowsManagedRuntime(rootDir) {
+  return (
+    fs.existsSync(path.join(rootDir, "python", "python.exe")) &&
+    fs.existsSync(path.join(rootDir, "uv", "uv.exe"))
   );
 }
 
@@ -819,6 +846,28 @@ function copyDirSync(sourceDir, targetDir) {
       throw new Error(`[afterPack] Refusing to copy symlink in packaged resources: ${sourcePath}`);
     }
     if (entry.isFile()) {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.copyFileSync(sourcePath, targetPath);
+      fs.chmodSync(targetPath, fs.statSync(sourcePath).mode);
+    }
+  }
+}
+
+function copyWindowsManagedRuntimeDirectory(sourceDir, targetDir) {
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(sourcePath, targetPath);
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      throw new Error(`[afterPack] Refusing to copy symlink in packaged runtime payload: ${sourcePath}`);
+    }
+    if (entry.isFile()) {
+      if (entry.name === ".python-stamp" || entry.name === ".uv-stamp") {
+        continue;
+      }
       fs.mkdirSync(path.dirname(targetPath), { recursive: true });
       fs.copyFileSync(sourcePath, targetPath);
       fs.chmodSync(targetPath, fs.statSync(sourcePath).mode);

@@ -59,6 +59,7 @@ try {
   verifyNativeClipboard(asarPath);
   verifyPackagedWindowsGitBash(asarPath);
   await verifyPackagedElectronNodeProxy(asarPath);
+  verifyPackagedWindowsManagedRuntime(asarPath);
 } finally {
   rmSync(extractedDir, { recursive: true, force: true });
 }
@@ -116,11 +117,15 @@ function resolveAsarPath(desktopDir, packagePlatform) {
     const releaseDir = path.join(desktopDir, "release");
     const dirReleaseDir = path.join(releaseDir, `win32-${packageArch}-dir`);
     const packagedReleaseDir = path.join(releaseDir, `win32-${packageArch}`);
-    const scopedReleaseDirs = existsSync(dirReleaseDir) ? [dirReleaseDir] : [packagedReleaseDir];
+    const scopedReleaseDirs = [dirReleaseDir, packagedReleaseDir].filter((candidatePath) =>
+      existsSync(candidatePath),
+    );
     const existingScopedReleaseDir = scopedReleaseDirs.find((candidatePath) => existsSync(candidatePath));
     const unpackedAsarPath = findFirstExistingPath([
-      path.join(scopedReleaseDirs[0], "win-unpacked", "resources", "app.asar"),
-      path.join(scopedReleaseDirs[0], `win-${packageArch}-unpacked`, "resources", "app.asar"),
+      ...scopedReleaseDirs.map((releasePath) => path.join(releasePath, "win-unpacked", "resources", "app.asar")),
+      ...scopedReleaseDirs.map((releasePath) =>
+        path.join(releasePath, `win-${packageArch}-unpacked`, "resources", "app.asar"),
+      ),
     ]);
 
     if (unpackedAsarPath) {
@@ -410,6 +415,36 @@ function verifyPackagedWindowsNodeProxy(asarPath) {
     throw new Error(
       `Packaged Windows node.exe looks like a standalone Node binary, not a small Electron proxy: ${nodeExePath} (${nodeExeSize} bytes)`,
     );
+  }
+}
+
+function verifyPackagedWindowsManagedRuntime(asarPath) {
+  if (packagePlatform !== "win32" && packagePlatform !== "win") {
+    return;
+  }
+
+  const resourcesDir = path.dirname(asarPath);
+  const runtimeDir = path.join(resourcesDir, "runtime");
+  const pythonDir = path.join(runtimeDir, "python");
+  const uvDir = path.join(runtimeDir, "uv");
+  const pythonExePath = path.join(pythonDir, "python.exe");
+  const uvExePath = path.join(uvDir, "uv.exe");
+
+  if (!existsSync(pythonExePath)) {
+    throw new Error(`Packaged Windows app is missing bundled Python runtime: ${pythonExePath}`);
+  }
+  if (!existsSync(uvExePath)) {
+    throw new Error(`Packaged Windows app is missing bundled uv runtime: ${uvExePath}`);
+  }
+
+  const pythonFiles = [
+    "python.exe",
+    "python3.dll",
+    "python313.dll",
+    "python313._pth",
+  ].filter((name) => existsSync(path.join(pythonDir, name)));
+  if (pythonFiles.length === 0) {
+    throw new Error(`Packaged Windows app has bundled Python but no recognizable core files under ${pythonDir}`);
   }
 }
 
