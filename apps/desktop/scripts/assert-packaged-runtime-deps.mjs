@@ -61,6 +61,7 @@ try {
   verifyPackagedWindowsGitBash(asarPath);
   await verifyPackagedElectronNodeProxy(asarPath);
   verifyPackagedWindowsManagedRuntime(asarPath);
+  verifyPackagedPiMcpAdapter(asarPath);
 } finally {
   rmSync(extractedDir, { recursive: true, force: true });
 }
@@ -446,6 +447,36 @@ function verifyPackagedWindowsManagedRuntime(asarPath) {
   ].filter((name) => existsSync(path.join(pythonDir, name)));
   if (pythonFiles.length === 0) {
     throw new Error(`Packaged Windows app has bundled Python but no recognizable core files under ${pythonDir}`);
+  }
+}
+
+function verifyPackagedPiMcpAdapter(asarPath) {
+  const resourcesDir = path.dirname(asarPath);
+  const adapterDir = path.join(resourcesDir, "pi-packages", "pi-mcp-adapter");
+  const packageJsonPath = path.join(adapterDir, "package.json");
+  const indexPath = path.join(adapterDir, "index.ts");
+  if (!existsSync(packageJsonPath) || !existsSync(indexPath)) {
+    throw new Error(`Packaged app is missing bundled pi-mcp-adapter under ${adapterDir}`);
+  }
+
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  if (packageJson.name !== "pi-mcp-adapter") {
+    throw new Error(`Bundled MCP adapter package has unexpected name: ${packageJson.name}`);
+  }
+
+  for (const dependencyPath of [
+    ["node_modules", "@modelcontextprotocol", "sdk", "package.json"],
+    ["node_modules", "@modelcontextprotocol", "ext-apps", "package.json"],
+    ["node_modules", "@earendil-works", "pi-ai", "package.json"],
+    ["node_modules", "@earendil-works", "pi-tui", "package.json"],
+    ["node_modules", "typebox", "package.json"],
+    ["node_modules", "open", "package.json"],
+    ["node_modules", "zod", "package.json"],
+  ]) {
+    const dependencyPackageJson = path.join(resourcesDir, "pi-packages", ...dependencyPath);
+    if (!existsSync(dependencyPackageJson)) {
+      throw new Error(`Packaged app is missing bundled pi-mcp-adapter dependency: ${dependencyPackageJson}`);
+    }
   }
 }
 

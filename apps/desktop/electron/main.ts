@@ -524,6 +524,7 @@ app.whenReady().then(async () => {
   store = new DesktopAppStore({
     userDataDir: configuredUserDataDir,
     initialWorkspacePaths: resolveInitialWorkspacePaths(),
+    resourcesPath: app.isPackaged ? process.resourcesPath : path.join(__dirname, "..", "..", "resources"),
     ...(bundledWindowsBashPath ? { agentShellPath: bundledWindowsBashPath } : {}),
     platformAccountService,
     getWindow: () => mainWindow,

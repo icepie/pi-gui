@@ -40,7 +40,7 @@ test("default desktop launches keep real-auth mode disabled and seed fake auth i
       defaultProvider: "openai",
       defaultModel: "gpt-5",
     });
-    expect(settings.packages).toContain("npm:pi-mcp-adapter");
+    expect(settings.packages?.some(isBundledMcpAdapterPackage)).toBe(true);
   } finally {
     await harness.close();
   }
@@ -77,8 +77,54 @@ test("seeded agent dir keeps existing package settings and appends the built-in 
     const settings = JSON.parse(await readFile(join(agentDir, "settings.json"), "utf8")) as {
       packages?: readonly unknown[];
     };
-    expect(settings.packages).toEqual([customPackage, "npm:pi-mcp-adapter"]);
+    expect(settings.packages?.[0]).toBe(customPackage);
+    expect(settings.packages?.slice(1).some(isBundledMcpAdapterPackage)).toBe(true);
   } finally {
     await harness.close();
   }
 });
+
+test("seeded agent dir migrates the legacy npm MCP adapter source to the bundled package", async () => {
+  const userDataDir = await makeUserDataDir();
+  const agentDir = join(userDataDir, "agent");
+  await seedAgentDir(agentDir);
+  await writeFile(
+    join(agentDir, "settings.json"),
+    `${JSON.stringify(
+      {
+        packages: ["npm:pi-mcp-adapter"],
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  const harness = await launchDesktop(userDataDir, {
+    agentDir,
+    testMode: "background",
+    envOverrides: {
+      PI_OFFLINE: "1",
+      PI_APP_DISABLE_BUILTIN_MCP_ADAPTER: "0",
+    },
+  });
+
+  try {
+    await harness.firstWindow();
+    const settings = JSON.parse(await readFile(join(agentDir, "settings.json"), "utf8")) as {
+      packages?: readonly unknown[];
+    };
+    expect(settings.packages?.filter(isBundledMcpAdapterPackage)).toHaveLength(1);
+    expect(settings.packages).not.toContain("npm:pi-mcp-adapter");
+  } finally {
+    await harness.close();
+  }
+});
+
+function isBundledMcpAdapterPackage(entry: unknown): boolean {
+  if (typeof entry !== "string") {
+    return false;
+  }
+  const source = entry.replace(/\\/g, "/");
+  return source.endsWith("/pi-packages/pi-mcp-adapter") || source.endsWith("/node_modules/pi-mcp-adapter");
+}

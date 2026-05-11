@@ -30,6 +30,7 @@ const CLIPBOARD_NATIVE_PACKAGES = {
   "win32-arm64": "@mariozechner/clipboard-win32-arm64-msvc",
   "win32-x64": "@mariozechner/clipboard-win32-x64-msvc",
 };
+const BUNDLED_PI_MCP_ADAPTER_PACKAGE = "pi-mcp-adapter";
 const CLIPBOARD_NATIVE_PACKAGE_PREFIX = "@mariozechner/clipboard-";
 const JUNK_DIR_NAMES = new Set([
   ".github",
@@ -63,6 +64,7 @@ exports.default = async function afterPack(context) {
   injectWindowsGitBashRuntime(platform, arch, resourcesDir);
   injectElectronNodeProxyRuntime(context, platform, arch, resourcesDir);
   injectWindowsManagedRuntime(platform, arch, resourcesDir);
+  injectBundledPiPackages(resourcesDir);
   pruneElectronLocales(context.appOutDir);
   prunePackagedNodeModules(resourcesDir);
   pruneNodePtyUnpackedArtifacts(resourcesDir, platform, arch);
@@ -155,6 +157,65 @@ function injectWindowsManagedRuntime(platform, arch, resourcesDir) {
   fs.mkdirSync(targetDir, { recursive: true });
   copyWindowsManagedRuntimeDirectory(sourceDir, targetDir);
   console.log(`[afterPack] injected managed Python/uv runtime ${arch} -> ${path.relative(process.cwd(), targetDir)}`);
+}
+
+function injectBundledPiPackages(resourcesDir) {
+  const sourceNodeModulesDir = path.join(__dirname, "..", "..", "..", "node_modules");
+  const targetPiPackagesDir = path.join(resourcesDir, "pi-packages");
+  const targetNodeModulesDir = path.join(targetPiPackagesDir, "node_modules");
+  const seen = new Set();
+
+  copyBundledPiPackageRoot(BUNDLED_PI_MCP_ADAPTER_PACKAGE, sourceNodeModulesDir, targetPiPackagesDir);
+  copyBundledPiPackageDependencies(BUNDLED_PI_MCP_ADAPTER_PACKAGE, sourceNodeModulesDir, targetNodeModulesDir, seen);
+  console.log(
+    `[afterPack] injected bundled Pi package ${BUNDLED_PI_MCP_ADAPTER_PACKAGE} -> ${path.relative(process.cwd(), path.join(targetPiPackagesDir, BUNDLED_PI_MCP_ADAPTER_PACKAGE))}`,
+  );
+}
+
+function copyBundledPiPackageRoot(packageName, sourceNodeModulesDir, targetPiPackagesDir) {
+  const sourceDir = resolveNodeModulesPackageDir(sourceNodeModulesDir, packageName);
+  const targetDir = path.join(targetPiPackagesDir, packageName);
+  fs.rmSync(targetDir, { recursive: true, force: true });
+  copyPackageDirSync(sourceDir, targetDir);
+}
+
+function copyBundledPiPackageDependencies(packageName, sourceNodeModulesDir, targetNodeModulesDir, seen) {
+  if (seen.has(packageName)) {
+    return;
+  }
+  seen.add(packageName);
+
+  const sourceDir = resolveNodeModulesPackageDir(sourceNodeModulesDir, packageName);
+  const packageJsonPath = path.join(sourceDir, "package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  const dependencies = {
+    ...(packageJson.dependencies ?? {}),
+    ...(packageJson.peerDependencies ?? {}),
+  };
+  const optionalPeerDependencies = new Set(
+    Object.entries(packageJson.peerDependenciesMeta ?? {})
+      .filter(([, meta]) => meta && typeof meta === "object" && meta.optional === true)
+      .map(([name]) => name),
+  );
+
+  for (const dependencyName of Object.keys(dependencies)) {
+    if (!dependencyName || optionalPeerDependencies.has(dependencyName)) {
+      continue;
+    }
+    const dependencySourceDir = resolveNodeModulesPackageDir(sourceNodeModulesDir, dependencyName);
+    const dependencyTargetDir = path.join(targetNodeModulesDir, ...dependencyName.split("/"));
+    fs.rmSync(dependencyTargetDir, { recursive: true, force: true });
+    copyPackageDirSync(dependencySourceDir, dependencyTargetDir);
+    copyBundledPiPackageDependencies(dependencyName, sourceNodeModulesDir, targetNodeModulesDir, seen);
+  }
+}
+
+function resolveNodeModulesPackageDir(sourceNodeModulesDir, packageName) {
+  const packageDir = path.join(sourceNodeModulesDir, ...packageName.split("/"));
+  if (!fs.existsSync(packageDir)) {
+    throw new Error(`[afterPack] Missing bundled Pi package dependency: ${packageDir}`);
+  }
+  return packageDir;
 }
 
 function resolveExecutableName(context) {
@@ -844,6 +905,30 @@ function copyDirSync(sourceDir, targetDir) {
     }
     if (entry.isSymbolicLink()) {
       throw new Error(`[afterPack] Refusing to copy symlink in packaged resources: ${sourcePath}`);
+    }
+    if (entry.isFile()) {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.copyFileSync(sourcePath, targetPath);
+      fs.chmodSync(targetPath, fs.statSync(sourcePath).mode);
+    }
+  }
+}
+
+function copyPackageDirSync(sourceDir, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    if (entry.name === "node_modules") {
+      continue;
+    }
+
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      copyPackageDirSync(sourcePath, targetPath);
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      throw new Error(`[afterPack] Refusing to copy symlink in bundled Pi package: ${sourcePath}`);
     }
     if (entry.isFile()) {
       fs.mkdirSync(path.dirname(targetPath), { recursive: true });

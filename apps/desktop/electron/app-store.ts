@@ -1,6 +1,8 @@
 import type { BrowserWindow } from "electron";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import {
   applyHostUiRequestToExtensionUiState,
   type GenerateThreadTitleOptions,
@@ -106,7 +108,9 @@ type SessionEventListener = (event: SessionDriverEvent, state: DesktopAppState) 
 type TranscriptMessageRow = Extract<TranscriptMessage, { kind: "message" }>;
 
 const LEGACY_TRANSCRIPT_HISTORY_LIMIT = 180;
-const DEFAULT_MCP_ADAPTER_PACKAGE = "npm:pi-mcp-adapter";
+const LEGACY_MCP_ADAPTER_PACKAGE = "npm:pi-mcp-adapter";
+const PACKAGED_MCP_ADAPTER_RELATIVE_PATH = "pi-packages/pi-mcp-adapter";
+const requireFromHere = createRequire(__filename);
 
 interface PersistedTranscriptRecord {
   readonly version: 1;
@@ -127,6 +131,7 @@ export interface DesktopAppStoreOptions {
   readonly userDataDir: string;
   readonly initialWorkspacePaths: readonly string[];
   readonly agentShellPath?: string;
+  readonly resourcesPath: string;
   readonly platformAccountService?: PlatformAccountService;
   readonly getWindow?: () => BrowserWindow | null;
   readonly generateThreadTitleOverride?: (
@@ -152,6 +157,7 @@ export class DesktopAppStore implements AppStoreInternals {
   readonly pendingRuntimeCommandsBySession = new Map<string, PendingRuntimeCommandExecution>();
   private readonly reportedCompatibilityIssuesBySession = new Map<string, Set<string>>();
   private readonly initialWorkspacePaths: readonly string[];
+  private readonly resourcesPath: string;
   private readonly getWindow: () => BrowserWindow | null;
   private readonly platformAccountService: PlatformAccountService | undefined;
   private persistUiStateTimer: NodeJS.Timeout | undefined;
@@ -177,6 +183,7 @@ export class DesktopAppStore implements AppStoreInternals {
     this.transcriptStore = new JsonFileStore<PersistedTranscriptStoreValue>(options.userDataDir, "transcripts");
     this.attachmentStore = new JsonFileStore<ComposerAttachment[]>(options.userDataDir, "attachments");
     this.initialWorkspacePaths = options.initialWorkspacePaths;
+    this.resourcesPath = options.resourcesPath;
     this.getWindow = options.getWindow ?? (() => null);
     this.platformAccountService = options.platformAccountService;
     this.state = {
@@ -872,7 +879,7 @@ export class DesktopAppStore implements AppStoreInternals {
         this.extensionCommandCompatibilityByWorkspace.set(workspaceId, records);
       }
       if (process.env.PI_APP_DISABLE_BUILTIN_MCP_ADAPTER !== "1") {
-        await ensureDefaultAgentPackages(this.driver.getAgentDir());
+        await ensureDefaultAgentPackages(this.driver.getAgentDir(), resolveDefaultMcpAdapterPackageSource(this.resourcesPath));
       }
       const initialWorkspacePaths = this.initialWorkspacePaths.map((path) => path.trim()).filter(Boolean);
       const knownWorkspaces = await this.driver.listWorkspaces();
@@ -2493,17 +2500,43 @@ async function readProjectModelSettingsFile(workspacePath: string): Promise<Reco
   }
 }
 
-async function ensureDefaultAgentPackages(agentDir: string): Promise<void> {
+async function ensureDefaultAgentPackages(agentDir: string, defaultMcpAdapterPackage: string): Promise<void> {
   const settingsPath = join(agentDir, "settings.json");
   const settings = await readJsonFileRecord(settingsPath);
   const packages = Array.isArray(settings.packages) ? [...settings.packages] : [];
-  if (packages.some(isDefaultMcpAdapterPackageEntry)) {
+  const adapterIndex = packages.findIndex(isDefaultMcpAdapterPackageEntry);
+  if (adapterIndex >= 0 && packages[adapterIndex] === defaultMcpAdapterPackage) {
     return;
   }
 
-  settings.packages = [...packages, DEFAULT_MCP_ADAPTER_PACKAGE];
+  settings.packages =
+    adapterIndex >= 0
+      ? packages.map((entry, index) =>
+          index === adapterIndex ? updateDefaultMcpAdapterPackageEntry(entry, defaultMcpAdapterPackage) : entry,
+        )
+      : [...packages, defaultMcpAdapterPackage];
   await mkdir(agentDir, { recursive: true });
   await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+}
+
+function updateDefaultMcpAdapterPackageEntry(entry: unknown, defaultMcpAdapterPackage: string): unknown {
+  if (typeof entry === "object" && entry !== null && "source" in entry) {
+    return {
+      ...entry,
+      source: defaultMcpAdapterPackage,
+    };
+  }
+
+  return defaultMcpAdapterPackage;
+}
+
+function resolveDefaultMcpAdapterPackageSource(resourcesPath: string): string {
+  const packagedAdapterPath = join(resourcesPath, PACKAGED_MCP_ADAPTER_RELATIVE_PATH);
+  if (existsSync(packagedAdapterPath)) {
+    return packagedAdapterPath;
+  }
+
+  return dirname(requireFromHere.resolve("pi-mcp-adapter/package.json"));
 }
 
 async function readJsonFileRecord(filePath: string): Promise<Record<string, unknown>> {
@@ -2520,12 +2553,25 @@ async function readJsonFileRecord(filePath: string): Promise<Record<string, unkn
 
 function isDefaultMcpAdapterPackageEntry(entry: unknown): boolean {
   if (typeof entry === "string") {
-    return entry.trim() === DEFAULT_MCP_ADAPTER_PACKAGE;
+    const source = entry.trim();
+    return source === LEGACY_MCP_ADAPTER_PACKAGE || isLocalMcpAdapterPackageSource(source);
   }
   if (typeof entry !== "object" || entry === null || !("source" in entry)) {
     return false;
   }
-  return typeof entry.source === "string" && entry.source.trim() === DEFAULT_MCP_ADAPTER_PACKAGE;
+  if (typeof entry.source !== "string") {
+    return false;
+  }
+  const source = entry.source.trim();
+  return source === LEGACY_MCP_ADAPTER_PACKAGE || isLocalMcpAdapterPackageSource(source);
+}
+
+function isLocalMcpAdapterPackageSource(source: string): boolean {
+  const normalized = source.replace(/\\/g, "/");
+  return (
+    normalized.endsWith(`/${PACKAGED_MCP_ADAPTER_RELATIVE_PATH}`) ||
+    normalized.endsWith("/node_modules/pi-mcp-adapter")
+  );
 }
 
 async function updateProjectModelSettingsFile(

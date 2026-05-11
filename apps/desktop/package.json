@@ -114,6 +114,7 @@
     "material-icon-theme": "^5.34.0",
     "minimatch": "^10.2.5",
     "node-pty": "^1.1.0",
+    "pi-mcp-adapter": "2.6.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
