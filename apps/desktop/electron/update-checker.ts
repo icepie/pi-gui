@@ -9,6 +9,12 @@ const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const INITIAL_DELAY_MS = 15_000; // 15 seconds after launch
 const GITHUB_PROXY_ENV = "PI_APP_GITHUB_PROXY";
 const GITHUB_PROXIES_ENV = "PI_APP_GITHUB_PROXIES";
+const DEFAULT_GITHUB_PROXY_PREFIXES = [
+  "https://ghproxy.it/",
+  "https://gh.ddlc.top/",
+  "https://github.ednovas.xyz/",
+  "https://raw.ihtw.moe/",
+] as const;
 const TEST_RELEASES_JSON_ENV = "PI_APP_TEST_RELEASES_JSON";
 const TEST_OPEN_EXTERNAL_LOG_PATH_ENV = "PI_APP_TEST_OPEN_EXTERNAL_LOG_PATH";
 const TEST_FAILED_PROXY_PREFIXES_ENV = "PI_APP_TEST_FAILED_PROXY_PREFIXES";
@@ -196,6 +202,7 @@ function githubProxyPrefixes(): string[] {
     new Set([
       ...splitEnvList(process.env[GITHUB_PROXY_ENV] ?? ""),
       ...splitEnvList(process.env[GITHUB_PROXIES_ENV] ?? ""),
+      ...DEFAULT_GITHUB_PROXY_PREFIXES,
     ].map(normalizeGithubProxyPrefix).filter((prefix): prefix is string => Boolean(prefix))),
   );
 }
@@ -216,6 +223,9 @@ function normalizeGithubProxyPrefix(prefix: string): string | undefined {
 }
 
 function applyGithubProxy(url: string, prefix: string): string {
+  if (prefix === "https://raw.ihtw.moe/") {
+    return `${prefix}${url.replace(/^https?:\/\//, "")}`;
+  }
   return `${prefix}${url}`;
 }
 

@@ -64,8 +64,9 @@ latest portable asset name, supports `PI_APP_GITHUB_PROXY` as a GitHub mirror
 prefix, and falls back to a pinned official Git for Windows release URL if `gh`
 is unavailable. In-app update checks also use `PI_APP_GITHUB_PROXY` and
 `PI_APP_GITHUB_PROXIES`; set one or more comma/semicolon/whitespace-separated
-GitHub proxy prefixes to retry proxied release API and download URLs before
-falling back to the official GitHub URL.
+GitHub proxy prefixes to retry proxied release API and download URLs. Configured
+prefixes are tried first, followed by the bundled defaults `https://gh-proxy.com/`
+and `https://mirror.ghproxy.com/`, then the official GitHub URL.
 
 Cross-target packaging writes into target-scoped release folders such as
 `apps/desktop/release/win32-x64-dir/` and `apps/desktop/release/win32-arm64-dir/`.
