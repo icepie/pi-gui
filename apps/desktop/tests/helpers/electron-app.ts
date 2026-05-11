@@ -17,6 +17,7 @@ import type {
 
 const desktopDir = resolve(__dirname, "..", "..");
 const packagedReleaseDir = join(desktopDir, "release");
+const packagedMacAppName = "飞度小派.app";
 const nativeClipboardImagePath = resolve(__dirname, "..", "..", "..", "website", "public", "og.png");
 const execFileAsync = promisify(execFile);
 const REAL_AUTH_ENV_VAR = "PI_APP_REAL_AUTH";
@@ -300,7 +301,10 @@ export async function resolvePackagedAppBundle(releaseDir = packagedReleaseDir):
     throw error;
   }
 
-  const appBundle = appBundles.find((candidate) => basename(candidate) === "pi-fit.app") ?? appBundles[0];
+  const appBundle =
+    appBundles.find((candidate) => basename(candidate) === packagedMacAppName) ??
+    appBundles.find((candidate) => basename(candidate) === "pi-fit.app") ??
+    appBundles[0];
   if (!appBundle) {
     throw new Error(`No .app bundle found under ${releaseDir}. Run pnpm --filter @pi-gui/desktop run package:dir first.`);
   }

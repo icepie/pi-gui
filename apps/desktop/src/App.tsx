@@ -1443,7 +1443,7 @@ export default function App() {
     return (
       <div className="shell shell--loading">
         <main className="loading-card">
-          <div className="loading-card__eyebrow">pi-gui</div>
+          <div className="loading-card__eyebrow">飞度小派</div>
           <h1>{t("common.loading_sessions")}</h1>
           <p>{t("common.loading_sessions_description")}</p>
         </main>

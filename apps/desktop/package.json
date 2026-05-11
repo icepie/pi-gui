@@ -9,7 +9,7 @@
   },
   "license": "MIT",
   "homepage": "https://github.com/icepie/pi-gui",
-  "description": "pi-fit - 飞度内部Agent",
+  "description": "飞度小派 - 飞度内部Agent",
   "main": "out/main/main.js",
   "scripts": {
     "build:deps": "pnpm --dir ../.. --filter @pi-gui/session-driver --filter @pi-gui/pi-sdk-driver --filter @pi-gui/catalogs run build",

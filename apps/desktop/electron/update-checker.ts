@@ -12,6 +12,7 @@ const GITHUB_PROXIES_ENV = "PI_APP_GITHUB_PROXIES";
 const TEST_RELEASES_JSON_ENV = "PI_APP_TEST_RELEASES_JSON";
 const TEST_OPEN_EXTERNAL_LOG_PATH_ENV = "PI_APP_TEST_OPEN_EXTERNAL_LOG_PATH";
 const TEST_FAILED_PROXY_PREFIXES_ENV = "PI_APP_TEST_FAILED_PROXY_PREFIXES";
+const APP_DISPLAY_NAME = "飞度小派";
 
 export type UpdateCheckResult =
   | { status: "up-to-date"; currentVersion: string; latestVersion: string }
@@ -40,7 +41,7 @@ interface GitHubRelease {
 
 function showUpdateNotification(result: Extract<UpdateCheckResult, { status: "update-available" }>): void {
   const notification = new Notification({
-    title: "pi update available",
+    title: `${APP_DISPLAY_NAME} update available`,
     body: `Version ${result.latestVersion} is available (you have ${result.currentVersion}). Click to download ${result.assetName}.`,
   });
   notification.on("click", () => {

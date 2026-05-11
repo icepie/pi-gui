@@ -92,6 +92,8 @@ const CHECK_FOR_UPDATES_MENU_ITEM_ID = "app.check-for-updates";
 const MAX_CLIPBOARD_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_CLIPBOARD_IMAGE_DIMENSION = 8_192;
 const WORKSPACE_MEDIA_PROTOCOL = "pi-gui-media";
+const APP_DISPLAY_NAME = "飞度小派";
+const LEGACY_APP_STORAGE_NAME = "pi";
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -160,6 +162,7 @@ function createWindow(): BrowserWindow {
     minWidth: 1200,
     minHeight: 760,
     backgroundColor: "#f3f4f8",
+    title: APP_DISPLAY_NAME,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 18, y: 18 },
     show: false,
@@ -393,7 +396,7 @@ async function runManualUpdateCheck(): Promise<void> {
 
   if (result.status === "up-to-date") {
     await showAppNotice({
-      title: "pi-gui",
+      title: APP_DISPLAY_NAME,
       message: `You're up to date on version ${result.currentVersion}.`,
       tone: "default",
     });
@@ -401,7 +404,7 @@ async function runManualUpdateCheck(): Promise<void> {
   }
 
   await showAppNotice({
-    title: "pi-gui",
+    title: APP_DISPLAY_NAME,
     message: "Could not check for updates right now.",
     detail: result.message,
     tone: "warning",
@@ -464,11 +467,12 @@ async function checkForUpdatesFromRenderer(): Promise<void> {
   await runManualUpdateCheck();
 }
 
-app.setName("pi");
+app.setName(LEGACY_APP_STORAGE_NAME);
 configureChinaNpmRegistryDefaults();
 
 const configuredUserDataDir = process.env.PI_APP_USER_DATA_DIR?.trim() || app.getPath("userData");
 app.setPath("userData", configuredUserDataDir);
+app.setName(APP_DISPLAY_NAME);
 applyManagedPythonProcessEnv({
   resourcesPath: app.isPackaged ? process.resourcesPath : path.join(__dirname, "..", "..", "resources"),
   stateDir: path.join(configuredUserDataDir, "managed-tools"),

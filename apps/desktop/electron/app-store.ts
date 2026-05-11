@@ -1346,7 +1346,7 @@ export class DesktopAppStore implements AppStoreInternals {
         commandName: pending.command.name,
         extensionPath: pending.command.sourceInfo.path,
         status: "supported",
-        message: "Observed working in pi-gui.",
+        message: "Observed working in 飞度小派.",
         capability: "gui-safe",
         updatedAt: timestamp,
       });
@@ -1389,7 +1389,7 @@ export class DesktopAppStore implements AppStoreInternals {
     const key = sessionKey(sessionRef);
     const pending = this.pendingRuntimeCommandsBySession.get(key);
     if (pending) {
-      const message = `/${pending.command.name} requires terminal-only ${formatCapabilityLabel(issue.capability)} and is not supported in pi-gui yet. Use pi in the terminal for this command.`;
+      const message = `/${pending.command.name} requires terminal-only ${formatCapabilityLabel(issue.capability)} and is not supported in 飞度小派 yet. Use pi in the terminal for this command.`;
       pending.blockedMessage = message;
       recordLearnedCommandCompatibility(this.extensionCommandCompatibilityByWorkspace, sessionRef.workspaceId, {
         commandName: pending.command.name,

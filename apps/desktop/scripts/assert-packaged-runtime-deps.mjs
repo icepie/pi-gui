@@ -34,12 +34,13 @@ const clipboardNativePackagesByTarget = {
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopDir = path.resolve(scriptDir, "..");
+const packagedMacAppName = "飞度小派.app";
 const packagePlatform = (process.env.PI_APP_PACKAGE_PLATFORM ?? process.platform).trim().toLowerCase();
 const packageArch = (process.env.PI_APP_PACKAGE_ARCH ?? process.arch).trim().toLowerCase();
 const asarPath = resolveAsarPath(desktopDir, packagePlatform);
 const notificationHelperPath =
   packagePlatform === "darwin"
-    ? resolveMacAppFilePath(desktopDir, ["Contents", "MacOS", "pi-gui-notification-status-helper"], "pi-fit.app")
+    ? resolveMacAppFilePath(desktopDir, ["Contents", "MacOS", "pi-gui-notification-status-helper"], packagedMacAppName)
     : undefined;
 const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@mariozechner/pi-coding-agent");
 
@@ -71,7 +72,7 @@ function resolveAsarPath(desktopDir, packagePlatform) {
     const targetScopedAsarPath = resolveMacAppFilePath(
       desktopDir,
       ["Contents", "Resources", "app.asar"],
-      "pi-fit.app",
+      packagedMacAppName,
     );
     if (existsSync(targetScopedAsarPath)) {
       return targetScopedAsarPath;
