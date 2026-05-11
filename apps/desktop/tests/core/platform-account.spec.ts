@@ -67,7 +67,7 @@ test("platform account login gates app usage and provisions feidu provider defau
       providers: {
         feidu: {
           api: "openai-completions",
-          baseUrl: "https://ai-api.feidu.fit/v1",
+          baseUrl: "https://ai-api.singzer.cn/v1",
           apiKey: "sk-test-platform-user-token",
           models: [{ id: "feidu-chat" }, { id: "feidu-coder" }],
         },

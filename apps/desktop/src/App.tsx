@@ -1987,6 +1987,10 @@ export default function App() {
     void updateSnapshot(api, setSnapshot, () => api.setIntegratedTerminalShell(shellPath));
   };
 
+  const handleCheckForUpdates = () => {
+    void api?.checkForUpdates();
+  };
+
   const handleRequestNotificationPermission = () => {
     if (!api?.requestNotificationPermission) {
       return;
@@ -2245,6 +2249,7 @@ export default function App() {
           onSetDefaultModel={handleSetDefaultModel}
           onSetNotificationPreferences={handleSetNotificationPreferences}
           onSetIntegratedTerminalShell={handleSetIntegratedTerminalShell}
+          onCheckForUpdates={handleCheckForUpdates}
           onRequestNotificationPermission={handleRequestNotificationPermission}
           onOpenSystemNotificationSettings={handleOpenSystemNotificationSettings}
           onSetScopedModelPatterns={handleSetScopedModelPatterns}

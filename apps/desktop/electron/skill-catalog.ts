@@ -16,7 +16,7 @@ import { fetchWithRetry } from "./fetch-retry";
 const execFileAsync = promisify(execFile);
 const requireFromHere = createRequire(__filename);
 
-export const SKILLHUB_FEIDU_REGISTRY = "https://skillhub.feidu.fit";
+export const SKILLHUB_FEIDU_REGISTRY = "https://skillhub.singzer.cn";
 export const DEFAULT_CHINA_NPM_REGISTRY = "https://registry.npmmirror.com";
 const SKILLHUB_SOURCE_ID = "skillhub-singzer";
 const TEST_FIXTURE_ENABLED = process.env.PI_APP_TEST_SKILLHUB_FIXTURE === "1";

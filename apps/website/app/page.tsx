@@ -6,8 +6,8 @@ import {
   SITE_URL,
 } from "./site";
 
-const GITHUB_URL = "https://github.com/minghinmatthewlam/pi-gui";
-const RELEASES_URL = "https://github.com/minghinmatthewlam/pi-gui/releases/latest";
+const GITHUB_URL = "https://github.com/icepie/pi-gui";
+const RELEASES_URL = "https://github.com/icepie/pi-gui/releases/latest";
 const PI_MONO_URL = "https://github.com/mariozechner/pi";
 
 const softwareApplicationJsonLd = {

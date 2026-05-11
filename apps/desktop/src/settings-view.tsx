@@ -51,6 +51,7 @@ interface SettingsViewProps {
   readonly onRemoveCustomProvider: (providerId: string) => Promise<string | undefined>;
   readonly onSetNotificationPreferences: (preferences: Partial<NotificationPreferences>) => void;
   readonly onSetIntegratedTerminalShell: (shellPath: string) => void;
+  readonly onCheckForUpdates: () => void;
   readonly onRequestNotificationPermission: () => void;
   readonly onOpenSystemNotificationSettings: () => void;
   readonly onSetThemeMode: (mode: "system" | "light" | "dark") => void;
@@ -83,6 +84,7 @@ export function SettingsView({
   onRemoveCustomProvider,
   onSetNotificationPreferences,
   onSetIntegratedTerminalShell,
+  onCheckForUpdates,
   onRequestNotificationPermission,
   onOpenSystemNotificationSettings,
   onSetThemeMode,
@@ -135,6 +137,7 @@ export function SettingsView({
               onSetModelSettingsScopeMode={onSetModelSettingsScopeMode}
               onSetIntegratedTerminalShell={onSetIntegratedTerminalShell}
               onToggleSkillCommands={onToggleSkillCommands}
+              onCheckForUpdates={onCheckForUpdates}
             />
           ) : null}
 

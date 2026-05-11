@@ -1,7 +1,12 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { applyManagedPythonProcessEnv } from "./managed-python-env.js";
 
 export function applyWindowsUtf8ProcessEnv(): void {
+  const resourcesPath = resolvePackagedResourcesPath();
+  applyManagedPythonProcessEnv({
+    ...(resourcesPath ? { resourcesPath } : {}),
+  });
   prependPackagedElectronNodeProxyToPath();
 
   if (process.platform === "win32") {

@@ -7,6 +7,8 @@ export {
 export type { ExtensionUiDialogRequest, ExtensionUiState, ExtensionUiWidgetState } from "./extension-ui-state.js";
 export type { PiSdkDriverConfig } from "./pi-sdk-driver.js";
 export { createPiSdkDriver, PiSdkDriver } from "./pi-sdk-driver.js";
+export { applyManagedPythonProcessEnv } from "./managed-python-env.js";
+export type { ManagedPythonEnvOptions } from "./managed-python-env.js";
 export { RuntimeSupervisor } from "./runtime-supervisor.js";
 export type { PiSdkDriverOptions, SyncWorkspaceResult } from "./session-supervisor.js";
 export { SessionSupervisor } from "./session-supervisor.js";

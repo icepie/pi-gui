@@ -120,6 +120,33 @@ test("persists the integrated terminal shell setting", async () => {
   }
 });
 
+test("seeds domestic Python and uv package indexes in the integrated terminal", async () => {
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("terminal-python-env");
+  const harness = await launchDesktop(userDataDir, {
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await waitForWorkspaceByPath(window, workspacePath);
+    await createNamedThread(window, "Terminal Python env thread");
+
+    await window.getByLabel("Toggle terminal").click();
+    const terminal = window.getByTestId("integrated-terminal");
+    await expect(terminal).toBeVisible();
+    await terminal.locator(".xterm").click();
+    await window.keyboard.type("printf 'PY_INDEX=%s\\nUV_INDEX=%s\\n' \"$PIP_INDEX_URL\" \"$UV_DEFAULT_INDEX\"");
+    await window.keyboard.press("Enter");
+
+    await expect(terminal.locator(".xterm-rows")).toContainText("PY_INDEX=https://mirrors.aliyun.com/pypi/simple", { timeout: 15_000 });
+    await expect(terminal.locator(".xterm-rows")).toContainText("UV_INDEX=https://mirrors.aliyun.com/pypi/simple", { timeout: 15_000 });
+  } finally {
+    await harness.close();
+  }
+});
+
 test("falls back when a persisted Windows terminal shell path no longer exists", async () => {
   test.skip(process.platform !== "win32", "Windows-only shell fallback");
 

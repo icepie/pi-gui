@@ -99,6 +99,16 @@ function buildBuilderEnv(options, { forceDebug = false } = {}) {
     PI_APP_PACKAGE_ARCH: options.arch,
     PI_APP_ELECTRON_BUILDER_USE_TRAVERSAL: "1",
   });
+  if (options.publishMode === "always" || options.publishMode === "onTag") {
+    env.GH_TOKEN = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || env.GH_TOKEN;
+    env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || env.GITHUB_TOKEN;
+    if (options.tag) {
+      env.GITHUB_REF_TYPE = "tag";
+      env.GITHUB_REF_NAME = options.tag;
+      env.GITHUB_REF = `refs/tags/${options.tag}`;
+      env.CI_COMMIT_TAG = options.tag;
+    }
+  }
 
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.ELECTRON_EXEC_PATH;
@@ -153,6 +163,8 @@ function parseArgs(argv) {
     arch: "",
     dir: false,
     target: "",
+    publishMode: "never",
+    tag: "",
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -173,6 +185,14 @@ function parseArgs(argv) {
       parsed.target = argv[++index] ?? "";
       continue;
     }
+    if (arg === "--publish") {
+      parsed.publishMode = argv[++index] ?? "";
+      continue;
+    }
+    if (arg === "--tag") {
+      parsed.tag = argv[++index] ?? "";
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -190,6 +210,12 @@ function parseArgs(argv) {
   }
   if (parsed.target && !["appimage", "deb", "rpm"].includes(parsed.target.toLowerCase())) {
     throw new Error(`--target must be appimage, deb, or rpm. Got: ${parsed.target}`);
+  }
+  if (!["never", "always", "onTag"].includes(parsed.publishMode)) {
+    throw new Error(`--publish must be never, always, or onTag. Got: ${parsed.publishMode || "<empty>"}`);
+  }
+  if (parsed.publishMode !== "never" && !parsed.tag) {
+    throw new Error(`--tag is required when --publish is ${parsed.publishMode}.`);
   }
 
   return parsed;
@@ -219,15 +245,26 @@ function buildElectronBuilderArgs(options, outputDir) {
     args.push("--dir");
   }
   args.push(`-c.directories.output=${outputDir}`);
+  if (options.tag) {
+    args.push(`-c.extraMetadata.version=${versionFromTag(options.tag)}`);
+  }
   if (shouldPackageUnsigned(options)) {
     args.push(...buildUnsignedPackageArgs(options));
   }
   if (shouldSkipWindowsExecutableEditing(options)) {
     args.push("-c.win.signAndEditExecutable=false");
   }
-  args.push("--publish", "never");
+  args.push("--publish", options.publishMode);
 
   return args;
+}
+
+function versionFromTag(tag) {
+  const version = tag.trim().replace(/^v/, "");
+  if (!version) {
+    throw new Error(`Unable to derive package version from tag: ${tag}`);
+  }
+  return version;
 }
 
 function shouldPackageUnsigned() {

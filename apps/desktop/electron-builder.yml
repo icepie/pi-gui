@@ -4,6 +4,13 @@ copyright: Copyright 2026 Matthew Lam
 electronVersion: 42.0.0
 generateUpdatesFilesForAllChannels: false
 
+publish:
+  provider: github
+  owner: icepie
+  repo: pi-gui
+  tagNamePrefix: "v"
+  releaseType: release
+
 directories:
   output: release
   buildResources: resources
@@ -25,6 +32,10 @@ files:
 extraResources:
   - from: resources/icon.png
     to: icon.png
+  - from: resources/runtime
+    to: runtime
+    filter:
+      - "**/*"
 
 afterPack: ./scripts/after-pack.cjs
 
@@ -39,6 +50,7 @@ asarUnpack:
 artifactName: pi-fit-${version}-${arch}.${ext}
 
 mac:
+  icon: resources/icon.icns
   category: public.app-category.developer-tools
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -54,6 +66,7 @@ mac:
       to: MacOS/pi-gui-notification-status-helper
 
 linux:
+  icon: resources/icon.png
   category: Development
   executableName: pi-fit
   maintainer: Matthew Lam <icepie.dev@gmail.com>
@@ -69,6 +82,7 @@ rpm:
   packageName: pi-fit
 
 win:
+  icon: resources/icon.ico
   target:
     - nsis
   executableName: pi-fit

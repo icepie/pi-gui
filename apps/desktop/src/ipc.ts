@@ -129,6 +129,7 @@ export const desktopIpc = {
   setThemeMode: "pi-gui:set-theme-mode",
   setLocale: "pi-gui:set-locale",
   themeChanged: "pi-gui:theme-changed",
+  checkForUpdates: "pi-gui:check-for-updates",
   ping: "app:ping",
   openExternal: "app:open-external",
 } as const;
@@ -445,4 +446,5 @@ export interface PiDesktopApi {
   setThemeMode(mode: "system" | "light" | "dark"): Promise<string>;
   setLocale(locale: AppLocale): Promise<AppLocale>;
   onThemeChanged(callback: (theme: "light" | "dark") => void): () => void;
+  checkForUpdates(): Promise<void>;
 }

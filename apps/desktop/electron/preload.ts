@@ -319,6 +319,7 @@ contextBridge.exposeInMainWorld("piApp", {
     ipcRenderer.invoke(desktopIpc.setThemeMode, mode) as Promise<string>,
   setLocale: (locale: AppLocale) =>
     ipcRenderer.invoke(desktopIpc.setLocale, locale) as Promise<AppLocale>,
+  checkForUpdates: () => ipcRenderer.invoke(desktopIpc.checkForUpdates) as Promise<void>,
   onThemeChanged: (callback: (theme: "light" | "dark") => void) => {
     const handler = (_event: Electron.IpcRendererEvent, theme: "light" | "dark") => callback(theme);
     ipcRenderer.on(desktopIpc.themeChanged, handler);

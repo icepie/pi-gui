@@ -130,7 +130,7 @@ test("installs, updates, and deletes a skill from the built-in SkillHub source",
       join(skillDir, ".clawhub", "origin.json"),
       `${JSON.stringify({
         version: 1,
-        registry: "https://skillhub.feidu.fit",
+        registry: "https://skillhub.singzer.cn",
         slug: "hub-demo",
         installedVersion: "1.0.0",
         installedAt: Date.UTC(2026, 0, 1),

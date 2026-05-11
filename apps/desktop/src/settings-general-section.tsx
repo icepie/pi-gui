@@ -4,6 +4,7 @@ import type { ModelSettingsScopeMode } from "./desktop-state";
 import { SettingsGroup, SettingsInfoRow, SettingsRow } from "./settings-utils";
 import { UICheckbox } from "./ui";
 import { t } from "./i18n";
+import { RefreshIcon } from "./icons";
 
 interface SettingsGeneralSectionProps {
   readonly runtime?: RuntimeSnapshot;
@@ -12,6 +13,7 @@ interface SettingsGeneralSectionProps {
   readonly onSetModelSettingsScopeMode: (mode: ModelSettingsScopeMode) => void;
   readonly onSetIntegratedTerminalShell: (shellPath: string) => void;
   readonly onToggleSkillCommands: (enabled: boolean) => void;
+  readonly onCheckForUpdates: () => void;
 }
 
 export function SettingsGeneralSection({
@@ -21,6 +23,7 @@ export function SettingsGeneralSection({
   onSetModelSettingsScopeMode,
   onSetIntegratedTerminalShell,
   onToggleSkillCommands,
+  onCheckForUpdates,
 }: SettingsGeneralSectionProps) {
   const connectedCount = runtime?.providers.filter((p) => p.hasAuth).length ?? 0;
   const [terminalShellDraft, setTerminalShellDraft] = useState(integratedTerminalShell);
@@ -43,6 +46,12 @@ export function SettingsGeneralSection({
           value={connectedCount > 0 ? String(connectedCount) : t("settings.none")}
         />
         <SettingsInfoRow label={t("settings.discovered_skills")} value={String(runtime?.skills.length ?? 0)} />
+        <SettingsRow title={t("settings.updates")} description={t("settings.updates_description")}>
+          <button className="button button--secondary" type="button" onClick={onCheckForUpdates}>
+            <RefreshIcon />
+            {t("settings.check_for_updates")}
+          </button>
+        </SettingsRow>
         <SettingsRow title={t("settings.model_scope")} description={t("settings.model_scope_description")}>
           <div className="settings-pill-row">
             <button

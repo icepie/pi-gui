@@ -62,7 +62,10 @@ packaged app can resolve `resources/git-bash/usr/bin/bash.exe` at runtime, or se
 script uses `gh release view` against `git-for-windows/git` to resolve the
 latest portable asset name, supports `PI_APP_GITHUB_PROXY` as a GitHub mirror
 prefix, and falls back to a pinned official Git for Windows release URL if `gh`
-is unavailable.
+is unavailable. In-app update checks also use `PI_APP_GITHUB_PROXY` and
+`PI_APP_GITHUB_PROXIES`; set one or more comma/semicolon/whitespace-separated
+GitHub proxy prefixes to retry proxied release API and download URLs before
+falling back to the official GitHub URL.
 
 Cross-target packaging writes into target-scoped release folders such as
 `apps/desktop/release/win32-x64-dir/` and `apps/desktop/release/win32-arm64-dir/`.
@@ -71,6 +74,14 @@ The Windows Git Bash runtime is injected during `afterPack` from
 so x64 and arm64 builds can run without overwriting each other's runtime input.
 The `afterPack` step also prunes safe package weight such as unused Electron
 locales, cross-target `node-pty` artifacts, and bundled Git Bash documentation.
+
+The desktop shell also seeds a managed Python and `uv` environment for the
+embedded runtime and terminal flows. By default it points `PIP_INDEX_URL` and
+`UV_DEFAULT_INDEX` at `https://mirrors.aliyun.com/pypi/simple`, uses a local
+per-user tool state directory under the Electron user data folder, and prefers
+bundled `resources/runtime/python` and `resources/runtime/uv` binaries when
+they are present. Set `PI_APP_PYTHON_PACKAGE_INDEX` only if you need to override
+the default mirror.
 
 Live agent tests use your existing `pi` runtime and provider auth. If local `pi` runs do not work, the `live` lane will not be meaningful either.
 

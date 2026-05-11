@@ -31,7 +31,7 @@ import {
   listSkillCatalog,
   listSkillCatalogSources,
 } from "./skill-catalog";
-import { checkForUpdate } from "./update-checker";
+import { checkForUpdate, initUpdateChecker, openUpdateDownload } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
 import { PlatformAccountService } from "./platform-account-service";
@@ -55,7 +55,7 @@ import type {
   WorkspaceSessionTarget,
 } from "../src/desktop-state";
 import type { SessionDriverEvent } from "@pi-gui/session-driver";
-import type { GenerateThreadTitleOptions } from "@pi-gui/pi-sdk-driver";
+import { applyManagedPythonProcessEnv, type GenerateThreadTitleOptions } from "@pi-gui/pi-sdk-driver";
 import type { WorkspaceRef } from "@pi-gui/session-driver";
 
 const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
@@ -75,6 +75,7 @@ let stopPublishingSelectedTranscript: (() => void) | undefined;
 let stopTrackingWindowActivation: (() => void) | undefined;
 let stopNotifications: (() => void) | undefined;
 let stopPruningTerminals: (() => void) | undefined;
+let stopUpdateChecker: (() => void) | undefined;
 let retainedTerminalWorkspacePathSignature = "";
 const terminalFocusedWebContentsIds = new Set<number>();
 let quittingAfterStoreFlush = false;
@@ -386,6 +387,7 @@ async function runManualUpdateCheck(): Promise<void> {
   const result = await checkForUpdate();
 
   if (result.status === "update-available") {
+    await openUpdateDownload(result);
     return;
   }
 
@@ -458,11 +460,19 @@ function installApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+async function checkForUpdatesFromRenderer(): Promise<void> {
+  await runManualUpdateCheck();
+}
+
 app.setName("pi");
 configureChinaNpmRegistryDefaults();
 
 const configuredUserDataDir = process.env.PI_APP_USER_DATA_DIR?.trim() || app.getPath("userData");
 app.setPath("userData", configuredUserDataDir);
+applyManagedPythonProcessEnv({
+  resourcesPath: app.isPackaged ? process.resourcesPath : path.join(__dirname, "..", "..", "resources"),
+  stateDir: path.join(configuredUserDataDir, "managed-tools"),
+});
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
@@ -579,6 +589,7 @@ app.whenReady().then(async () => {
     await store.setLocale(locale);
     return locale;
   });
+  ipcMain.handle(desktopIpc.checkForUpdates, () => checkForUpdatesFromRenderer());
   ipcMain.handle(desktopIpc.openExternal, (_event, url: string) => {
     const parsed = new URL(url);
     if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -882,6 +893,9 @@ app.whenReady().then(async () => {
   attachStatePublisher(mainWindow);
   attachViewedSessionTracking(mainWindow);
   void notificationPermissionService.getCurrentStatus();
+  if (!process.env.PI_APP_TEST_MODE) {
+    stopUpdateChecker = initUpdateChecker();
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -903,6 +917,8 @@ app.on("window-all-closed", () => {
     notificationManager = undefined;
     notificationPermissionService?.dispose();
     notificationPermissionService = undefined;
+    stopUpdateChecker?.();
+    stopUpdateChecker = undefined;
     stopPruningTerminals?.();
     stopPruningTerminals = undefined;
     terminalService?.dispose();
@@ -917,6 +933,8 @@ app.on("before-quit", (event) => {
   notificationManager = undefined;
   notificationPermissionService?.dispose();
   notificationPermissionService = undefined;
+  stopUpdateChecker?.();
+  stopUpdateChecker = undefined;
   stopPruningTerminals?.();
   stopPruningTerminals = undefined;
   terminalService?.dispose();

@@ -296,6 +296,9 @@ type TranslationKey =
   | "settings.connected_providers"
   | "settings.none"
   | "settings.discovered_skills"
+  | "settings.updates"
+  | "settings.updates_description"
+  | "settings.check_for_updates"
   | "settings.model_scope"
   | "settings.model_scope_description"
   | "settings.model_scope.app_global"
@@ -712,6 +715,9 @@ const EN_US: TranslationTable = {
   "settings.connected_providers": "Connected providers",
   "settings.none": "None",
   "settings.discovered_skills": "Discovered skills",
+  "settings.updates": "Updates",
+  "settings.updates_description": "Check GitHub Releases and open the matching package in your browser when a new version is available.",
+  "settings.check_for_updates": "Check for Updates",
   "settings.model_scope": "Model settings scope",
   "settings.model_scope_description": "Choose whether model defaults apply everywhere or per repo.",
   "settings.model_scope.app_global": "App global",
@@ -1127,6 +1133,9 @@ const ZH_CN: TranslationTable = {
   "settings.connected_providers": "已连接的服务商",
   "settings.none": "无",
   "settings.discovered_skills": "已发现技能",
+  "settings.updates": "更新",
+  "settings.updates_description": "检查 GitHub Releases；有新版本时在浏览器打开当前平台对应的安装包。",
+  "settings.check_for_updates": "检查更新",
   "settings.model_scope": "模型设置范围",
   "settings.model_scope_description": "选择模型默认值是全局生效还是按仓库生效。",
   "settings.model_scope.app_global": "应用全局",
