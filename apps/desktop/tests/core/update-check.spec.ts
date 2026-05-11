@@ -32,7 +32,7 @@ test("checks for updates and opens the matching package download in the browser"
     initialWorkspaces: [workspacePath],
     testMode: "background",
     envOverrides: {
-      PI_APP_TEST_FAILED_PROXY_PREFIXES: "https://mirror.ghproxy.com/",
+      PI_APP_TEST_FAILED_PROXY_PREFIXES: "https://ghproxy.it/ https://gh.ddlc.top/ https://github.ednovas.xyz/ https://raw.ihtw.moe/",
       PI_APP_TEST_OPEN_EXTERNAL_LOG_PATH: openExternalLogPath,
       PI_APP_TEST_RELEASES_JSON: JSON.stringify([
         {
@@ -118,13 +118,13 @@ test("uses bundled GitHub proxy prefixes for update downloads by default", async
   const openExternalLogPath = join(userDataDir, "open-external.log");
   const assetName = assetNameForPlatform();
   const downloadUrl = `https://github.com/icepie/pi-gui/releases/download/v9.9.9/${assetName}`;
-  const fallbackProxy = "https://mirror.ghproxy.com/";
+  const rawMirrorUrl = `https://raw.ihtw.moe/github.com/icepie/pi-gui/releases/download/v9.9.9/${assetName}`;
 
   const harness = await launchDesktop(userDataDir, {
     initialWorkspaces: [workspacePath],
     testMode: "background",
     envOverrides: {
-      PI_APP_TEST_FAILED_PROXY_PREFIXES: "https://gh-proxy.com/",
+      PI_APP_TEST_FAILED_PROXY_PREFIXES: "https://ghproxy.it/ https://gh.ddlc.top/ https://github.ednovas.xyz/",
       PI_APP_TEST_OPEN_EXTERNAL_LOG_PATH: openExternalLogPath,
       PI_APP_TEST_RELEASES_JSON: JSON.stringify([
         {
@@ -149,7 +149,7 @@ test("uses bundled GitHub proxy prefixes for update downloads by default", async
     await window.getByRole("button", { name: "General", exact: true }).click();
     await window.getByRole("button", { name: "Check for Updates", exact: true }).click();
 
-    await expect.poll(() => readOpenExternalLog(openExternalLogPath), { timeout: 5_000 }).toContain(`${fallbackProxy}${downloadUrl}`);
+    await expect.poll(() => readOpenExternalLog(openExternalLogPath), { timeout: 5_000 }).toContain(rawMirrorUrl);
   } finally {
     await harness.close();
   }
