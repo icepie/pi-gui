@@ -278,9 +278,6 @@ function buildUnsignedPackageArgs(options) {
       "-c.mac.notarize=false",
     ];
   }
-  if (options.platform === "win32") {
-    return ["-c.win.signAndEditExecutable=false"];
-  }
   return [];
 }
 
@@ -288,7 +285,7 @@ function shouldSkipWindowsExecutableEditing(options) {
   if (process.env.PI_APP_WIN_SIGN_AND_EDIT_EXECUTABLE != null) {
     return process.env.PI_APP_WIN_SIGN_AND_EDIT_EXECUTABLE === "0";
   }
-  return options.platform === "win32" && options.dir && process.platform !== "win32";
+  return false;
 }
 
 function defaultUnscopedUnpackedDirName(platform) {

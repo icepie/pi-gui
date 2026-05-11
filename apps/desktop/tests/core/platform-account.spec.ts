@@ -27,6 +27,7 @@ test("platform account login gates app usage and provisions feidu provider defau
     testMode: "background",
     envOverrides: {
       PI_APP_TEST_PLATFORM_ACCOUNT_INITIAL_AUTH: "0",
+      PI_APP_TEST_PLATFORM_ACCOUNT_LINKED_DATA_FAILURES: "2",
     },
   });
 

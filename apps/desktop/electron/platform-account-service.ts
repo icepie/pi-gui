@@ -11,6 +11,11 @@ const PLATFORM_PROVIDER_API = "openai-completions" as const;
 const DEFAULT_PLATFORM_ORIGIN = "https://fd-one.singzer.cn";
 const TEST_FIXTURE_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_FIXTURE !== "0" && Boolean(process.env.PI_APP_TEST_MODE);
 const TEST_INITIAL_AUTH_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_INITIAL_AUTH !== "0";
+const TEST_LINKED_DATA_FAILURES_ENV = "PI_APP_TEST_PLATFORM_ACCOUNT_LINKED_DATA_FAILURES";
+
+const LOGIN_LINKED_DATA_ATTEMPTS = 8;
+const LOGIN_LINKED_DATA_INITIAL_DELAY_MS = 500;
+const LOGIN_LINKED_DATA_MAX_DELAY_MS = 2_000;
 
 export interface PlatformProviderConfig {
   readonly id: typeof PLATFORM_PROVIDER_ID;
@@ -59,6 +64,7 @@ interface PlatformModelConfig {
 export class PlatformAccountService {
   private readonly stateFilePath: string;
   private readonly getParentWindow: () => BrowserWindow | null;
+  private testLinkedDataFailuresRemaining = parsePositiveInteger(process.env[TEST_LINKED_DATA_FAILURES_ENV]);
   private state: PersistedPlatformAccount = {};
   private loadPromise: Promise<void> | undefined;
 
@@ -72,6 +78,17 @@ export class PlatformAccountService {
     if (TEST_FIXTURE_ENABLED && TEST_INITIAL_AUTH_ENABLED && !this.state.accessToken) {
       await this.applyTestFixture();
     }
+    if (this.state.accessToken && !this.state.provider) {
+      try {
+        await this.refreshLinkedDataWithRetry({
+          attempts: LOGIN_LINKED_DATA_ATTEMPTS,
+          initialDelayMs: LOGIN_LINKED_DATA_INITIAL_DELAY_MS,
+          maxDelayMs: LOGIN_LINKED_DATA_MAX_DELAY_MS,
+        });
+      } catch (error) {
+        return this.toPublicState(error instanceof Error ? error.message : String(error));
+      }
+    }
     return this.toPublicState();
   }
 
@@ -83,7 +100,18 @@ export class PlatformAccountService {
   async login(): Promise<PlatformAccountState> {
     await this.load();
     if (TEST_FIXTURE_ENABLED) {
-      await this.applyTestFixture();
+      this.state = {
+        ...this.state,
+        platformOrigin: this.platformOrigin(),
+        accessToken: "test-platform-access-token",
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      };
+      await this.save();
+      await this.refreshLinkedDataWithRetry({
+        attempts: LOGIN_LINKED_DATA_ATTEMPTS,
+        initialDelayMs: LOGIN_LINKED_DATA_INITIAL_DELAY_MS,
+        maxDelayMs: LOGIN_LINKED_DATA_MAX_DELAY_MS,
+      });
       return this.toPublicState();
     }
 
@@ -95,12 +123,18 @@ export class PlatformAccountService {
       accessToken: token.access_token,
       ...(token.expires_at ? { expiresAt: token.expires_at } : {}),
     };
-    await this.refreshLinkedData();
+    await this.save();
+    await this.refreshLinkedDataWithRetry({
+      attempts: LOGIN_LINKED_DATA_ATTEMPTS,
+      initialDelayMs: LOGIN_LINKED_DATA_INITIAL_DELAY_MS,
+      maxDelayMs: LOGIN_LINKED_DATA_MAX_DELAY_MS,
+    });
     return this.toPublicState();
   }
 
   async refreshLinkedData(options: { readonly preserveExistingOnError?: boolean } = {}): Promise<PlatformAccountState> {
     await this.load();
+    this.consumeTestLinkedDataFailure();
     if (TEST_FIXTURE_ENABLED) {
       await this.applyTestFixture();
       return this.toPublicState();
@@ -150,6 +184,27 @@ export class PlatformAccountService {
     };
     await this.save();
     return this.toPublicState();
+  }
+
+  private async refreshLinkedDataWithRetry(options: {
+    readonly attempts: number;
+    readonly initialDelayMs: number;
+    readonly maxDelayMs: number;
+  }): Promise<PlatformAccountState> {
+    const attempts = Math.max(1, options.attempts);
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        return await this.refreshLinkedData();
+      } catch (error) {
+        lastError = error;
+        if (attempt === attempts || !isRetryableLinkedDataError(error)) {
+          throw error;
+        }
+        await delay(backoffDelayMs(attempt, options.initialDelayMs, options.maxDelayMs));
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   async logout(): Promise<PlatformAccountState> {
@@ -209,6 +264,14 @@ export class PlatformAccountService {
       lastSyncedAt: new Date().toISOString(),
     };
     await this.save();
+  }
+
+  private consumeTestLinkedDataFailure(): void {
+    if (!TEST_FIXTURE_ENABLED || this.testLinkedDataFailuresRemaining <= 0) {
+      return;
+    }
+    this.testLinkedDataFailuresRemaining -= 1;
+    throw new Error("Test platform linked data is not ready yet.");
   }
 
   private platformOrigin(): string {
@@ -398,4 +461,25 @@ function safeParseUrl(value: string): URL | undefined {
   } catch {
     return undefined;
   }
+}
+
+function parsePositiveInteger(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function isRetryableLinkedDataError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return !/\b(401|403)\b/.test(message);
+}
+
+function backoffDelayMs(attempt: number, initialDelayMs: number, maxDelayMs: number): number {
+  return Math.min(Math.max(0, maxDelayMs), Math.max(0, initialDelayMs) * (2 ** (attempt - 1)));
+}
+
+function delay(ms: number): Promise<void> {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
