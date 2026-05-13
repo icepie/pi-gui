@@ -115,6 +115,7 @@ export const desktopIpc = {
   removeQueuedComposerMessage: "pi-gui:remove-queued-composer-message",
   steerQueuedComposerMessage: "pi-gui:steer-queued-composer-message",
   updateComposerDraft: "pi-gui:update-composer-draft",
+  persistComposerDraft: "pi-gui:persist-composer-draft",
   submitComposer: "pi-gui:submit-composer",
   getSessionTree: "pi-gui:get-session-tree",
   navigateSessionTree: "pi-gui:navigate-session-tree",
@@ -427,6 +428,7 @@ export interface PiDesktopApi {
   removeQueuedComposerMessage(messageId: string): Promise<DesktopAppState>;
   steerQueuedComposerMessage(messageId: string): Promise<DesktopAppState>;
   updateComposerDraft(composerDraft: string): Promise<DesktopAppState>;
+  persistComposerDraft(composerDraft: string): Promise<void>;
   submitComposer(text: string, options?: { readonly deliverAs?: "steer" | "followUp" }): Promise<DesktopAppState>;
   getSessionTree(target: WorkspaceSessionTarget): Promise<SessionTreeSnapshot>;
   navigateSessionTree(

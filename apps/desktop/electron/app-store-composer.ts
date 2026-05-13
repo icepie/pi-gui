@@ -29,14 +29,10 @@ export async function updateComposerDraft(
   composerDraft: string,
 ): Promise<DesktopAppState> {
   await store.initialize();
-  const sessionRef = store.selectedSessionRef();
-  if (sessionRef) {
-    const key = sessionKey(sessionRef);
-    if (composerDraft) {
-      store.sessionState.composerDraftsBySession.set(key, composerDraft);
-    } else {
-      store.sessionState.composerDraftsBySession.delete(key);
-    }
+  const previousDraft = store.state.composerDraft;
+  await persistComposerDraftForSelectedSession(store, composerDraft);
+  if (previousDraft === composerDraft && store.state.lastError === undefined) {
+    return structuredClone(store.state);
   }
   store.state = {
     ...store.state,
@@ -48,6 +44,37 @@ export async function updateComposerDraft(
   };
   store.schedulePersistUiState();
   return store.emit();
+}
+
+export async function persistComposerDraft(
+  store: AppStoreInternals,
+  composerDraft: string,
+): Promise<void> {
+  await store.initialize();
+  if (store.state.composerDraft === composerDraft) {
+    return;
+  }
+  await persistComposerDraftForSelectedSession(store, composerDraft);
+  store.state = {
+    ...store.state,
+    composerDraft,
+  };
+  store.schedulePersistUiState();
+}
+
+async function persistComposerDraftForSelectedSession(
+  store: AppStoreInternals,
+  composerDraft: string,
+): Promise<void> {
+  const sessionRef = store.selectedSessionRef();
+  if (sessionRef) {
+    const key = sessionKey(sessionRef);
+    if (composerDraft) {
+      store.sessionState.composerDraftsBySession.set(key, composerDraft);
+    } else {
+      store.sessionState.composerDraftsBySession.delete(key);
+    }
+  }
 }
 
 export async function addComposerAttachments(

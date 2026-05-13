@@ -59,6 +59,7 @@ export interface AppStoreInternals {
   clearExtensionUiForSession(sessionRef: SessionRef): void;
   cancelPendingDialogsForSession(sessionRef: SessionRef): Promise<void>;
   persistUiState(): Promise<void>;
+  persistComposerDraft(composerDraft: string): Promise<void>;
   persistComposerAttachments(key: string, attachments: readonly ComposerAttachment[]): Promise<void>;
   persistTranscriptCacheForSession(sessionRef: SessionRef): void;
   deletePersistedSessionState(sessionRef: SessionRef): Promise<void>;

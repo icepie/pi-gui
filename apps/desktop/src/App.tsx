@@ -1302,7 +1302,7 @@ export default function App() {
     }
 
     const timeout = window.setTimeout(() => {
-      void api.updateComposerDraft(composerDraft);
+      void api.persistComposerDraft(composerDraft);
     }, 350);
 
     return () => {

@@ -58,6 +58,32 @@ test("ignores stale persisted draft acknowledgements while typing", async () => 
   }
 });
 
+test("persists draft changes without broadcasting typing acknowledgements", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("composer-draft-persist");
+  const harness = await launchDesktop(userDataDir, {
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await createNamedThread(window, "Composer draft persist");
+
+    const composer = window.getByTestId("composer");
+    await composer.fill("renderer draft");
+    await expect(composer).toHaveValue("renderer draft");
+
+    await window.evaluate(() => window.piApp.persistComposerDraft("persisted behind the renderer"));
+
+    await expect(composer).toHaveValue("renderer draft");
+    await expect.poll(async () => (await getDesktopState(window)).composerDraft).toBe("persisted behind the renderer");
+  } finally {
+    await harness.close();
+  }
+});
+
 test("applies explicit editor text replacements from the session host", async () => {
   test.setTimeout(60_000);
   const userDataDir = await makeUserDataDir();

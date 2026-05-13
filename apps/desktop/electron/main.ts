@@ -90,6 +90,7 @@ const SUPPORTED_IMAGE_MIME_TYPES = new Set<string>(SUPPORTED_IMAGE_TYPES.map((ty
 const OPEN_FOLDER_MENU_ITEM_ID = "file.open-folder";
 const CHECK_FOR_UPDATES_MENU_ITEM_ID = "app.check-for-updates";
 const MAX_CLIPBOARD_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_COMPOSER_IMAGE_DATA_CHARS = Math.ceil(MAX_CLIPBOARD_IMAGE_BYTES * 4 / 3) + 64;
 const MAX_CLIPBOARD_IMAGE_DIMENSION = 8_192;
 const WORKSPACE_MEDIA_PROTOCOL = "pi-gui-media";
 const APP_DISPLAY_NAME = "飞度小派";
@@ -596,11 +597,8 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle(desktopIpc.checkForUpdates, () => checkForUpdatesFromRenderer());
   ipcMain.handle(desktopIpc.openExternal, (_event, url: string) => {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      throw new Error(`Refusing to open unsupported URL: ${url}`);
-    }
-    return shell.openExternal(url);
+    const parsed = validateExternalUrl(url);
+    return shell.openExternal(parsed.toString());
   });
   ipcMain.handle(desktopIpc.appNoticeResponse, (_event, requestId: string) => {
     const resolve = pendingAppNotices.get(requestId);
@@ -625,7 +623,9 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle(desktopIpc.stateRequest, () => store.getState());
   ipcMain.handle(desktopIpc.selectedTranscriptRequest, () => store.getSelectedTranscript());
-  ipcMain.handle(desktopIpc.addWorkspacePath, (_event, workspacePath: string) => store.addWorkspace(workspacePath));
+  ipcMain.handle(desktopIpc.addWorkspacePath, (_event, workspacePath: string) =>
+    store.addWorkspace(validateString(workspacePath, "workspace path")),
+  );
   ipcMain.handle(desktopIpc.pickWorkspace, () => pickWorkspaceViaDialog());
   ipcMain.handle(desktopIpc.selectWorkspace, (_event, workspaceId: string) => store.selectWorkspace(workspaceId));
   ipcMain.handle(desktopIpc.renameWorkspace, (_event, workspaceId: string, displayName: string) =>
@@ -634,10 +634,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.removeWorkspace, (_event, workspaceId: string) => store.removeWorkspace(workspaceId));
   ipcMain.handle(desktopIpc.reorderWorkspaces, (_event, order: readonly string[]) => store.reorderWorkspaces(order));
   ipcMain.handle(desktopIpc.openWorkspaceInFinder, async (_event, workspaceId: string) => {
-    const workspacePath = store.getWorkspacePath(workspaceId);
-    if (!workspacePath) {
-      throw new Error(`Unknown workspace: ${workspaceId}`);
-    }
+    const workspacePath = requireWorkspacePath(workspaceId);
     await shell.openPath(workspacePath);
   });
   ipcMain.handle(desktopIpc.createWorktree, (_event, input: CreateWorktreeInput) =>
@@ -672,16 +669,15 @@ app.whenReady().then(async () => {
     listSkillCatalog(input, store.getAgentDir()),
   );
   ipcMain.handle(desktopIpc.installSkillFromCatalog, async (_event, workspaceId: string, input: SkillCatalogInstallInput) => {
+    const workspace = validateString(workspaceId, "workspace id");
     await installSkillFromCatalog(store.getAgentDir(), input);
-    return store.refreshRuntime(workspaceId);
+    return store.refreshRuntime(workspace);
   });
   ipcMain.handle(desktopIpc.deleteLocalSkill, async (_event, workspaceId: string, filePath: string) => {
-    const workspacePath = store.getWorkspacePath(workspaceId);
-    if (!workspacePath) {
-      throw new Error(`Unknown workspace: ${workspaceId}`);
-    }
-    await deleteLocalSkill(store.getAgentDir(), workspacePath, filePath);
-    return store.refreshRuntime(workspaceId);
+    const workspacePath = requireWorkspacePath(workspaceId);
+    const workspace = validateString(workspaceId, "workspace id");
+    await deleteLocalSkill(store.getAgentDir(), workspacePath, validateWorkspaceRelativePath(filePath));
+    return store.refreshRuntime(workspace);
   });
   ipcMain.handle(desktopIpc.setModelSettingsScopeMode, (_event, mode) => store.setModelSettingsScopeMode(mode));
   ipcMain.handle(desktopIpc.setSessionModel, (_event, workspaceId: string, sessionId: string, provider: string, modelId: string) =>
@@ -745,7 +741,11 @@ app.whenReady().then(async () => {
     return getTerminalService().setActiveSession(event.sender, workspaceId, terminalScopeId, terminalId);
   });
   ipcMain.handle(desktopIpc.terminalWrite, (event, terminalId: string, data: string) => {
-    terminalService?.write(event.sender, terminalId, data);
+    terminalService?.write(
+      event.sender,
+      validateString(terminalId, "terminal id"),
+      validateString(data, "terminal input", { allowEmpty: true }),
+    );
   });
   ipcMain.handle(desktopIpc.terminalResize, (event, terminalId: string, size) => {
     terminalService?.resize(event.sender, terminalId, size);
@@ -757,7 +757,11 @@ app.whenReady().then(async () => {
     return getTerminalService().close(event.sender, terminalId);
   });
   ipcMain.handle(desktopIpc.terminalSetTitle, (event, terminalId: string, title: string) => {
-    terminalService?.setTitle(event.sender, terminalId, title);
+    terminalService?.setTitle(
+      event.sender,
+      validateString(terminalId, "terminal id"),
+      validateString(title, "terminal title", { allowEmpty: true }),
+    );
   });
   ipcMain.on(desktopIpc.terminalSetFocused, (event, focused: boolean) => {
     if (focused) {
@@ -809,7 +813,7 @@ app.whenReady().then(async () => {
     event.returnValue = readClipboardImageAttachment();
   });
   ipcMain.handle(desktopIpc.addComposerAttachments, (_event, attachments: readonly ComposerAttachment[]) => {
-    const validated = attachments.flatMap(validateComposerAttachmentPayload);
+    const validated = Array.isArray(attachments) ? attachments.flatMap(validateComposerAttachmentPayload) : [];
     return store.addComposerAttachments(validated);
   });
   ipcMain.handle(desktopIpc.removeComposerAttachment, (_event, attachmentId: string) =>
@@ -828,11 +832,15 @@ app.whenReady().then(async () => {
     store.steerQueuedComposerMessage(messageId),
   );
   ipcMain.handle(desktopIpc.updateComposerDraft, (_event, composerDraft: string) =>
-    store.updateComposerDraft(composerDraft),
+    store.updateComposerDraft(validateString(composerDraft, "composer draft", { allowEmpty: true })),
+  );
+  ipcMain.handle(desktopIpc.persistComposerDraft, (_event, composerDraft: string) =>
+    store.persistComposerDraft(validateString(composerDraft, "composer draft", { allowEmpty: true })),
   );
   ipcMain.handle(
     desktopIpc.submitComposer,
-    (_event, text: string, options?: { readonly deliverAs?: "steer" | "followUp" }) => store.submitComposer(text, options),
+    (_event, text: string, options?: { readonly deliverAs?: "steer" | "followUp" }) =>
+      store.submitComposer(validateString(text, "composer text", { allowEmpty: true }), options),
   );
   ipcMain.handle(desktopIpc.getSessionTree, (_event, target: WorkspaceSessionTarget) =>
     store.getSessionTree(target),
@@ -854,7 +862,7 @@ app.whenReady().then(async () => {
     if (!workspacePath) {
       return null;
     }
-    return readWorkspaceFile(workspacePath, filePath);
+    return readWorkspaceFile(workspacePath, validateWorkspaceRelativePath(filePath));
   });
   ipcMain.handle(desktopIpc.getChangedFiles, async (_event, workspaceId: string) => {
     const workspacePath = store.getWorkspacePath(workspaceId);
@@ -868,14 +876,14 @@ app.whenReady().then(async () => {
     if (!workspacePath) {
       return "";
     }
-    return getFileDiff(workspacePath, filePath);
+    return getFileDiff(workspacePath, validateWorkspaceRelativePath(filePath));
   });
   ipcMain.handle(desktopIpc.stageFile, async (_event, workspaceId: string, filePath: string) => {
     const workspacePath = store.getWorkspacePath(workspaceId);
     if (!workspacePath) {
       throw new Error(`Unknown workspace: ${workspaceId}`);
     }
-    await stageFile(workspacePath, filePath);
+    await stageFile(workspacePath, validateWorkspaceRelativePath(filePath));
   });
   ipcMain.handle(desktopIpc.toggleWindowMaximize, (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
@@ -1149,15 +1157,69 @@ function mimeTypeForPath(filePath: string): string {
   return "application/octet-stream";
 }
 
+function validateString(
+  value: unknown,
+  label: string,
+  options: { readonly allowEmpty?: boolean } = {},
+): string {
+  if (typeof value !== "string") {
+    throw new Error(`Invalid ${label}.`);
+  }
+  if (!options.allowEmpty && value.trim() === "") {
+    throw new Error(`Invalid ${label}.`);
+  }
+  return value;
+}
+
+function validateExternalUrl(value: unknown): URL {
+  const raw = validateString(value, "URL");
+  const parsed = new URL(raw);
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error(`Refusing to open unsupported URL: ${raw}`);
+  }
+  return parsed;
+}
+
+function validateWorkspaceRelativePath(value: unknown): string {
+  const filePath = validateString(value, "workspace file path");
+  if (path.isAbsolute(filePath) || filePath.includes("\0")) {
+    throw new Error("Invalid workspace file path.");
+  }
+  const normalized = path.normalize(filePath).replaceAll("\\", "/");
+  if (normalized === "." || normalized.startsWith("../") || normalized === "..") {
+    throw new Error("Invalid workspace file path.");
+  }
+  return normalized;
+}
+
+function requireWorkspacePath(workspaceId: unknown): string {
+  const id = validateString(workspaceId, "workspace id");
+  const workspacePath = store.getWorkspacePath(id);
+  if (!workspacePath) {
+    throw new Error(`Unknown workspace: ${id}`);
+  }
+  return workspacePath;
+}
+
 function validateComposerAttachmentPayload(attachment: ComposerAttachment): ComposerAttachment[] {
+  if (!attachment || typeof attachment !== "object") {
+    return [];
+  }
   if (attachment.kind === "image") {
-    if (typeof attachment.data !== "string" || typeof attachment.mimeType !== "string" || !SUPPORTED_IMAGE_MIME_TYPES.has(attachment.mimeType)) {
+    if (
+      typeof attachment.data !== "string" ||
+      attachment.data.length > MAX_COMPOSER_IMAGE_DATA_CHARS ||
+      typeof attachment.mimeType !== "string" ||
+      !SUPPORTED_IMAGE_MIME_TYPES.has(attachment.mimeType) ||
+      typeof attachment.name !== "string"
+    ) {
       return [];
     }
     return [
       {
         ...attachment,
         kind: "image",
+        name: attachment.name.trim() || "image",
       },
     ];
   }

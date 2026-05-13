@@ -374,6 +374,10 @@ export class DesktopAppStore implements AppStoreInternals {
     return composer.updateComposerDraft(this, composerDraft);
   }
 
+  async persistComposerDraft(composerDraft: string): Promise<void> {
+    return composer.persistComposerDraft(this, composerDraft);
+  }
+
   async addComposerAttachments(attachments: readonly ComposerAttachment[]): Promise<DesktopAppState> {
     return composer.addComposerAttachments(this, attachments);
   }
