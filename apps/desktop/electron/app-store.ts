@@ -110,6 +110,11 @@ type TranscriptMessageRow = Extract<TranscriptMessage, { kind: "message" }>;
 const LEGACY_TRANSCRIPT_HISTORY_LIMIT = 180;
 const LEGACY_MCP_ADAPTER_PACKAGE = "npm:pi-mcp-adapter";
 const PACKAGED_MCP_ADAPTER_RELATIVE_PATH = "pi-packages/pi-mcp-adapter";
+const BUILTIN_CHROME_DEVTOOLS_MCP_SERVER_NAME = "chrome-devtools";
+const BUILTIN_CHROME_DEVTOOLS_MCP_SERVER = {
+  command: "npx",
+  args: ["-y", "chrome-devtools-mcp@latest"],
+};
 const requireFromHere = createRequire(__filename);
 
 interface PersistedTranscriptRecord {
@@ -884,6 +889,11 @@ export class DesktopAppStore implements AppStoreInternals {
       }
       if (process.env.PI_APP_DISABLE_BUILTIN_MCP_ADAPTER !== "1") {
         await ensureDefaultAgentPackages(this.driver.getAgentDir(), resolveDefaultMcpAdapterPackageSource(this.resourcesPath));
+        if (process.env.PI_APP_DISABLE_BUILTIN_CHROME_DEVTOOLS_MCP !== "1") {
+          await ensureDefaultAgentMcpServers(this.driver.getAgentDir(), {
+            [BUILTIN_CHROME_DEVTOOLS_MCP_SERVER_NAME]: BUILTIN_CHROME_DEVTOOLS_MCP_SERVER,
+          });
+        }
       }
       const initialWorkspacePaths = this.initialWorkspacePaths.map((path) => path.trim()).filter(Boolean);
       const knownWorkspaces = await this.driver.listWorkspaces();
@@ -2521,6 +2531,46 @@ async function ensureDefaultAgentPackages(agentDir: string, defaultMcpAdapterPac
       : [...packages, defaultMcpAdapterPackage];
   await mkdir(agentDir, { recursive: true });
   await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+}
+
+async function ensureDefaultAgentMcpServers(
+  agentDir: string,
+  defaultServers: Record<string, Record<string, unknown>>,
+): Promise<void> {
+  const configPath = join(agentDir, "mcp.json");
+  const config = await readJsonFileRecord(configPath);
+  const existingServers =
+    typeof config.mcpServers === "object" && config.mcpServers !== null && !Array.isArray(config.mcpServers)
+      ? (config.mcpServers as Record<string, unknown>)
+      : {};
+  const nextServers = { ...existingServers };
+  let changed = false;
+
+  for (const [serverName, serverConfig] of Object.entries(defaultServers)) {
+    if (serverName in nextServers) {
+      continue;
+    }
+    nextServers[serverName] = serverConfig;
+    changed = true;
+  }
+
+  if (!changed) {
+    return;
+  }
+
+  await mkdir(agentDir, { recursive: true });
+  await writeFile(
+    configPath,
+    `${JSON.stringify(
+      {
+        ...config,
+        mcpServers: nextServers,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
 }
 
 function updateDefaultMcpAdapterPackageEntry(entry: unknown, defaultMcpAdapterPackage: string): unknown {
