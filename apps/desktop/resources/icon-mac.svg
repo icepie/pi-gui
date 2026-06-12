@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">pi-fit</title>
+  <!-- macOS template: rounded-square (squircle) centered with transparent margin -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#ffffff"/>
+  <!-- monster reused from icon.svg (512 coord space), scaled+centered into the squircle -->
+  <g transform="translate(128,221) scale(1.5)">
+    <g fill="#000000">
+      <path d="M256 96
+        C 167 96 96 167 96 256
+        L 96 372
+        a 26 26 0 0 0 44 19
+        l 18 -18 18 18
+        a 26 26 0 0 0 37 0
+        l 18 -18 18 18
+        a 26 26 0 0 0 37 0
+        l 18 -18 18 18
+        a 26 26 0 0 0 44 -19
+        L 416 256
+        C 416 167 345 96 256 96 Z"/>
+      <rect x="246" y="44" width="20" height="48" rx="10"/>
+      <circle cx="256" cy="40" r="20"/>
+    </g>
+    <g fill="#ffffff">
+      <circle cx="206" cy="236" r="40"/>
+      <circle cx="306" cy="236" r="40"/>
+    </g>
+    <g fill="#000000">
+      <circle cx="206" cy="246" r="18"/>
+      <circle cx="306" cy="246" r="18"/>
+    </g>
+  </g>
+</svg>

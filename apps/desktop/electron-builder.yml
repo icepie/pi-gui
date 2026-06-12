@@ -93,6 +93,7 @@ toolsets:
   appimage: "1.0.2"
 
 dmg:
+  icon: resources/icon.icns
   contents:
     - x: 130
       y: 220
