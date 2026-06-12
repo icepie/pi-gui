@@ -20,9 +20,18 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@earendil-works/pi-agent-core':
+        specifier: ^0.79.1
+        version: 0.79.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@earendil-works/pi-ai':
+        specifier: ^0.79.1
+        version: 0.79.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
       '@earendil-works/pi-coding-agent':
         specifier: ^0.79.1
         version: 0.79.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@earendil-works/pi-tui':
+        specifier: ^0.79.1
+        version: 0.79.1
       '@headlessui/react':
         specifier: 0.0.0-insiders.eea57cf
         version: 0.0.0-insiders.eea57cf(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

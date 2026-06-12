@@ -1,4 +1,4 @@
-import { constants, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { constants, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -285,6 +285,7 @@ async function verifyPackagedPiRuntime(asarPath, extractedDir) {
   }
 
   extractPackedFiles(asarPath, extractedDir);
+  copyUnpackedFiles(asarPath, extractedDir);
   const runtimeEntry = path.join(extractedDir, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "index.js");
   const { AuthStorage, ModelRegistry } = await import(pathToFileURL(runtimeEntry).href);
   const registry = ModelRegistry.inMemory(AuthStorage.inMemory());
@@ -321,6 +322,18 @@ function extractPackedFiles(asarPath, extractedDir) {
 
     extractAsarFile(asarPath, extractedDir, filePath);
   }
+}
+
+// asarUnpack-matched files (e.g. packages carrying *.node natives like
+// @earendil-works/pi-tui) live on disk under `${asar}.unpacked` rather than
+// inside the archive. The real app resolves them from there at runtime, so the
+// extracted runtime tree must include them too or transitive imports break.
+function copyUnpackedFiles(asarPath, extractedDir) {
+  const unpackedRoot = `${asarPath}.unpacked`;
+  if (!existsSync(unpackedRoot)) {
+    return;
+  }
+  cpSync(unpackedRoot, extractedDir, { recursive: true });
 }
 
 async function verifyNativeNodePty(asarPath) {
