@@ -328,12 +328,17 @@ function extractPackedFiles(asarPath, extractedDir) {
 // @earendil-works/pi-tui) live on disk under `${asar}.unpacked` rather than
 // inside the archive. The real app resolves them from there at runtime, so the
 // extracted runtime tree must include them too or transitive imports break.
+// Skip native binaries: they are not needed to import the runtime's JS entry,
+// and a loaded .node cannot be unlinked during temp cleanup on Windows (EPERM).
 function copyUnpackedFiles(asarPath, extractedDir) {
   const unpackedRoot = `${asarPath}.unpacked`;
   if (!existsSync(unpackedRoot)) {
     return;
   }
-  cpSync(unpackedRoot, extractedDir, { recursive: true });
+  cpSync(unpackedRoot, extractedDir, {
+    recursive: true,
+    filter: (source) => !source.endsWith(".node"),
+  });
 }
 
 async function verifyNativeNodePty(asarPath) {
