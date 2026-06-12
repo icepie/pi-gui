@@ -246,8 +246,22 @@ function verifyRequiredPackages(asarPath) {
   );
 
   if (missingPackages.length > 0) {
+    logAsarNodeModulesDiagnostics(asarPath, packagedFiles);
     throw new Error(`Packaged app is missing runtime dependencies: ${missingPackages.join(", ")}`);
   }
+}
+
+function logAsarNodeModulesDiagnostics(asarPath, packagedFiles) {
+  const nodeModuleEntries = [...packagedFiles].filter((entry) => entry.startsWith("node_modules/"));
+  const topLevelPackages = new Set(
+    nodeModuleEntries.map((entry) => packageRootFromNodeModulesPath(entry)).filter(Boolean),
+  );
+  console.error(`[assert-packaged-runtime-deps] asar=${asarPath}`);
+  console.error(`[assert-packaged-runtime-deps] total packaged entries=${packagedFiles.size}`);
+  console.error(`[assert-packaged-runtime-deps] node_modules entries=${nodeModuleEntries.length}`);
+  console.error(
+    `[assert-packaged-runtime-deps] top-level node_modules packages (${topLevelPackages.size}): ${[...topLevelPackages].sort().slice(0, 40).join(", ")}`,
+  );
 }
 
 async function verifyPackagedPiRuntime(asarPath, extractedDir) {
