@@ -164,13 +164,8 @@ function patchAsyncTaskManager(exports) {
     await new Promise((resolve) => setImmediate(resolve));
 
     // electron-builder 26.x can enqueue follow-up work just after an awaitTasks
-    // pass observes an empty queue. Those continuations attach a tick later, so a
-    // fixed number of drain rounds can miss them on slower task scheduling (e.g.
-    // Windows runners), leaving node_modules copy tasks unprocessed and producing
-    // an app.asar with no production dependencies. Keep draining until the queue is
-    // genuinely empty, with a high cap that only guards against a pathological hang.
-    const MAX_DRAIN_ROUNDS = 1000;
-    for (let index = 0; index < MAX_DRAIN_ROUNDS && this.tasks?.length > 0; index += 1) {
+    // pass observes an empty queue. Give those continuations one tick to attach.
+    for (let index = 0; index < 4 && this.tasks?.length > 0; index += 1) {
       const nextResult = await originalAwaitTasks.call(this);
       if (Array.isArray(result) && Array.isArray(nextResult)) {
         result = result.concat(nextResult);

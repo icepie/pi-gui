@@ -236,8 +236,20 @@ function listNestedUnpackedAsarPaths(releaseDir, unpackedDirPattern) {
   return candidates;
 }
 
+function listPackagedFilesPosix(asarPath) {
+  // @electron/asar's listFiles joins entries with the host path separator, so on
+  // Windows packaged paths come back as "node_modules\\pkg". Normalize to forward
+  // slashes (and strip the leading separator) so node_modules path checks match on
+  // every platform.
+  return new Set(
+    asar
+      .listPackage(asarPath, { isPack: false })
+      .map((entry) => entry.split(path.sep).join("/").replace(/^\/+/, "")),
+  );
+}
+
 function verifyRequiredPackages(asarPath) {
-  const packagedFiles = new Set(asar.listPackage(asarPath, { isPack: false }).map((entry) => entry.replace(/^\/+/, "")));
+  const packagedFiles = listPackagedFilesPosix(asarPath);
   const missingPackages = requiredPackages.filter(
     (packageName) => {
       const packagePath = `node_modules/${packageName}`;
@@ -283,7 +295,10 @@ async function verifyPackagedPiRuntime(asarPath, extractedDir) {
 }
 
 function readAsarJson(asarPath, filePath) {
-  return JSON.parse(asar.extractFile(asarPath, filePath).toString("utf8"));
+  // asar resolves lookups by splitting on the host path separator, so convert the
+  // logical forward-slash path to the native separator before extracting.
+  const nativePath = filePath.split("/").join(path.sep);
+  return JSON.parse(asar.extractFile(asarPath, nativePath).toString("utf8"));
 }
 
 function extractAsarFile(asarPath, extractedDir, filePath) {
@@ -350,7 +365,7 @@ function verifyNativeClipboard(asarPath) {
     return;
   }
 
-  const packagedFiles = new Set(asar.listPackage(asarPath, { isPack: false }).map((entry) => entry.replace(/^\/+/, "")));
+  const packagedFiles = listPackagedFilesPosix(asarPath);
   const unpackedResourcesDir = `${asarPath}.unpacked`;
   const expectedPackagePath = `node_modules/${expectedPackage}`;
   const expectedInAsar = packagedFiles.has(`${expectedPackagePath}/package.json`) || [...packagedFiles].some((entry) => entry.startsWith(`${expectedPackagePath}/`));
