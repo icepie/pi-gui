@@ -1,9 +1,11 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { SessionQueuedMessage } from "@pi-gui/session-driver";
 import {
   commitAllInGitRepo,
   desktopShortcut,
+  emitTestSessionEvent,
   getDesktopState,
   getTimelineScrollMetrics,
   initGitRepo,
@@ -15,6 +17,7 @@ import {
   selectSession,
   seedTranscriptMessages,
   streamAssistantDeltas,
+  TINY_PNG_BASE64,
 } from "../helpers/electron-app";
 
 const multilineDraft = [
@@ -402,7 +405,60 @@ test("restores the true bottom when reopening a virtualized thread with oversize
 
     await selectSession(window, targetTitle);
     const finalRow = window.locator(".timeline-item--assistant", { hasText: finalMarker });
+    await jumpTimelineToBottom(window);
     await expect(finalRow).toBeVisible();
+    await expect.poll(async () => (await getTimelineScrollMetrics(window)).remainingFromBottom).toBeLessThanOrEqual(16);
+  } finally {
+    await harness.close();
+  }
+});
+
+test("keeps virtualizing long transcripts that include oversized rows and attachments", async () => {
+  test.setTimeout(90_000);
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("timeline-pinning-virtualized-attachments");
+  const harness = await launchDesktop(userDataDir, {
+    initialWorkspaces: [workspacePath],
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await createTimelineSession(window, "Virtualized attachment transcript");
+    const { sessionRef } = await seedTranscriptMessages(harness, window, {
+      count: 96,
+      textFactory: (index) =>
+        index === 82
+          ? `VIRTUALIZED_ATTACHMENT_OVERSIZED ${"long wrapped row stays virtualized ".repeat(420)}`
+          : `Virtualized attachment row ${index} `.repeat(8),
+    });
+
+    const attachedMessage: SessionQueuedMessage = {
+      id: "virtualized-attachment-message",
+      mode: "followUp",
+      text: "VIRTUALIZED_ATTACHMENT_FINAL_ROW",
+      attachments: [
+        {
+          kind: "image",
+          mimeType: "image/png",
+          data: TINY_PNG_BASE64,
+          name: "virtualized-attachment.png",
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await emitTestSessionEvent(harness, {
+      type: "queuedMessageStarted",
+      sessionRef,
+      timestamp: new Date().toISOString(),
+      message: attachedMessage,
+    });
+
+    await expect(window.locator(".timeline--virtualized")).toHaveCount(1);
+    await jumpTimelineToBottom(window);
+    await expect(window.locator(".timeline-item__attachment--image")).toBeVisible();
+    await expect(window.locator(".timeline-item--user", { hasText: attachedMessage.text })).toBeVisible();
     await expect.poll(async () => (await getTimelineScrollMetrics(window)).remainingFromBottom).toBeLessThanOrEqual(16);
   } finally {
     await harness.close();

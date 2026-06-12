@@ -529,7 +529,7 @@ function pruneNodePtyUnpackedArtifacts(resourcesDir, platform, arch) {
   const asarUnpackedDir = path.join(resourcesDir, "app.asar.unpacked");
   const nodePtyRoots = findPackageRoots(path.join(asarUnpackedDir, "node_modules"), "node-pty");
   if (nodePtyRoots.length === 0) {
-    return;
+    throw new Error(`[afterPack] Missing unpacked node-pty package under ${asarUnpackedDir}`);
   }
 
   let removedBytes = 0;
@@ -583,7 +583,63 @@ function pruneNodePtyUnpackedArtifacts(resourcesDir, platform, arch) {
     }
   }
 
+  verifyAndRepairNodePtyUnpackedArtifacts(nodePtyRoots, platform, arch);
   logSavings("node-pty cross-target artifacts", removedCount, removedBytes);
+}
+
+function verifyAndRepairNodePtyUnpackedArtifacts(nodePtyRoots, platform, arch) {
+  const expectedPrebuildDirNames = nodePtyPrebuildDirNames(platform, arch);
+  const errors = [];
+
+  for (const nodePtyDir of nodePtyRoots) {
+    const nativeCandidates = [
+      path.join(nodePtyDir, "build", "Release", "pty.node"),
+      ...expectedPrebuildDirNames.map((dirName) => path.join(nodePtyDir, "prebuilds", dirName, "pty.node")),
+    ];
+    const ptyNodePath = nativeCandidates.find((candidatePath) => fs.existsSync(candidatePath));
+    if (!ptyNodePath) {
+      errors.push(
+        `missing pty.node for ${platform}-${arch} under ${nodePtyDir}; checked ${nativeCandidates.join(", ")}`,
+      );
+      continue;
+    }
+
+    if (platform !== "darwin") {
+      continue;
+    }
+
+    const helperCandidates = [
+      path.join(path.dirname(ptyNodePath), "spawn-helper"),
+      ...expectedPrebuildDirNames.map((dirName) => path.join(nodePtyDir, "prebuilds", dirName, "spawn-helper")),
+      path.join(nodePtyDir, "build", "Release", "spawn-helper"),
+    ];
+    const helperPath = helperCandidates.find((candidatePath) => fs.existsSync(candidatePath));
+    if (!helperPath) {
+      errors.push(
+        `missing spawn-helper for ${platform}-${arch} under ${nodePtyDir}; checked ${helperCandidates.join(", ")}`,
+      );
+      continue;
+    }
+    fs.chmodSync(helperPath, 0o755);
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`[afterPack] Invalid node-pty packaged artifacts:\n${errors.join("\n")}`);
+  }
+}
+
+function nodePtyPrebuildDirNames(platform, arch) {
+  const aliases = new Set([`${platform}-${arch}`]);
+  if (platform === "win32") {
+    aliases.add(arch === "arm64" ? "win32-arm64-msvc" : "win32-x64-msvc");
+  }
+  if (platform === "darwin") {
+    aliases.add(arch === "arm64" ? "darwin-arm64" : "darwin-x64");
+  }
+  if (platform === "linux") {
+    aliases.add(arch === "arm64" ? "linux-arm64" : "linux-x64");
+  }
+  return [...aliases];
 }
 
 function pruneKoffiUnpackedArtifacts(resourcesDir, platform, arch) {

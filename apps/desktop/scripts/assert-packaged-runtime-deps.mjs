@@ -62,6 +62,7 @@ try {
   await verifyPackagedElectronNodeProxy(asarPath);
   verifyPackagedWindowsManagedRuntime(asarPath);
   verifyPackagedPiMcpAdapter(asarPath);
+  verifyPackagedIcons(asarPath);
 } finally {
   rmSync(extractedDir, { recursive: true, force: true });
 }
@@ -292,18 +293,41 @@ function extractPackedFiles(asarPath, extractedDir) {
 
 async function verifyNativeNodePty(asarPath) {
   const unpackedResourcesDir = `${asarPath}.unpacked`;
-  const nodePtyDir = path.join(unpackedResourcesDir, "node_modules", "node-pty");
-  if (!existsSync(nodePtyDir) || !hasFileWithExtension(nodePtyDir, ".node")) {
-    throw new Error(`Packaged app is missing unpacked node-pty native module under ${nodePtyDir}`);
+  const nodePtyRoots = findPackageRoots(path.join(unpackedResourcesDir, "node_modules"), "node-pty");
+  if (nodePtyRoots.length === 0) {
+    throw new Error(`Packaged app is missing unpacked node-pty package under ${unpackedResourcesDir}`);
   }
-  if (packagePlatform !== "darwin") {
-    return;
+
+  const expectedPrebuildDirNames = nodePtyPrebuildDirNames(packagePlatform, packageArch);
+  for (const nodePtyDir of nodePtyRoots) {
+    const nativeCandidates = [
+      path.join(nodePtyDir, "build", "Release", "pty.node"),
+      ...expectedPrebuildDirNames.map((dirName) => path.join(nodePtyDir, "prebuilds", dirName, "pty.node")),
+    ];
+    const ptyNodePath = nativeCandidates.find((candidatePath) => existsSync(candidatePath));
+    if (!ptyNodePath) {
+      throw new Error(
+        `Packaged app is missing target node-pty pty.node under ${nodePtyDir}; checked ${nativeCandidates.join(", ")}`,
+      );
+    }
+
+    if (packagePlatform !== "darwin") {
+      continue;
+    }
+
+    const helperCandidates = [
+      path.join(path.dirname(ptyNodePath), "spawn-helper"),
+      ...expectedPrebuildDirNames.map((dirName) => path.join(nodePtyDir, "prebuilds", dirName, "spawn-helper")),
+      path.join(nodePtyDir, "build", "Release", "spawn-helper"),
+    ];
+    const helperPath = helperCandidates.find((candidatePath) => existsSync(candidatePath));
+    if (!helperPath) {
+      throw new Error(
+        `Packaged app is missing target node-pty spawn-helper under ${nodePtyDir}; checked ${helperCandidates.join(", ")}`,
+      );
+    }
+    await access(helperPath, constants.X_OK);
   }
-  const helperPath = findFileNamed(nodePtyDir, "spawn-helper");
-  if (!helperPath) {
-    throw new Error(`Packaged app is missing unpacked node-pty spawn-helper under ${nodePtyDir}`);
-  }
-  await access(helperPath, constants.X_OK);
 }
 
 function verifyNativeClipboard(asarPath) {
@@ -335,6 +359,53 @@ function verifyNativeClipboard(asarPath) {
     throw new Error(
       `Packaged app includes clipboard native packages for the wrong target: ${[...new Set(wrongNativePackages.map(packageRootFromNodeModulesPath))].join(", ")}`,
     );
+  }
+}
+
+function verifyPackagedIcons(asarPath) {
+  const resourcesDir = path.dirname(asarPath);
+  const pngPath = path.join(resourcesDir, "icon.png");
+  if (!existsSync(pngPath)) {
+    throw new Error(`Packaged app is missing icon.png extraResource: ${pngPath}`);
+  }
+  verifyPngIcon(pngPath);
+
+  if (packagePlatform !== "darwin") {
+    return;
+  }
+
+  const icnsFiles = readdirSync(resourcesDir).filter((entry) => entry.toLowerCase().endsWith(".icns"));
+  if (icnsFiles.length === 0) {
+    throw new Error(`Packaged macOS app is missing an ICNS bundle icon under ${resourcesDir}`);
+  }
+  for (const fileName of icnsFiles) {
+    verifyIcnsIcon(path.join(resourcesDir, fileName));
+  }
+}
+
+function verifyPngIcon(filePath) {
+  const buffer = readFileSync(filePath);
+  if (!buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    throw new Error(`Invalid packaged PNG icon header: ${filePath}`);
+  }
+  if (buffer.length < 24) {
+    throw new Error(`Truncated packaged PNG icon: ${filePath}`);
+  }
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  if (width < 256 || height < 256) {
+    throw new Error(`Packaged PNG icon must be at least 256x256. Got ${width}x${height} in ${filePath}`);
+  }
+}
+
+function verifyIcnsIcon(filePath) {
+  const buffer = readFileSync(filePath);
+  if (buffer.subarray(0, 4).toString("ascii") !== "icns") {
+    throw new Error(`Invalid packaged ICNS icon header: ${filePath}`);
+  }
+  const declaredSize = buffer.readUInt32BE(4);
+  if (declaredSize !== buffer.length) {
+    throw new Error(`Packaged ICNS size mismatch in ${filePath}: declared ${declaredSize}, actual ${buffer.length}`);
   }
 }
 
@@ -541,6 +612,54 @@ function findFileNamed(directoryPath, fileName) {
     }
   }
   return undefined;
+}
+
+function findPackageRoots(startDir, packageName) {
+  if (!existsSync(startDir)) {
+    return [];
+  }
+
+  const roots = [];
+  const queue = [startDir];
+  const packagePathSuffix = path.join(...packageName.split("/"));
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const packageJsonPath = path.join(current, "package.json");
+    if (current.endsWith(packagePathSuffix) && existsSync(packageJsonPath)) {
+      try {
+        const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+        if (packageJson.name === packageName) {
+          roots.push(current);
+          continue;
+        }
+      } catch {
+        // Keep walking malformed package roots so the caller reports a useful missing-artifact error.
+      }
+    }
+
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name !== ".bin") {
+        queue.push(path.join(current, entry.name));
+      }
+    }
+  }
+
+  return roots;
+}
+
+function nodePtyPrebuildDirNames(platform, arch) {
+  const normalizedPlatform = platform === "win" ? "win32" : platform;
+  const aliases = new Set([`${normalizedPlatform}-${arch}`]);
+  if (normalizedPlatform === "win32") {
+    aliases.add(arch === "arm64" ? "win32-arm64-msvc" : "win32-x64-msvc");
+  }
+  if (normalizedPlatform === "darwin") {
+    aliases.add(arch === "arm64" ? "darwin-arm64" : "darwin-x64");
+  }
+  if (normalizedPlatform === "linux") {
+    aliases.add(arch === "arm64" ? "linux-arm64" : "linux-x64");
+  }
+  return [...aliases];
 }
 
 function safeStatSize(filePath) {

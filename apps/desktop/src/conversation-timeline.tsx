@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type MutableRefObject, type RefCallback, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type RefCallback, type RefObject } from "react";
 import type { TranscriptMessage } from "./desktop-state";
 import { ThreadSearchBar } from "./thread-search";
 import { TimelineItem } from "./timeline-item";
@@ -48,16 +48,10 @@ export function ConversationTimeline({
   onContentHeightChange,
   onViewFileInDiff,
 }: ConversationTimelineProps) {
-  // Giant prose blocks and attachment-heavy rows routinely blow past the estimator,
-  // so keep those transcripts on the exact DOM path instead of restoring to a fake bottom.
-  const hasUnreliableVirtualizedHeights = transcript.some(
-    (item) => item.kind === "message" && (item.text.length > 2000 || Boolean(item.attachments?.length)),
-  );
   const shouldVirtualize =
     !threadSearch.isOpen &&
     transcript.length > VIRTUALIZATION_THRESHOLD &&
-    !disableVirtualization &&
-    !hasUnreliableVirtualizedHeights;
+    !disableVirtualization;
   const [expandedToolCallIds, setExpandedToolCallIds] = useState<Set<string>>(() => new Set());
   const measuredHeightsRef = useRef(new Map<string, number>());
   const [measurementVersion, setMeasurementVersion] = useState(0);
@@ -104,6 +98,14 @@ export function ConversationTimeline({
     }
     const allRowsMeasured = transcript.every((item) => measuredHeightsRef.current.has(item.id));
     if (!allRowsMeasured) {
+      if (transcript.length > VIRTUALIZATION_THRESHOLD) {
+        const frame = window.requestAnimationFrame(() => {
+          onDisableVirtualizationReady?.();
+        });
+        return () => {
+          window.cancelAnimationFrame(frame);
+        };
+      }
       return;
     }
     onDisableVirtualizationReady?.();
@@ -252,16 +254,19 @@ function VirtualizedTranscriptList({
     };
   }, [timelinePaneRef]);
 
-  const rowHeights = transcript.map((item) => measuredHeightsRef.current.get(item.id) ?? estimateTimelineItemHeight(item));
-  const rowOffsets: number[] = [];
-  let totalHeight = 0;
-  for (const [index, rowHeight] of rowHeights.entries()) {
-    rowOffsets[index] = totalHeight;
-    totalHeight += rowHeight;
-    if (index < rowHeights.length - 1) {
-      totalHeight += ROW_GAP_PX;
+  const { rowHeights, rowOffsets, totalHeight } = useMemo(() => {
+    const heights = transcript.map((item) => measuredHeightsRef.current.get(item.id) ?? estimateTimelineItemHeight(item));
+    const offsets: number[] = [];
+    let height = 0;
+    for (const [index, rowHeight] of heights.entries()) {
+      offsets[index] = height;
+      height += rowHeight;
+      if (index < heights.length - 1) {
+        height += ROW_GAP_PX;
+      }
     }
-  }
+    return { rowHeights: heights, rowOffsets: offsets, totalHeight: height };
+  }, [measurementVersion, measuredHeightsRef, transcript]);
 
   useLayoutEffect(() => {
     if (previousTotalHeightRef.current === totalHeight) {
@@ -393,13 +398,11 @@ function findEndIndex(offsets: readonly number[], targetOffset: number): number 
 
 function estimateTimelineItemHeight(item: TranscriptMessage): number {
   if (item.kind === "message") {
-    const attachmentHeight = item.attachments?.some((attachment) => attachment.kind === "image")
-      ? 120
-      : item.attachments?.length
-        ? 56
-        : 0;
+    const imageCount = item.attachments?.filter((attachment) => attachment.kind === "image").length ?? 0;
+    const fileCount = (item.attachments?.length ?? 0) - imageCount;
+    const attachmentHeight = Math.min(360, imageCount * 132 + fileCount * 44);
     const textLength = Math.max(item.text.length, 1);
-    return 48 + attachmentHeight + Math.min(240, Math.ceil(textLength / 90) * 20);
+    return 48 + attachmentHeight + Math.min(900, Math.ceil(textLength / 80) * 20);
   }
   if (item.kind === "tool") {
     return 52;

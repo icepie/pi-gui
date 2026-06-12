@@ -1,4 +1,4 @@
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 import { expect, test } from "@playwright/test";
 import {
   assertExists,
@@ -8,6 +8,30 @@ import {
   makeWorkspace,
   waitForWorkspaceByPath,
 } from "../helpers/electron-app";
+
+test("adds the default Documents pi-fit workspace on first real startup", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const documentsRoot = await makeUserDataDir("pi-gui-documents-");
+  const defaultWorkspacePath = join(documentsRoot, "pi-fit");
+  const harness = await launchDesktop(userDataDir, {
+    useSystemDefaultWorkspace: true,
+    defaultWorkspaceDocumentsDir: documentsRoot,
+    testMode: "background",
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await waitForWorkspaceByPath(window, defaultWorkspacePath);
+    const state = await getDesktopState(window);
+    const workspace = state.workspaces.find((entry) => entry.path === defaultWorkspacePath);
+    assertExists(workspace, "Expected default workspace");
+    expect(workspace.name).toBe("pi-fit");
+    expect(state.selectedWorkspaceId).toBe(workspace.id);
+  } finally {
+    await harness.close();
+  }
+});
 
 test("supports workspace rename and remove from the sidebar menu", async () => {
   test.setTimeout(60_000);
@@ -29,12 +53,11 @@ test("supports workspace rename and remove from the sidebar menu", async () => {
     assertExists(workspace, "Expected first workspace");
 
     await window.getByRole("button", { name: `Workspace actions for ${basename(workspaceA)}` }).click();
-    const workspaceMenu = window.locator(".workspace-menu").last();
-    await expect(workspaceMenu.getByRole("button", { name: "Open folder" })).toBeVisible();
-    await expect(workspaceMenu.getByRole("button", { name: "Edit name" })).toBeVisible();
-    await expect(workspaceMenu.getByRole("button", { name: "Remove" })).toBeVisible();
+    await expect(window.getByText("Open folder")).toBeVisible();
+    await expect(window.getByText("Edit name")).toBeVisible();
+    await expect(window.getByText("Remove")).toBeVisible();
 
-    await workspaceMenu.getByRole("button", { name: "Edit name" }).click();
+    await window.getByText("Edit name").click();
     const renameInput = window.getByLabel(`Rename ${basename(workspaceA)}`);
     await renameInput.fill("Renamed workspace");
     await window.getByRole("button", { name: "Save" }).click();
@@ -45,7 +68,7 @@ test("supports workspace rename and remove from the sidebar menu", async () => {
     }).toBe("Renamed workspace");
 
     await window.getByRole("button", { name: "Workspace actions for Renamed workspace" }).click();
-    await window.getByRole("button", { name: "Remove" }).click();
+    await window.getByText("Remove").click();
     await window.getByTestId("confirm-dialog").getByRole("button", { name: "Remove" }).click();
 
     await expect.poll(async () => {

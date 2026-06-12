@@ -530,27 +530,45 @@ function buildTerminalEnv(): Record<string, string> {
 }
 
 function ensureNodePtySpawnHelperExecutable(isPackaged: boolean): void {
-  if (process.platform === "win32") {
+  if (process.platform !== "darwin") {
     return;
   }
-  const packageDir = path.dirname(require.resolve("node-pty/package.json"));
+  const packageDir = resolveNodePtyPackageDir();
   const helperPath = resolveNodePtySpawnHelperPath(packageDir);
   if (!helperPath) {
+    if (isPackaged) {
+      throw new Error(`Packaged node-pty is missing spawn-helper under ${packageDir}`);
+    }
     return;
   }
   try {
     accessSync(helperPath, constants.X_OK);
   } catch (error) {
     if (isPackaged) {
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Packaged node-pty spawn-helper is not executable at ${helperPath}: ${message}`);
     }
     chmodSync(helperPath, 0o755);
   }
 }
 
 function loadNodePty(): NodePty {
-  nodePty ??= require("node-pty") as NodePty;
+  try {
+    nodePty ??= require("node-pty") as NodePty;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to load node-pty from packaged dependencies: ${message}`);
+  }
   return nodePty;
+}
+
+function resolveNodePtyPackageDir(): string {
+  try {
+    return path.dirname(require.resolve("node-pty/package.json"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to resolve node-pty package.json: ${message}`);
+  }
 }
 
 function killUnixProcessGroup(pid: number): void {

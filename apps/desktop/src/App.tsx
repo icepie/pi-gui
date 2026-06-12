@@ -634,6 +634,9 @@ export default function App() {
       }
 
       window.requestAnimationFrame(() => {
+        if (!pinnedToBottomRef.current && !preserveBottomOnNextPaneResizeRef.current) {
+          return;
+        }
         const remaining = pane.scrollHeight - pane.scrollTop - pane.clientHeight;
         if (remaining > 1 || remainingChecks > 1) {
           align(remainingChecks - 1);
@@ -1224,18 +1227,21 @@ export default function App() {
   useLayoutEffect(() => {
     setShowJumpToLatest(false);
     lastTranscriptMarkerRef.current = "";
-    pinnedToBottomRef.current = true;
+    const savedPinned = selectedSessionKey ? lastTimelinePinnedBySessionRef.current.get(selectedSessionKey) : undefined;
+    pinnedToBottomRef.current = savedPinned ?? true;
     previousTimelinePaneSizeRef.current = null;
-    preserveBottomOnNextPaneResizeRef.current = false;
+    preserveBottomOnNextPaneResizeRef.current = savedPinned ?? true;
     resetExactBottomRestoreState(selectedSessionKey || null);
     setDisableTimelineVirtualization(Boolean(selectedSessionKey));
-  }, [selectedSessionKey]);
+    if (savedPinned ?? true) {
+      window.requestAnimationFrame(() => {
+        scrollTimelineToBottom();
+      });
+    }
+  }, [scrollTimelineToBottom, selectedSessionKey]);
 
   useLayoutEffect(() => {
     if (snapshot?.activeView !== "threads" || !selectedSession || activeTranscript.length === 0) {
-      return;
-    }
-    if (exactBottomRestoreSessionKeyRef.current !== selectedSessionKey) {
       return;
     }
     if (!pinnedToBottomRef.current && !preserveBottomOnNextPaneResizeRef.current) {
@@ -1435,9 +1441,13 @@ export default function App() {
       if (!pinnedToBottomRef.current && !preserveBottomOnNextPaneResizeRef.current) {
         return;
       }
+      if (exactBottomRestoreSessionKeyRef.current === selectedSessionKey) {
+        scrollTimelineToBottom("auto");
+        return;
+      }
       requestPinnedBottomAlignment("auto", { preferExactRestore: true });
     });
-  }, [requestPinnedBottomAlignment]);
+  }, [requestPinnedBottomAlignment, scrollTimelineToBottom, selectedSessionKey]);
 
   if (!api || !snapshot) {
     return (
@@ -2113,7 +2123,7 @@ export default function App() {
 
     const pinned = isNearBottom(pane);
     if (preserveBottomOnNextPaneResizeRef.current && !pinned) {
-      return;
+      preserveBottomOnNextPaneResizeRef.current = false;
     }
 
     pinnedToBottomRef.current = pinned;

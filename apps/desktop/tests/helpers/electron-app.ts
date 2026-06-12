@@ -50,6 +50,8 @@ export interface DesktopHarness {
 
 export interface LaunchDesktopOptions {
   readonly initialWorkspaces?: readonly string[];
+  readonly useSystemDefaultWorkspace?: boolean;
+  readonly defaultWorkspaceDocumentsDir?: string;
   readonly notificationLogPath?: string;
   readonly testMode?: DesktopTestMode;
   readonly agentDir?: string;
@@ -197,7 +199,6 @@ function buildDesktopLaunchEnv(
   const env = {
     ...baseEnv,
     PI_APP_USER_DATA_DIR: userDataDir,
-    PI_APP_INITIAL_WORKSPACES: (options.initialWorkspaces ?? []).join(delimiter),
     PI_APP_TEST_MODE: options.testMode ?? process.env.PI_APP_TEST_MODE ?? "foreground",
     PI_APP_LOCALE: "en-US",
     PI_CODING_AGENT_DIR: agentDir,
@@ -206,6 +207,18 @@ function buildDesktopLaunchEnv(
     PI_APP_DISABLE_BUILTIN_MCP_ADAPTER: "1",
     ...(options.envOverrides ?? {}),
   };
+  if (options.useSystemDefaultWorkspace) {
+    if (options.initialWorkspaces !== undefined) {
+      throw new Error("Pass either initialWorkspaces or useSystemDefaultWorkspace to the desktop launch helper, not both.");
+    }
+    if (options.defaultWorkspaceDocumentsDir) {
+      env.PI_APP_DEFAULT_WORKSPACE_DOCUMENTS_DIR = options.defaultWorkspaceDocumentsDir;
+    }
+    delete env.PI_APP_INITIAL_WORKSPACES;
+  } else {
+    env.PI_APP_INITIAL_WORKSPACES = (options.initialWorkspaces ?? []).join(delimiter);
+    delete env.PI_APP_DEFAULT_WORKSPACE_DOCUMENTS_DIR;
+  }
 
   if (options.scrubProviderEnv || options.realAuthSourceDir) {
     for (const key of PROVIDER_ENV_VARS) {
@@ -986,24 +999,43 @@ export async function getTimelineScrollMetrics(window: Page): Promise<TimelineSc
 }
 
 export async function jumpTimelineToBottom(window: Page): Promise<void> {
-  await window.evaluate(() => {
+  await window.evaluate(async () => {
     const pane = document.querySelector<HTMLDivElement>("[data-testid='timeline-pane']");
     if (!pane) {
       throw new Error("Timeline pane was unavailable");
     }
-    pane.scrollTop = pane.scrollHeight;
-    pane.dispatchEvent(new Event("scroll", { bubbles: true }));
+    for (let index = 0; index < 8; index += 1) {
+      pane.scrollTop = pane.scrollHeight;
+      pane.dispatchEvent(new Event("scroll", { bubbles: true }));
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    }
   });
 }
 
 export async function scrollTimelineAwayFromBottom(window: Page, pixels = 160): Promise<void> {
-  await window.evaluate((distance) => {
+  const pane = window.getByTestId("timeline-pane");
+  const box = await pane.boundingBox();
+  if (!box) {
+    throw new Error("Timeline pane was unavailable");
+  }
+  await window.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await window.mouse.wheel(0, -pixels);
+  await window.waitForTimeout(50);
+  await window.mouse.wheel(0, -pixels);
+  await window.evaluate(async (distance) => {
     const pane = document.querySelector<HTMLDivElement>("[data-testid='timeline-pane']");
     if (!pane) {
       throw new Error("Timeline pane was unavailable");
     }
-    pane.scrollTop = Math.max(0, pane.scrollHeight - pane.clientHeight - distance);
-    pane.dispatchEvent(new Event("scroll", { bubbles: true }));
+    const remaining = pane.scrollHeight - pane.scrollTop - pane.clientHeight;
+    if (remaining > Math.min(100, distance / 2)) {
+      return;
+    }
+    for (let index = 0; index < 4; index += 1) {
+      pane.scrollTop = Math.max(0, pane.scrollHeight - pane.clientHeight - distance);
+      pane.dispatchEvent(new UIEvent("scroll", { bubbles: true }));
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    }
   }, pixels);
 }
 

@@ -1,10 +1,11 @@
+import { memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { highlightLine, type HighlightTokenChild } from "./syntax-highlight";
+import { MAX_HIGHLIGHTED_LINES, highlightLine, type HighlightTokenChild } from "./syntax-highlight";
 
 const REMARK_PLUGINS = [remarkGfm];
 
-function renderTokenChildren(children: readonly HighlightTokenChild[], keyPrefix: string): React.ReactNode[] {
+function renderTokenChildren(children: readonly HighlightTokenChild[], keyPrefix: string): ReactNode[] {
   return children.map((child, i) => {
     if (typeof child === "string") {
       return child;
@@ -17,11 +18,19 @@ function renderTokenChildren(children: readonly HighlightTokenChild[], keyPrefix
   });
 }
 
-function HighlightedCode({ code, language }: { code: string; language: string }) {
+const HighlightedCode = memo(function HighlightedCode({ code, language }: { code: string; language: string }) {
   const lines = code.split("\n");
   return (
     <>
       {lines.map((line, i) => {
+        if (i >= MAX_HIGHLIGHTED_LINES) {
+          return (
+            <span key={i}>
+              {line}
+              {i < lines.length - 1 ? "\n" : null}
+            </span>
+          );
+        }
         const tokens = highlightLine(line, language);
         return (
           <span key={i}>
@@ -32,7 +41,7 @@ function HighlightedCode({ code, language }: { code: string; language: string })
       })}
     </>
   );
-}
+});
 
 const SUPPORTED_LANGUAGES = new Set([
   "typescript", "javascript", "json", "python", "bash",
@@ -54,7 +63,7 @@ function resolveLanguage(lang: string | undefined): string | undefined {
 }
 
 const MARKDOWN_COMPONENTS = {
-  code: ({ className, children }: { className?: string; children?: React.ReactNode }) => {
+  code: ({ className, children }: { className?: string; children?: ReactNode }) => {
     const langRaw = className?.replace(/^language-/, "");
     const code = String(children).replace(/\n$/, "");
     if (!className) {
@@ -67,17 +76,17 @@ const MARKDOWN_COMPONENTS = {
       </code>
     );
   },
-  pre: ({ children }: { children?: React.ReactNode }) => {
+  pre: ({ children }: { children?: ReactNode }) => {
     return <pre>{children}</pre>;
   },
-  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+  a: ({ href, children }: { href?: string; children?: ReactNode }) => (
     <a href={href} rel="noreferrer" target="_blank">
       {children}
     </a>
   ),
 } as const;
 
-export function MessageMarkdown({ text }: { readonly text: string }) {
+export const MessageMarkdown = memo(function MessageMarkdown({ text }: { readonly text: string }) {
   return (
     <div className="message__content">
       <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
@@ -85,4 +94,4 @@ export function MessageMarkdown({ text }: { readonly text: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

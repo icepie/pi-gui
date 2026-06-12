@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { SessionTranscriptMessage } from "@pi-gui/pi-sdk-driver";
 import type { TimelineActivity, TimelineToolCall, TimelineSummary, TranscriptMessage } from "./timeline-types";
 import { MessageMarkdown } from "./message-markdown";
@@ -5,7 +6,7 @@ import { InlineDiff, extractDiffFromOutput } from "./diff-inline";
 import { ChevronRightIcon, CopyIcon, DiffIcon, FileIcon } from "./icons";
 import { extensionToLanguage } from "./syntax-highlight";
 
-export function TimelineItem({
+export const TimelineItem = memo(function TimelineItem({
   item,
   expandedToolCallIds,
   onToggleToolCall,
@@ -35,6 +36,112 @@ export function TimelineItem({
     default:
       return null;
   }
+}, timelineItemPropsEqual);
+
+function timelineItemPropsEqual(
+  previous: {
+    readonly item: TranscriptMessage;
+    readonly expandedToolCallIds?: ReadonlySet<string>;
+    readonly onToggleToolCall?: (callId: string) => void;
+    readonly onViewFileInDiff?: (path: string) => void;
+  },
+  next: {
+    readonly item: TranscriptMessage;
+    readonly expandedToolCallIds?: ReadonlySet<string>;
+    readonly onToggleToolCall?: (callId: string) => void;
+    readonly onViewFileInDiff?: (path: string) => void;
+  },
+): boolean {
+  if (previous.onToggleToolCall !== next.onToggleToolCall || previous.onViewFileInDiff !== next.onViewFileInDiff) {
+    return false;
+  }
+  if (!transcriptItemsEqual(previous.item, next.item)) {
+    return false;
+  }
+  if (previous.item.kind !== "tool" || next.item.kind !== "tool") {
+    return true;
+  }
+  return (
+    (previous.expandedToolCallIds?.has(previous.item.callId) ?? false) ===
+    (next.expandedToolCallIds?.has(next.item.callId) ?? false)
+  );
+}
+
+function transcriptItemsEqual(previous: TranscriptMessage, next: TranscriptMessage): boolean {
+  if (previous.kind !== next.kind || previous.id !== next.id) {
+    return false;
+  }
+  if (previous.kind === "message" && next.kind === "message") {
+    return (
+      previous.role === next.role &&
+      previous.text === next.text &&
+      attachmentsEqual(previous.attachments, next.attachments)
+    );
+  }
+  if (previous.kind === "activity" && next.kind === "activity") {
+    return (
+      previous.label === next.label &&
+      previous.detail === next.detail &&
+      previous.metadata === next.metadata &&
+      previous.tone === next.tone
+    );
+  }
+  if (previous.kind === "summary" && next.kind === "summary") {
+    return (
+      previous.label === next.label &&
+      previous.metadata === next.metadata &&
+      previous.presentation === next.presentation
+    );
+  }
+  if (previous.kind === "tool" && next.kind === "tool") {
+    return (
+      previous.callId === next.callId &&
+      previous.toolName === next.toolName &&
+      previous.label === next.label &&
+      previous.status === next.status &&
+      stableContentKey(previous.input) === stableContentKey(next.input) &&
+      stableContentKey(previous.output) === stableContentKey(next.output)
+    );
+  }
+  return false;
+}
+
+function attachmentsEqual(
+  previous: SessionTranscriptMessage["attachments"],
+  next: SessionTranscriptMessage["attachments"],
+): boolean {
+  if (previous === next) {
+    return true;
+  }
+  if (!previous?.length && !next?.length) {
+    return true;
+  }
+  if (!previous || !next || previous.length !== next.length) {
+    return false;
+  }
+  return previous.every((attachment, index) => {
+    const nextAttachment = next[index];
+    if (!nextAttachment || attachment.kind !== nextAttachment.kind || attachment.name !== nextAttachment.name) {
+      return false;
+    }
+    if (attachment.kind === "image" && nextAttachment.kind === "image") {
+      return attachment.mimeType === nextAttachment.mimeType && attachment.data === nextAttachment.data;
+    }
+    if (attachment.kind === "file" && nextAttachment.kind === "file") {
+      return attachment.fsPath === nextAttachment.fsPath;
+    }
+    return false;
+  });
+}
+
+function stableContentKey(value: unknown): string {
+  if (value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value);
 }
 
 function TimelineMessage({ item }: { readonly item: SessionTranscriptMessage }) {
