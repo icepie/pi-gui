@@ -13,7 +13,7 @@ import {
   type ExtensionUIContext,
   type ExtensionWidgetOptions,
   type SessionInfo,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type { SessionCatalogSnapshot, WorkspaceCatalogSnapshot } from "@pi-gui/catalogs";
 import type {
   NavigateSessionTreeOptions,

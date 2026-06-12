@@ -467,7 +467,7 @@ export async function seedBranchedTreeSessionFixture(
   readonly title: "Tree fixture session";
 }> {
   const { SessionManager } = (await import(
-    "../../../../node_modules/@mariozechner/pi-coding-agent/dist/core/session-manager.js"
+    "../../../../node_modules/@earendil-works/pi-coding-agent/dist/core/session-manager.js"
   )) as {
     SessionManager: {
       create(cwd: string): {
@@ -538,7 +538,7 @@ export async function seedToolResultTreeSessionFixture(
   readonly title: "Tree tool fixture session";
 }> {
   const { SessionManager } = (await import(
-    "../../../../node_modules/@mariozechner/pi-coding-agent/dist/core/session-manager.js"
+    "../../../../node_modules/@earendil-works/pi-coding-agent/dist/core/session-manager.js"
   )) as {
     SessionManager: {
       create(cwd: string): {

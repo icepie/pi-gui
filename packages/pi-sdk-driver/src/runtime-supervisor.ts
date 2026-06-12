@@ -10,7 +10,7 @@ import {
   type PathMetadata,
   type ResolvedPaths,
   type ResolvedResource,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type {
   RuntimeCustomProviderConfig,
   RuntimeCustomProviderInput,
@@ -32,7 +32,7 @@ import { createRuntimeDependencies } from "./runtime-deps.js";
 import { createSettingsManagerWithoutNpmPackages, isGlobalNpmLookupError } from "./npm-package-fallback.js";
 import { skillSlashCommand } from "./runtime-command-utils.js";
 import { applyWindowsUtf8ProcessEnv } from "./windows-utf8-env.js";
-import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
+import type { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 interface ModelSettingsSnapshot {
   readonly defaultProvider?: string;
@@ -94,7 +94,7 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
 
   async login(workspace: WorkspaceRef, providerId: string, callbacks: RuntimeLoginCallbacks): Promise<RuntimeSnapshot> {
     const context = await this.ensureContext(workspace);
-    await this.authStorage.login(providerId, callbacks);
+    await this.authStorage.login(providerId, toOAuthLoginCallbacks(callbacks));
     this.modelRegistry.refresh();
     await context.resourceLoader.reload();
     await this.autoEnableModelsForAuthenticatedProviders(context, [providerId]);
@@ -1162,4 +1162,24 @@ function firstNonEmptyLine(value: string): string | undefined {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .find(Boolean);
+}
+
+// The pi runtime's OAuth callbacks gained required onDeviceCode/onSelect entries.
+// The desktop login flow uses a local callback server and does not surface the
+// device-code or interactive-selector flows, so route device codes through the
+// existing progress channel and decline selection prompts. Optional callbacks are
+// included only when supplied so the value satisfies exactOptionalPropertyTypes.
+function toOAuthLoginCallbacks(callbacks: RuntimeLoginCallbacks) {
+  const onProgress = callbacks.onProgress;
+  return {
+    onAuth: callbacks.onAuth,
+    onPrompt: callbacks.onPrompt,
+    onDeviceCode: (info: { userCode: string; verificationUri: string }) => {
+      onProgress?.(`Enter code ${info.userCode} at ${info.verificationUri}`);
+    },
+    onSelect: async () => undefined,
+    ...(onProgress ? { onProgress: (message: string) => void onProgress(message) } : {}),
+    ...(callbacks.onManualCodeInput ? { onManualCodeInput: callbacks.onManualCodeInput } : {}),
+    ...(callbacks.signal ? { signal: callbacks.signal } : {}),
+  };
 }

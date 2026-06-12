@@ -8,7 +8,7 @@ import {
   type AgentSessionRuntime,
   type CreateAgentSessionOptions,
   type CreateAgentSessionRuntimeResult,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { applyWindowsUtf8ProcessEnv } from "./windows-utf8-env.js";
 
 export function isGlobalNpmLookupError(error: unknown): boolean {

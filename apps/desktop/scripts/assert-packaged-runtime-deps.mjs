@@ -42,7 +42,7 @@ const notificationHelperPath =
   packagePlatform === "darwin"
     ? resolveMacAppFilePath(desktopDir, ["Contents", "MacOS", "pi-gui-notification-status-helper"], packagedMacAppName)
     : undefined;
-const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@mariozechner/pi-coding-agent");
+const requiredPiCodingAgentVersion = resolveInstalledPackageVersion("@earendil-works/pi-coding-agent");
 
 if (!existsSync(asarPath)) {
   throw new Error(`Packaged app.asar not found at ${asarPath}. Run the packaging step first.`);
@@ -277,15 +277,15 @@ function logAsarNodeModulesDiagnostics(asarPath, packagedFiles) {
 }
 
 async function verifyPackagedPiRuntime(asarPath, extractedDir) {
-  const packageJson = readAsarJson(asarPath, "node_modules/@mariozechner/pi-coding-agent/package.json");
+  const packageJson = readAsarJson(asarPath, "node_modules/@earendil-works/pi-coding-agent/package.json");
   if (packageJson.version !== requiredPiCodingAgentVersion) {
     throw new Error(
-      `Packaged app has @mariozechner/pi-coding-agent ${packageJson.version}; expected ${requiredPiCodingAgentVersion}.`,
+      `Packaged app has @earendil-works/pi-coding-agent ${packageJson.version}; expected ${requiredPiCodingAgentVersion}.`,
     );
   }
 
   extractPackedFiles(asarPath, extractedDir);
-  const runtimeEntry = path.join(extractedDir, "node_modules", "@mariozechner", "pi-coding-agent", "dist", "index.js");
+  const runtimeEntry = path.join(extractedDir, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "index.js");
   const { AuthStorage, ModelRegistry } = await import(pathToFileURL(runtimeEntry).href);
   const registry = ModelRegistry.inMemory(AuthStorage.inMemory());
   const codexModel = registry.getAll().find((model) => model.provider === "openai-codex" && model.id === "gpt-5.5");
