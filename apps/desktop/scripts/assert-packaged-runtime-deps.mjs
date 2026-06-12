@@ -310,7 +310,10 @@ function extractAsarFile(asarPath, extractedDir, filePath) {
 
 function extractPackedFiles(asarPath, extractedDir) {
   for (const entry of asar.listPackage(asarPath, { isPack: false })) {
-    const filePath = entry.replace(/^\/+/, "");
+    // Entries keep their native separators here because they are passed back to the
+    // asar API (which splits on path.sep). Strip a leading separator of either kind
+    // so the lookup resolves on Windows (\node_modules...) and POSIX (/node_modules...).
+    const filePath = entry.replace(/^[\\/]+/, "");
     const stat = asar.statFile(asarPath, filePath);
     if ("files" in stat || "link" in stat || stat.unpacked) {
       continue;
