@@ -69,8 +69,18 @@ export function deriveSessionConfig(sessionManager: {
 }
 
 export function forcePersistSession(sessionManager: object): void {
-  const maybeRewrite = (sessionManager as { _rewriteFile?: () => void })._rewriteFile;
-  maybeRewrite?.call(sessionManager);
+  const manager = sessionManager as { _rewriteFile?: () => void; flushed?: boolean };
+  if (typeof manager._rewriteFile !== "function") {
+    return;
+  }
+  manager._rewriteFile.call(sessionManager);
+  // _rewriteFile() has just written the full session file to disk. The pi runtime's
+  // own setSessionFile() always pairs _rewriteFile() with `flushed = true`; mirror
+  // that here. Otherwise the runtime's lazy-flush _persist() still thinks the file is
+  // unwritten and exclusive-creates it (open flag "wx") on the first assistant
+  // message, throwing "EEXIST: file already exists" because _rewriteFile already
+  // created it. Persisting an empty session and then sending a message would fail.
+  manager.flushed = true;
 }
 
 export function sessionKey(sessionRef: SessionRef): string {
