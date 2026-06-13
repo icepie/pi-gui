@@ -168,6 +168,7 @@ export class DesktopAppStore implements AppStoreInternals {
   private persistUiStateTimer: NodeJS.Timeout | undefined;
   private readonly transcriptPersistTimers = new Map<string, NodeJS.Timeout>();
   private initPromise: Promise<void> | undefined;
+  private platformAccountRefreshPromise: Promise<void> | undefined;
   private selectionEpoch = 0;
   private refreshStateDepth = 0;
 
@@ -938,9 +939,9 @@ export class DesktopAppStore implements AppStoreInternals {
     }
   }
 
-  private async refreshPlatformAccountState(): Promise<void> {
+  private async refreshPlatformAccountState(): Promise<PlatformAccountState> {
     if (!this.platformAccountService) {
-      return;
+      return this.state.platformAccount;
     }
     const platformAccount = await this.platformAccountService.getState();
     this.state = {
@@ -948,6 +949,7 @@ export class DesktopAppStore implements AppStoreInternals {
       platformAccount,
       revision: this.state.revision + 1,
     };
+    return platformAccount;
   }
 
   private async syncPlatformAccountLinkedData(): Promise<void> {
@@ -993,6 +995,62 @@ export class DesktopAppStore implements AppStoreInternals {
       defaultModelId: provider.defaultModelId,
     });
     this.runtimeByWorkspace.set(targetWorkspace.workspaceId, snapshot);
+    await Promise.all(
+      workspaceRefs
+        .filter((workspace) => workspace.workspaceId !== targetWorkspace.workspaceId)
+        .map(async (workspace) => {
+          const refreshed = await this.driver.runtimeSupervisor.refreshRuntime(workspace);
+          this.runtimeByWorkspace.set(workspace.workspaceId, refreshed);
+        }),
+    );
+    await this.applyPlatformDefaultModelToAllSessions(provider.id, provider.defaultModelId);
+  }
+
+  private async applyPlatformDefaultModelToAllSessions(providerId: string, modelId: string): Promise<void> {
+    const workspaceRefs = this.state.workspaces.map((workspace) => ({
+      workspaceId: workspace.id,
+      path: workspace.path,
+      displayName: workspace.name,
+    }));
+    const targetWorkspace =
+      workspaceRefs.find((workspace) => workspace.workspaceId === this.state.selectedWorkspaceId) ?? workspaceRefs[0];
+    if (targetWorkspace) {
+      if (this.state.modelSettingsScopeMode !== "per-repo") {
+        await this.driver.runtimeSupervisor.setDefaultModel(targetWorkspace, { provider: providerId, modelId });
+      } else {
+        await Promise.all(
+          workspaceRefs.map((workspace) =>
+            updateProjectModelSettingsFile(workspace.path, (settings) => ({
+              ...settings,
+              defaultProvider: providerId,
+              defaultModel: modelId,
+            })),
+          ),
+        );
+      }
+      await Promise.all(
+        workspaceRefs.map(async (workspace) => {
+          const refreshed = await this.driver.runtimeSupervisor.refreshRuntime(workspace);
+          this.runtimeByWorkspace.set(workspace.workspaceId, refreshed);
+        }),
+      );
+    }
+
+    for (const workspace of this.state.workspaces) {
+      for (const session of workspace.sessions) {
+        const sessionRef = { workspaceId: workspace.id, sessionId: session.id };
+        const currentConfig = this.sessionState.sessionConfigBySession.get(sessionKey(sessionRef));
+        if (currentConfig?.provider === providerId && currentConfig.modelId === modelId) {
+          continue;
+        }
+        await this.driver.setSessionModel(sessionRef, { provider: providerId, modelId });
+        this.updateSessionConfig(sessionRef, {
+          ...currentConfig,
+          provider: providerId,
+          modelId,
+        });
+      }
+    }
   }
 
   private async migrateLegacyPersistence(persisted: LegacyPersistedUiState): Promise<void> {
@@ -2042,11 +2100,47 @@ export class DesktopAppStore implements AppStoreInternals {
 
   handleWindowActivation(): void {
     if (!this.markSelectedSessionViewedIfVisible()) {
+      void this.refreshPlatformAccountOnActivation();
       return;
     }
 
     this.schedulePersistUiState();
     this.emit();
+    void this.refreshPlatformAccountOnActivation();
+  }
+
+  private async refreshPlatformAccountOnActivation(): Promise<void> {
+    if (!this.platformAccountService || !this.state.platformAccount.authenticated) {
+      return;
+    }
+    if (this.platformAccountRefreshPromise) {
+      return this.platformAccountRefreshPromise;
+    }
+
+    const previousPlatformAccount = structuredClone(this.state.platformAccount);
+    this.platformAccountRefreshPromise = (async () => {
+      const platformAccount = await this.refreshPlatformAccountState();
+      const linkedDataChanged =
+        !stringArraysEqual(previousPlatformAccount.modelIds, platformAccount.modelIds) ||
+        previousPlatformAccount.defaultModelId !== platformAccount.defaultModelId ||
+        previousPlatformAccount.lastSyncedAt !== platformAccount.lastSyncedAt;
+      if (linkedDataChanged && !platformAccount.lastError) {
+        await this.applyPlatformProviderConfigToRuntime();
+        await this.refreshState({
+          clearLastError: true,
+          hydrateSelectedSession: false,
+          markSelectedSessionViewed: false,
+        });
+        return;
+      }
+      if (previousPlatformAccount.lastError !== platformAccount.lastError) {
+        this.emit();
+      }
+    })().finally(() => {
+      this.platformAccountRefreshPromise = undefined;
+    });
+
+    return this.platformAccountRefreshPromise;
   }
 
   private async emitSessionEvent(event: SessionDriverEvent, snapshot: DesktopAppState): Promise<void> {
@@ -2684,6 +2778,10 @@ function modelSettingsEqual(left: ModelSettingsSnapshot, right: ModelSettingsSna
     left.enabledModelPatterns.length === right.enabledModelPatterns.length &&
     left.enabledModelPatterns.every((pattern, index) => pattern === right.enabledModelPatterns[index])
   );
+}
+
+function stringArraysEqual(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function mergeEnabledModelPatterns(

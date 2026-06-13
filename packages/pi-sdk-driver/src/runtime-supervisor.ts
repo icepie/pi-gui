@@ -195,6 +195,11 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
       throw new Error("API key is required.");
     }
 
+    const currentDefaultProvider = context.settingsManager.getDefaultProvider();
+    const currentDefaultModelId = context.settingsManager.getDefaultModel();
+    const currentEnabledPatterns = context.settingsManager.getEnabledModels() ?? [];
+    const currentModels = await this.buildModelRecords();
+
     await upsertCustomProviderDefinition(join(this.agentDir, "models.json"), {
       id: providerId,
       api: input.api,
@@ -203,12 +208,40 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
       ...(displayName ? { displayName } : {}),
       modelIds,
     });
-    context.settingsManager.setEnabledModels(modelIds.map((modelId) => `${providerId}/${modelId}`));
-    if (defaultModelId && modelIds.includes(defaultModelId)) {
-      context.settingsManager.setDefaultModelAndProvider(providerId, defaultModelId);
-    } else {
-      context.settingsManager.setDefaultModelAndProvider(providerId, modelIds[0] as string);
+
+    const providerPatterns = modelIds.map((modelId) => `${providerId}/${modelId}`);
+    const providerPatternSet = new Set(providerPatterns);
+    const retainedEnabledPatterns = currentEnabledPatterns.filter((pattern) => {
+      if (!pattern.startsWith(`${providerId}/`)) {
+        return true;
+      }
+      return providerPatternSet.has(pattern);
+    });
+    const nextEnabledPatterns =
+      retainedEnabledPatterns.length === 0
+        ? providerPatterns
+        : mergeEnabledModelPatterns(retainedEnabledPatterns, providerPatterns);
+    context.settingsManager.setEnabledModels([...nextEnabledPatterns]);
+
+    const currentDefaultModelAvailable = currentModels.some(
+      (model) =>
+        model.available &&
+        model.providerId === currentDefaultProvider &&
+        model.modelId === currentDefaultModelId,
+    );
+    const nextDefaultModelId =
+      defaultModelId && modelIds.includes(defaultModelId)
+        ? defaultModelId
+        : (modelIds[0] as string);
+    const shouldReplaceDefault =
+      !currentDefaultProvider ||
+      !currentDefaultModelId ||
+      (currentDefaultProvider === providerId && !modelIds.includes(currentDefaultModelId)) ||
+      !currentDefaultModelAvailable;
+    if (shouldReplaceDefault) {
+      context.settingsManager.setDefaultModelAndProvider(providerId, nextDefaultModelId);
     }
+
     await context.settingsManager.flush();
     this.modelRegistry.refresh();
     await context.resourceLoader.reload();

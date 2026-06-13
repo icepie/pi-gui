@@ -16,6 +16,7 @@ const TEST_LINKED_DATA_FAILURES_ENV = "PI_APP_TEST_PLATFORM_ACCOUNT_LINKED_DATA_
 const LOGIN_LINKED_DATA_ATTEMPTS = 8;
 const LOGIN_LINKED_DATA_INITIAL_DELAY_MS = 500;
 const LOGIN_LINKED_DATA_MAX_DELAY_MS = 2_000;
+const PLATFORM_LINKED_DATA_STALE_MS = 5 * 60_000;
 
 export interface PlatformProviderConfig {
   readonly id: typeof PLATFORM_PROVIDER_ID;
@@ -88,6 +89,9 @@ export class PlatformAccountService {
       } catch (error) {
         return this.toPublicState(error instanceof Error ? error.message : String(error));
       }
+    }
+    if (this.state.accessToken && this.state.provider && this.shouldRefreshLinkedData()) {
+      return this.refreshLinkedData({ preserveExistingOnError: true });
     }
     return this.toPublicState();
   }
@@ -276,6 +280,18 @@ export class PlatformAccountService {
 
   private platformOrigin(): string {
     return (process.env.PI_APP_PLATFORM_ORIGIN?.trim() || DEFAULT_PLATFORM_ORIGIN).replace(/\/+$/, "");
+  }
+
+  private shouldRefreshLinkedData(): boolean {
+    const lastSyncedAt = this.state.lastSyncedAt;
+    if (!lastSyncedAt) {
+      return true;
+    }
+    const lastSyncedMs = Date.parse(lastSyncedAt);
+    if (!Number.isFinite(lastSyncedMs)) {
+      return true;
+    }
+    return Date.now() - lastSyncedMs >= PLATFORM_LINKED_DATA_STALE_MS;
   }
 
   private toPublicState(lastError?: string): PlatformAccountState {
