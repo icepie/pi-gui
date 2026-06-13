@@ -8,6 +8,7 @@ import type {
 import type { ExtensionCommandCompatibilityRecord } from "./desktop-state";
 import { titleCase } from "./string-utils";
 import { t } from "./i18n";
+import { getDesktopModifierLabel } from "./ipc";
 
 export type ComposerSlashCommandKind =
   | "runtime"
@@ -82,7 +83,7 @@ const INCOMPLETE_COMMAND_MESSAGES: Readonly<Record<string, () => string>> = {
   "/model": () => "Choose a provider and model from the slash menu before sending /model.",
   "/name": () => t("host_actions.name_incomplete"),
   "/scoped-models": () => "Open Enabled models from the slash menu or Settings.",
-  "/settings": () => "Open Settings from the slash menu or Cmd+,.",
+  "/settings": () => `Open Settings from the slash menu or ${getDesktopModifierLabel(process.platform)}+,.`,
   "/thinking": () => "Choose a reasoning level from the slash menu before sending /thinking.",
 } as const;
 

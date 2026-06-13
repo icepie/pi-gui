@@ -13,6 +13,7 @@ import { t } from "./i18n";
 export type { SettingsSection } from "./settings-utils";
 
 interface SettingsViewProps {
+  readonly platform: NodeJS.Platform;
   readonly workspace?: WorkspaceRecord;
   readonly runtime?: RuntimeSnapshot;
   readonly section: SettingsSection;
@@ -59,6 +60,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({
+  platform,
   workspace,
   runtime,
   section,
@@ -132,6 +134,7 @@ export function SettingsView({
           {section === "general" ? (
             <SettingsGeneralSection
               runtime={runtime}
+              platform={platform}
               modelSettingsScopeMode={modelSettingsScopeMode}
               integratedTerminalShell={integratedTerminalShell}
               onSetModelSettingsScopeMode={onSetModelSettingsScopeMode}
@@ -164,6 +167,7 @@ export function SettingsView({
 
           {section === "notifications" ? (
             <SettingsNotificationsSection
+              platform={platform}
               notificationPreferences={notificationPreferences}
               notificationPermissionStatus={notificationPermissionStatus}
               notificationPermissionPending={notificationPermissionPending}

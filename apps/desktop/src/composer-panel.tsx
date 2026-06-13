@@ -3,6 +3,7 @@ import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { ComposerAttachment, QueuedComposerMessage, SessionRecord } from "./desktop-state";
 import { ArrowUpIcon, PlusIcon, StopSquareIcon } from "./icons";
 import { t } from "./i18n";
+import { getDesktopModifierLabel } from "./ipc";
 import type {
   ComposerSlashCommand,
   ComposerSlashCommandSection,
@@ -17,6 +18,7 @@ import type { ExtensionDockModel } from "./extension-session-ui";
 
 interface ComposerPanelProps {
   readonly selectedSession: SessionRecord;
+  readonly platform: NodeJS.Platform;
   readonly lastError?: string;
   readonly runtime?: RuntimeSnapshot;
   readonly activeSlashCommand?: ComposerSlashCommand;
@@ -66,6 +68,7 @@ interface ComposerPanelProps {
 
 export function ComposerPanel({
   selectedSession,
+  platform,
   lastError,
   runtime,
   activeSlashCommand,
@@ -112,6 +115,7 @@ export function ComposerPanel({
   extensionDockExpanded,
   onToggleExtensionDock,
 }: ComposerPanelProps) {
+  const modifierKey = getDesktopModifierLabel(platform);
   const hasComposerInput = composerDraft.trim().length > 0 || attachments.length > 0;
   const primaryActionIsStop = selectedSession.status === "running" && !hasComposerInput;
 
@@ -164,7 +168,7 @@ export function ComposerPanel({
               <div className="composer__footer-row">
                 <div className="composer__hint">
                   {selectedSession.status === "running"
-                    ? t("composer.hint_running", { runningLabel })
+                    ? t("composer.hint_running", { runningLabel, modifierKey })
                     : t("composer.hint_idle")}
                   {" · "}
                   <ModelSelector

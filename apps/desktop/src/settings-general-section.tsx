@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 import type { ModelSettingsScopeMode } from "./desktop-state";
+import { getDesktopModifierLabel } from "./ipc";
 import { SettingsGroup, SettingsInfoRow, SettingsRow } from "./settings-utils";
 import { UICheckbox } from "./ui";
 import { t } from "./i18n";
@@ -8,6 +9,7 @@ import { RefreshIcon } from "./icons";
 
 interface SettingsGeneralSectionProps {
   readonly runtime?: RuntimeSnapshot;
+  readonly platform: NodeJS.Platform;
   readonly modelSettingsScopeMode: ModelSettingsScopeMode;
   readonly integratedTerminalShell: string;
   readonly onSetModelSettingsScopeMode: (mode: ModelSettingsScopeMode) => void;
@@ -18,6 +20,7 @@ interface SettingsGeneralSectionProps {
 
 export function SettingsGeneralSection({
   runtime,
+  platform,
   modelSettingsScopeMode,
   integratedTerminalShell,
   onSetModelSettingsScopeMode,
@@ -27,6 +30,7 @@ export function SettingsGeneralSection({
 }: SettingsGeneralSectionProps) {
   const connectedCount = runtime?.providers.filter((p) => p.hasAuth).length ?? 0;
   const [terminalShellDraft, setTerminalShellDraft] = useState(integratedTerminalShell);
+  const modifierKey = getDesktopModifierLabel(platform);
 
   useEffect(() => {
     setTerminalShellDraft(integratedTerminalShell);
@@ -99,10 +103,10 @@ export function SettingsGeneralSection({
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.shortcuts")}>
-        <SettingsInfoRow label={t("settings.shortcuts.new_thread")} value="Cmd+Shift+O" />
-        <SettingsInfoRow label={t("settings.shortcuts.open_settings")} value="Cmd+," />
-        <SettingsInfoRow label={t("settings.shortcuts.toggle_terminal")} value="Cmd+J" />
-        <SettingsInfoRow label={t("settings.shortcuts.new_terminal_tab")} value="Cmd+T" />
+        <SettingsInfoRow label={t("settings.shortcuts.new_thread")} value={`${modifierKey}+Shift+O`} />
+        <SettingsInfoRow label={t("settings.shortcuts.open_settings")} value={`${modifierKey}+,`} />
+        <SettingsInfoRow label={t("settings.shortcuts.toggle_terminal")} value={`${modifierKey}+J`} />
+        <SettingsInfoRow label={t("settings.shortcuts.new_terminal_tab")} value={`${modifierKey}+T`} />
         <SettingsInfoRow label={t("settings.shortcuts.send_message")} value="Enter" />
         <SettingsInfoRow label={t("settings.shortcuts.new_line")} value="Shift+Enter" />
       </SettingsGroup>

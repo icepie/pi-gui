@@ -2237,6 +2237,7 @@ export default function App() {
           </div>
         ) : null}
         <SettingsView
+          platform={api.platform}
           workspace={settingsWorkspace}
           runtime={settingsSection === "models" ? settingsModelRuntime : settingsRuntime}
           section={settingsSection}
@@ -2546,6 +2547,7 @@ export default function App() {
               editingQueuedMessageId={editingQueuedMessageId}
               composerDraft={composerDraft}
               composerRef={composerRef}
+              platform={api.platform}
               runtime={selectedModelRuntime}
               provider={resolvedSessionProvider}
               modelId={resolvedSessionModelId}

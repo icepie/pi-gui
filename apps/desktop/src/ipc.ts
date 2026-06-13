@@ -142,8 +142,30 @@ export const desktopCommands = {
   toggleSidebar: "toggle-sidebar",
 } as const;
 
+export function isMacOsPlatform(platform: NodeJS.Platform): boolean {
+  return platform === "darwin";
+}
+
 export function getDesktopShortcutLabel(platform: NodeJS.Platform, key: string): string {
-  return `${platform === "darwin" ? "⌘" : "Ctrl+"}${key.toUpperCase()}`;
+  return `${isMacOsPlatform(platform) ? "⌘" : "Ctrl+"}${key.toUpperCase()}`;
+}
+
+export function getDesktopModifierLabel(platform: NodeJS.Platform): string {
+  return isMacOsPlatform(platform) ? "Cmd" : "Ctrl";
+}
+
+export function getDesktopSystemSettingsLabel(platform: NodeJS.Platform): string {
+  return isMacOsPlatform(platform) ? "System Settings" : "System Settings";
+}
+
+export function getDesktopNotificationPlatformLabel(platform: NodeJS.Platform): string {
+  if (platform === "win32") {
+    return "Windows";
+  }
+  if (platform === "linux") {
+    return "Linux";
+  }
+  return "macOS";
 }
 
 export type PiDesktopStateListener = (state: DesktopAppState) => void;
