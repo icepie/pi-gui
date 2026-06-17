@@ -12,6 +12,9 @@ const DEFAULT_PLATFORM_ORIGIN = "https://fd-one.singzer.cn";
 const TEST_FIXTURE_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_FIXTURE !== "0" && Boolean(process.env.PI_APP_TEST_MODE);
 const TEST_INITIAL_AUTH_ENABLED = process.env.PI_APP_TEST_PLATFORM_ACCOUNT_INITIAL_AUTH !== "0";
 const TEST_LINKED_DATA_FAILURES_ENV = "PI_APP_TEST_PLATFORM_ACCOUNT_LINKED_DATA_FAILURES";
+const TEST_MODEL_IDS_ENV = "PI_APP_TEST_PLATFORM_ACCOUNT_MODEL_IDS";
+const TEST_MODEL_IDS_FILE_ENV = "PI_APP_TEST_PLATFORM_ACCOUNT_MODEL_IDS_FILE";
+const LINKED_DATA_STALE_MS_ENV = "PI_APP_PLATFORM_ACCOUNT_LINKED_DATA_STALE_MS";
 
 const LOGIN_LINKED_DATA_ATTEMPTS = 8;
 const LOGIN_LINKED_DATA_INITIAL_DELAY_MS = 500;
@@ -244,6 +247,7 @@ export class PlatformAccountService {
   }
 
   private async applyTestFixture(): Promise<void> {
+    const modelIds = await testFixtureModelIds();
     this.state = {
       platformOrigin: this.platformOrigin(),
       accessToken: "test-platform-access-token",
@@ -262,8 +266,8 @@ export class PlatformAccountService {
         api: PLATFORM_PROVIDER_API,
         baseUrl: PLATFORM_AI_BASE_URL,
         apiKey: "sk-test-platform-user-token",
-        modelIds: ["feidu-chat", "feidu-coder"],
-        defaultModelId: "feidu-chat",
+        modelIds,
+        defaultModelId: modelIds[0] ?? "feidu-chat",
       },
       lastSyncedAt: new Date().toISOString(),
     };
@@ -291,7 +295,7 @@ export class PlatformAccountService {
     if (!Number.isFinite(lastSyncedMs)) {
       return true;
     }
-    return Date.now() - lastSyncedMs >= PLATFORM_LINKED_DATA_STALE_MS;
+    return Date.now() - lastSyncedMs >= resolveLinkedDataStaleMs();
   }
 
   private toPublicState(lastError?: string): PlatformAccountState {
@@ -465,6 +469,24 @@ export class PlatformAccountService {
       body: JSON.stringify({ code }),
     });
   }
+}
+
+function resolveLinkedDataStaleMs(): number {
+  const parsed = Number.parseInt(process.env[LINKED_DATA_STALE_MS_ENV] ?? "", 10);
+  if (!Number.isFinite(parsed)) {
+    return PLATFORM_LINKED_DATA_STALE_MS;
+  }
+  return Math.max(0, parsed);
+}
+
+async function testFixtureModelIds(): Promise<readonly string[]> {
+  const modelIdsFilePath = process.env[TEST_MODEL_IDS_FILE_ENV]?.trim();
+  const raw = modelIdsFilePath ? await readFile(modelIdsFilePath, "utf8").catch(() => "") : process.env[TEST_MODEL_IDS_ENV] ?? "";
+  const modelIds = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return modelIds.length > 0 ? [...new Set(modelIds)] : ["feidu-chat", "feidu-coder"];
 }
 
 function platformLoginPartition(): string {

@@ -1,8 +1,9 @@
 import { join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import {
   desktopShortcut,
+  getDesktopState,
   launchDesktop,
   makeUserDataDir,
   makeWorkspace,
@@ -79,6 +80,54 @@ test("platform account login gates app usage and provisions feidu provider defau
       defaultProvider: "feidu",
       defaultModel: "feidu-chat",
       enabledModels: ["feidu/feidu-chat", "feidu/feidu-coder"],
+    });
+  } finally {
+    await harness.close();
+  }
+});
+
+test("globally polls fd-one model config and syncs feidu provider", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const agentDir = join(userDataDir, "agent");
+  const workspacePath = await makeWorkspace("platform-account-poll-workspace");
+  const modelIdsFilePath = join(userDataDir, "fixture-model-ids.txt");
+  await writeFile(modelIdsFilePath, "feidu-chat,feidu-coder", "utf8");
+  await seedAgentDir(agentDir, {
+    withOpenAiAuth: false,
+    withDefaultModel: false,
+    enabledModels: [],
+  });
+
+  const harness = await launchDesktop(userDataDir, {
+    agentDir,
+    initialWorkspaces: [workspacePath],
+    scrubProviderEnv: true,
+    testMode: "background",
+    envOverrides: {
+      PI_APP_PLATFORM_ACCOUNT_POLL_INTERVAL_MS: "200",
+      PI_APP_PLATFORM_ACCOUNT_LINKED_DATA_STALE_MS: "0",
+      PI_APP_TEST_PLATFORM_ACCOUNT_MODEL_IDS_FILE: modelIdsFilePath,
+    },
+  });
+
+  try {
+    const window = await harness.firstWindow();
+    await expect(window.getByTestId("new-thread-composer")).toBeVisible();
+
+    await writeFile(modelIdsFilePath, "feidu-chat,feidu-coder,feidu-long-context", "utf8");
+
+    await expect
+      .poll(async () => (await getDesktopState(window)).platformAccount.modelIds, { timeout: 10_000 })
+      .toEqual(["feidu-chat", "feidu-coder", "feidu-long-context"]);
+
+    const modelsJson = JSON.parse(await readFile(join(agentDir, "models.json"), "utf8"));
+    expect(modelsJson).toMatchObject({
+      providers: {
+        feidu: {
+          models: [{ id: "feidu-chat" }, { id: "feidu-coder" }, { id: "feidu-long-context" }],
+        },
+      },
     });
   } finally {
     await harness.close();

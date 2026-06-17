@@ -115,6 +115,8 @@ const BUILTIN_CHROME_DEVTOOLS_MCP_SERVER = {
   command: "npx",
   args: ["-y", "chrome-devtools-mcp@latest"],
 };
+const PLATFORM_ACCOUNT_POLL_INTERVAL_MS = 5 * 60_000;
+const PLATFORM_ACCOUNT_POLL_INTERVAL_ENV = "PI_APP_PLATFORM_ACCOUNT_POLL_INTERVAL_MS";
 const requireFromHere = createRequire(__filename);
 
 interface PersistedTranscriptRecord {
@@ -169,6 +171,8 @@ export class DesktopAppStore implements AppStoreInternals {
   private readonly transcriptPersistTimers = new Map<string, NodeJS.Timeout>();
   private initPromise: Promise<void> | undefined;
   private platformAccountRefreshPromise: Promise<void> | undefined;
+  private platformAccountPollTimer: NodeJS.Timeout | undefined;
+  private readonly platformAccountPollIntervalMs: number;
   private selectionEpoch = 0;
   private refreshStateDepth = 0;
 
@@ -192,6 +196,7 @@ export class DesktopAppStore implements AppStoreInternals {
     this.resourcesPath = options.resourcesPath;
     this.getWindow = options.getWindow ?? (() => null);
     this.platformAccountService = options.platformAccountService;
+    this.platformAccountPollIntervalMs = resolvePlatformAccountPollIntervalMs();
     this.state = {
       ...this.state,
       locale: process.env.PI_APP_LOCALE === "en-US" ? "en-US" : "zh-CN",
@@ -204,7 +209,8 @@ export class DesktopAppStore implements AppStoreInternals {
     if (!this.initPromise) {
       this.initPromise = this.initializeInternal();
     }
-    return this.initPromise;
+    await this.initPromise;
+    this.startPlatformAccountPolling();
   }
 
   async getState(): Promise<DesktopAppState> {
@@ -227,6 +233,10 @@ export class DesktopAppStore implements AppStoreInternals {
     if (this.persistUiStateTimer) {
       clearTimeout(this.persistUiStateTimer);
       this.persistUiStateTimer = undefined;
+    }
+    if (this.platformAccountPollTimer) {
+      clearInterval(this.platformAccountPollTimer);
+      this.platformAccountPollTimer = undefined;
     }
 
     const pendingTranscriptWrites = [...this.transcriptPersistTimers.entries()];
@@ -2100,16 +2110,27 @@ export class DesktopAppStore implements AppStoreInternals {
 
   handleWindowActivation(): void {
     if (!this.markSelectedSessionViewedIfVisible()) {
-      void this.refreshPlatformAccountOnActivation();
+      void this.refreshPlatformAccountGlobally();
       return;
     }
 
     this.schedulePersistUiState();
     this.emit();
-    void this.refreshPlatformAccountOnActivation();
+    void this.refreshPlatformAccountGlobally();
   }
 
-  private async refreshPlatformAccountOnActivation(): Promise<void> {
+  private startPlatformAccountPolling(): void {
+    if (!this.platformAccountService || this.platformAccountPollTimer || this.platformAccountPollIntervalMs <= 0) {
+      return;
+    }
+
+    this.platformAccountPollTimer = setInterval(() => {
+      void this.refreshPlatformAccountGlobally();
+    }, this.platformAccountPollIntervalMs);
+    this.platformAccountPollTimer.unref?.();
+  }
+
+  private async refreshPlatformAccountGlobally(): Promise<void> {
     if (!this.platformAccountService || !this.state.platformAccount.authenticated) {
       return;
     }
@@ -2782,6 +2803,14 @@ function modelSettingsEqual(left: ModelSettingsSnapshot, right: ModelSettingsSna
 
 function stringArraysEqual(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function resolvePlatformAccountPollIntervalMs(): number {
+  const parsed = Number.parseInt(process.env[PLATFORM_ACCOUNT_POLL_INTERVAL_ENV] ?? "", 10);
+  if (!Number.isFinite(parsed)) {
+    return PLATFORM_ACCOUNT_POLL_INTERVAL_MS;
+  }
+  return Math.max(0, parsed);
 }
 
 function mergeEnabledModelPatterns(
